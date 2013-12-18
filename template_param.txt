@@ -1,0 +1,65 @@
+##V.1   do not remove this line
+# MetaPathways v1.0
+# Kishori M. Konwar, Niels W. Hanson
+# Parameter File
+
+INPUT:format fasta
+# e.g. fasta gbk-annotated gbk-unannotated gff-annotated gff-unannotated
+
+# Quality Control  parameters
+quality_control:min_length 180
+quality_control:delete_replicates yes
+
+# ORF prediction parameters
+orf_prediction:algorithm prodigal
+orf_prediction:min_length 60
+
+# ORF annotation parameters
+annotation:algorithm last
+# e.g. blast or last
+annotation:dbs CAZy.GH-2011-08-05
+# e.g. annotation:dbs    cog,kegg,refseq,metacyc
+annotation:min_bsr 0
+annotation:max_evalue 0.000001
+annotation:min_score 20
+annotation:min_length 60
+annotation:max_hits 5
+
+# rRNA annotation parameters
+rRNA:refdbs LSURef_111_tax_silva
+# e.g. rRNA:refdbs GREENGENES_gg16S,SSURef_111_NR_tax_silva,LSURef_111_tax_silva
+rRNA:max_evalue 0.000001
+rRNA:min_identity 20
+rRNA:min_bitscore 50
+
+# pathway tools parameters
+ptools_settings:taxonomic_pruning no
+
+# grid settings
+grid_engine:batch_size 200
+grid_engine:max_concurrent_batches 400
+grid_engine:walltime 10:00:00
+grid_engine:RAM 10gb
+grid_engine:user myusername
+grid_engine:server mygrid.domain.com
+
+# pipeline execution flags
+# e.g. yes, skip, redo
+metapaths_steps:PREPROCESS_FASTA yes
+metapaths_steps:ORF_PREDICTION yes
+metapaths_steps:GFF_TO_AMINO yes
+metapaths_steps:FILTERED_FASTA yes
+metapaths_steps:COMPUTE_REFSCORE yes
+metapaths_steps:BLAST_REFDB yes
+metapaths_steps:PARSE_BLAST yes
+metapaths_steps:SCAN_rRNA yes
+metapaths_steps:STATS_rRNA yes
+metapaths_steps:SCAN_tRNA yes
+metapaths_steps:ANNOTATE yes
+metapaths_steps:PATHOLOGIC_INPUT yes
+metapaths_steps:GENBANK_FILE yes
+metapaths_steps:CREATE_SEQUIN_FILE yes
+metapaths_steps:CREATE_REPORT_FILES yes
+metapaths_steps:MLTREEMAP_CALCULATION yes
+metapaths_steps:MLTREEMAP_IMAGEMAKER yes
+metapaths_steps:PATHOLOGIC yes
