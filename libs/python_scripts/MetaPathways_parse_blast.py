@@ -126,6 +126,7 @@ def create_dictionary(databasemapfile, annot_map):
        
 
 def create_refscores(refscores_file, refscore_map):
+       print 'in refscores ' + refscores_file
        refscorefile = open(refscores_file,'r')
        lines=refscorefile.readlines()
        refscorefile.close()
@@ -153,6 +154,7 @@ class BlastOutputParser(object):
         self.data = {}
         self.refscores = {}
 
+        #print "trying to open blastoutput file " + blastoutput
         try:
            self.blastoutputfile = open( blastoutput,'r')
 #           print "Going to read the blastout\n"
@@ -162,7 +164,7 @@ class BlastOutputParser(object):
     #       self.size = len(self.lines)
      
 #           print "Going to read the refscores\n"
-           # print refscore_file
+           #print 'inside try/catch with refscore file ' + refscore_file
            # exit()
            create_refscores(refscore_file, self.refscores)
 #           print "Doing reading  refscore\n"
@@ -417,9 +419,10 @@ def main(argv):
 #    infile = open(input_fasta,'r')
     dictionary={}
     for dbname, blastoutput, mapfile in zip( opts.database_name, opts.input_blastout, opts.database_map):
+        temp_refscore = ""
         if opts.algorithm == "LAST":
-            opts.refscore_file = opts.refscore_file + ".LAST"
-        process_blastoutput( dbname, blastoutput,  mapfile, opts.refscore_file, opts)
+            temp_refscore = opts.refscore_file + ".LAST"
+        process_blastoutput( dbname, blastoutput,  mapfile, temp_refscore, opts)
 
 def MetaPathways_parse_blast(argv):       
     main(argv)

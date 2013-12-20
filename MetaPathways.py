@@ -129,7 +129,7 @@ def create_input_output_pairs(input_dir, output_dir):
 
     paired_input = {} 
     for key, value in input_files.iteritems():
-            paired_input[input_dir + PATHDELIM + key]= path.abspath(output_dir) + PATHDELIM+ value
+            paired_input[input_dir + PATHDELIM + key] = path.abspath(output_dir) + PATHDELIM + value
 
     return paired_input
 

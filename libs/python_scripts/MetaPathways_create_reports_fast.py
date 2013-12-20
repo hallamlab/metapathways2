@@ -85,11 +85,9 @@ def check_arguments(opts, args):
          print "There sould be at least one database name"  
          return False
 
-
     if len(opts.input_blastout) != len(opts.database_name)  :
          print "The number of database names, blastoutputs files should be equal"
          return False
-
 
     if opts.input_annotated_gff == None:
        print "Must specify the input annotated gff file"
@@ -277,8 +275,8 @@ def create_annotation(results_dictionary, annotated_gff,  output_dir, ncbi_taxon
 
           species = []
           if 'refseq' in results_dictionary:
-            if orf['id']  in results_dictionary['refseq']:
-                for hit in   results_dictionary['refseq'][orf['id']]:
+            if orf['id'] in results_dictionary['refseq']:
+                for hit in results_dictionary['refseq'][orf['id']]:
                    names = get_species(hit)
                    if names:
                       species.append(names) 
@@ -294,17 +292,18 @@ def create_annotation(results_dictionary, annotated_gff,  output_dir, ncbi_taxon
           fprintf(output_table_file, "\t%s", orf['contig_length'])
           fprintf(output_table_file, "\t%s", orf['strand'])
           fprintf(output_table_file, "\t%s", orf['ec'])
-          #fprintf(output_table_file, "\t%s", str(species))
+          # fprintf(output_table_file, "\t%s", str(species))
           fprintf(output_table_file, "\t%s", taxonomy)
           fprintf(output_table_file, "\t%s\n", orf['product'])
           meganTree.insertTaxon(taxonomy)
           #print meganTree.getChildToParentMap()
                       
     output_table_file.close()
-    #print meganTree.getChildToParentMap()
-   # print meganTree.getParentToChildrenMap()
-
+    # print meganTree.getChildToParentMap()
+    # print meganTree.getParentToChildrenMap()
     megan_tree_file = open(output_dir + '/megan_tree.tre', 'w')
+    meganTree.printTree('1')
+    #exit()
     fprintf(megan_tree_file,  "%s;", meganTree.printTree('1'))
     megan_tree_file.close()
     
@@ -463,7 +462,7 @@ class BlastOutputTsvParser(object):
            self.refillBuffer()
 
         if self.i % self.SIZE < self.size:
-           fields = [ x.strip()  for x in self.lines[self.i % self.SIZE].rstrip().split('\t')]
+           fields = [ x.strip()  for x in self.lines[self.i % self.SIZE].split('\t')]
            try:
               self.data = {}
               self.data['query'] = fields[self.fieldmap['query']]
@@ -530,8 +529,8 @@ def process_parsed_blastoutput(dbname, blastoutput, cutoffs, annotation_results)
     count = 0 
     for data in blastparser:
         if data!=None and isWithinCutoffs(data, cutoffs) :
-           #if dbname=='refseq':
-            # print data['query'] + '\t' + str(data['q_length']) +'\t' + str(data['bitscore']) +'\t' + str(data['expect']) +'\t' + str(data['identity']) + '\t' + str(data['bsr']) + '\t' + data['ec'] + '\t' + data['product']
+           # if dbname=='refseq':
+           # print data['query'] + '\t' + str(data['q_length']) +'\t' + str(data['bitscore']) +'\t' + str(data['expect']) +'\t' + str(data['identity']) + '\t' + str(data['bsr']) + '\t' + data['ec'] + '\t' + data['product']
            
            annotation = {}
            for field in fields:
@@ -712,7 +711,7 @@ def main(argv):
     dbname_weight={}
     #import traceback
     for dbname, blastoutput in zip( opts.database_name, opts.input_blastout):
-        #print "Processing database " + dbname
+        print "Processing database " + dbname
         try:
            results_dictionary[dbname]={}
            process_parsed_blastoutput( dbname, blastoutput, opts, results_dictionary[dbname])
@@ -720,9 +719,8 @@ def main(argv):
            #traceback.print_exc()
            print "Error: " + dbname
            pass
-
     create_annotation(results_dictionary, opts.input_annotated_gff, opts.output_dir, opts.ncbi_taxonomy_map)
-
+    print "created annotation in create report"
     for dbname in results_dictionary:
        if  dbname=='cog':
           create_table(results_dictionary[dbname], opts.input_cog_maps, 'cog', opts.output_dir)
@@ -730,7 +728,7 @@ def main(argv):
        if  dbname=='kegg':
           create_table(results_dictionary[dbname], opts.input_kegg_maps, 'kegg', opts.output_dir)
 
-    
+    print "ran through everything in create report" 
 #    create_annotation(results_dictionary, opts.input_annotated_gff, opts.output_dir)
 def MetaPathways_create_reports_fast(argv):       
     main(argv)
