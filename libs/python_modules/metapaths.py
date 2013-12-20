@@ -238,11 +238,6 @@ def check_an_format_refdb(dbname, seqType,  config_settings, config_params):
         if check_if_raw_sequences_exist(seqPath):
             print "          Found raw sequences for  Database " + dbname + "!"
             print "          Trying to format on the fly ....!"
-            print executable
-            print seqType
-            print seqPath
-            print formattedDBPath
-            print algorithm
             result =format_db(executable, seqType, seqPath, formattedDBPath, algorithm)
             if result ==True:
                 print "          Formatting successful!"
@@ -289,8 +284,9 @@ def  make_sure_map_file_exists(config_settings, dbname):
 #        sys.exit(0)
 
 # creates the command to blast the sample orf sequences against the reference databases for the 
-#purpose of annotation
-def create_blastp_against_refdb_cmd(input, output, output_dir, sample_name, dbfilename, config_settings, config_params,  run_command, algorithm): 
+# purpose of annotation
+def create_blastp_against_refdb_cmd(input, output, output_dir, sample_name,
+        dbfilename, config_settings, config_params,  run_command, algorithm,db_type): 
     max_evalue = float(get_parameter(config_params, 'annotation', 'max_evalue', default=0.000001))
     system =    get_parameter(config_params,  'metapaths_steps', 'BLAST_REFDB', default='yes')
     max_hits =    get_parameter(config_params,  'annotation', 'max_hits', default=5)
@@ -314,18 +310,16 @@ def create_blastp_against_refdb_cmd(input, output, output_dir, sample_name, dbfi
        cmd = {'sample_name':output_dir,  'dbnames':[dbname], 'database_files':[dbfilename],\
                'run_type':'overlay', 'batch_size':batch_size,'max_parallel_jobs':max_concurrent_batches,\
                'mem':mem, 'walltime':walltime,\
-               'user':user, 'server':server, 'algorithm': algorithm }  
+               'user':user, 'server':server, 'algorithm': algorithm } 
     else:
        if algorithm == 'BLAST':
           cmd="%s -num_threads 16  -max_target_seqs %s  -outfmt 6  -db %s -query  %s -evalue  %f  -out %s"\
             %((config_settings['METAPATHWAYS_PATH'] + config_settings['BLASTP_EXECUTABLE']), max_hits,\
-             config_settings['REFDBS'] + PATHDELIM + dbfilename, input, max_evalue, output) 
-        
+             config_settings['REFDBS'] + PATHDELIM + db_type + PATHDELIM + 'formatted' + PATHDELIM + dbfilename, input, max_evalue, output) 
        if algorithm == 'LAST':
           cmd="%s -o %s -f 0 %s %s"\
             %((config_settings['METAPATHWAYS_PATH'] + config_settings['LAST_EXECUTABLE']), \
-              output, config_settings['REFDBS'] + PATHDELIM + dbfilename, input) 
-        
+              output, config_settings['REFDBS'] + PATHDELIM + db_type + PATHDELIM + 'formatted' + PATHDELIM + dbfilename, input) 
     return cmd
 
 
@@ -353,7 +347,7 @@ def create_parse_blast_cmd(input, refscorefile, dbname, dbmapfile,  config_setti
     if algorithm == 'BLAST':
        cmd = cmd + ' --algorithm BLAST'
 
-
+    
     #if dbname=='refseq':
     #   cmd = cmd + " --remove_tax"
 
@@ -383,7 +377,6 @@ def create_annotate_genebank_cmd(sample_name, input_unannotated_gff, output_anno
 
 def create_genbank_ptinput_sequin_cmd(input_annotated_gff, nucleotide_fasta, amino_fasta, outputs, config_settings, ncbi_params_file, ncbi_sequin_sbt):
     
-
     #tbl2asn_exe = config_settings['METAPATHWAYS_PATH'] + config_settings['TBL2ASN_EXECUTABLE']
 
     cmd="%s -g %s -n %s -p %s " %((config_settings['METAPATHWAYS_PATH'] + config_settings['GENBANK_FILE']), input_annotated_gff, nucleotide_fasta, amino_fasta) ; 
@@ -404,13 +397,17 @@ def create_genbank_ptinput_sequin_cmd(input_annotated_gff, nucleotide_fasta, ami
 
     return cmd
 
-def  create_report_files_cmd(dbs, input_dir, input_annotated_gff,  sample_name, output_dir, config_settings):
+def  create_report_files_cmd(dbs, input_dir, input_annotated_gff,  sample_name, output_dir, config_settings, algorithm):
     db_argument_string = ''
     for db in dbs:
         dbname = get_refdb_name(db)
         db_argument_string += ' -d ' + dbname
-        db_argument_string += ' -b ' + input_dir + sample_name +'.' + dbname + '.blastout.parsed.txt'
-     
+        db_argument_string += ' -b ' + input_dir + sample_name +'.' + dbname
+        if algorithm == "LAST":
+            db_argument_string += '.lastout.parsed.txt'
+        else:
+            db_argument_string += '.blastout.parsed.txt'
+    # construct command        
     cmd="%s %s --input-annotated-gff %s  --input-kegg-maps  %s  --input-cog-maps %s --output-dir %s --ncbi-taxonomy-map %s"\
            %((config_settings['METAPATHWAYS_PATH'] + config_settings['CREATE_REPORT_FILES']),\
               db_argument_string, input_annotated_gff,\
@@ -454,7 +451,7 @@ def create_pgdb_using_pathway_tools_cmd(output_fasta_pf_dir, taxonomic_pruning_f
     return cmd
  
 
-def create_scan_rRNA_seqs_cmd(input_fasta, output_blast, refdb, config_settings, config_params, command_Status):
+def create_scan_rRNA_seqs_cmd(input_fasta, output_blast, refdb, config_settings,config_params, command_Status, db_type):
 
     if command_Status:
        check_an_format_refdb(refdb, 'nucl',  config_settings, config_params)
@@ -465,7 +462,7 @@ def create_scan_rRNA_seqs_cmd(input_fasta, output_blast, refdb, config_settings,
 #       print "Error : Reference Database " + refdb + " does not exist!"
 #       sys.exit(0)
 
-    cmd="%s -outfmt 6 -num_threads 16  -query %s -out %s -db %s -max_target_seqs 5"%((config_settings['METAPATHWAYS_PATH'] + config_settings['BLASTN_EXECUTABLE']),input_fasta,output_blast, config_settings['REFDBS'] + PATHDELIM + refdb)
+    cmd="%s -outfmt 6 -num_threads 16  -query %s -out %s -db %s -max_target_seqs 5"%((config_settings['METAPATHWAYS_PATH'] + config_settings['BLASTN_EXECUTABLE']),input_fasta,output_blast, config_settings['REFDBS'] + PATHDELIM + db_type + PATHDELIM + 'formatted' + PATHDELIM + refdb)
     return cmd
 
 
@@ -1064,7 +1061,6 @@ def run_metapathways_before_BLAST(input_fp, output_dir, command_handler, command
     if config_params['INPUT']['format'] in ['fasta', 'gbk-unannotated', 'gff-unannotated' ]:
        #algorithm=  get_parameter( config_params,'annotation','algorithm')
        refscores_compute_cmd = create_refscores_compute_cmd(input_faa, output_refscores, config_settings, algorithm) 
-       print refscores_compute_cmd
        command_Status=  get_parameter( config_params,'metapaths_steps','COMPUTE_REFSCORE')
        print os.path.exists(input_faa)
        # if not hasInput(input_faa):
@@ -1115,16 +1111,18 @@ def run_metapathways_at_BLAST(input_fp, output_dir, command_handler, command_lin
     # BLAST THE ORFs AGAINST THE REFERENCE DATABASES  FOR FUNCTIONAL ANNOTATION
     commands = []
     dbstring = get_parameter(config_params, 'annotation', 'dbs', default=None)
+    # all these dbs are under functional
     dbs= dbstring.split(",")
     output_filtered_faa = orf_prediction_dir + PATHDELIM +  sample_name + ".qced.faa"   
     input_faa =  output_filtered_faa 
+
+    db_type = 'functional'
 
     if config_params['INPUT']['format'] in ['fasta', 'gbk-unannotated', 'gff-unannotated' ]:
        command_Status=  get_parameter( config_params,'metapaths_steps','BLAST_REFDB')
        message = "\n6. Blasting  ORFs against reference database - "
        for db in dbs:
              dbname = get_refdb_name(db);
-   
              blastoutput = blast_results_dir + PATHDELIM + sample_name + "." + dbname    # append "algorithout"
              blastoutput += "."+algorithm+ "out"
 
@@ -1133,7 +1131,8 @@ def run_metapathways_at_BLAST(input_fp, output_dir, command_handler, command_lin
               
              blast_against_refdb_cmd=create_blastp_against_refdb_cmd(input_faa, blastoutput,\
                                        output_dir,  sample_name, db,\
-                                      config_settings, config_params, enable_flag, algorithm)
+                                      config_settings, config_params, \
+                                      enable_flag, algorithm, db_type)
    
              commands.append([message + db + " ....", blast_against_refdb_cmd, 'BLAST_REFDB_' + dbname, command_Status, enable_flag])
              message = "\n                                               "
@@ -1216,9 +1215,9 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
 
 
     
-    # BLAST AGAINST rRNA REFERENCE DATABASES
+    # BLAST AGAINST rRNA REFERENCE DATABASES - are all under REFDBS/taxonomic
     input_fasta = preprocessed_dir +  PATHDELIM + sample_name + ".fasta" 
-
+    db_type = 'taxonomic'
     refdbstring = get_parameter(config_params, 'rRNA', 'refdbs', default=None)
     refdbnames= [ x.strip() for x in refdbstring.split(',') ]
 
@@ -1230,7 +1229,7 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
        rRNA_blastout= blast_results_dir + PATHDELIM + sample_name + ".rRNA." + get_refdb_name(refdbname) + ".blastout"
 
        command_Status=  get_parameter( config_params,'metapaths_steps','SCAN_rRNA')
-       scan_rRNA_seqs_cmd = create_scan_rRNA_seqs_cmd(input_fasta, rRNA_blastout, refdbname, config_settings, config_params, command_Status)
+       scan_rRNA_seqs_cmd = create_scan_rRNA_seqs_cmd(input_fasta,rRNA_blastout, refdbname, config_settings, config_params, command_Status, db_type)
 
        
        removeFileOnRedo(command_Status, rRNA_blastout)
@@ -1389,8 +1388,10 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
        removeFileOnRedo(command_Status, output_annot_table)
        enable_flag=shouldRunStep(run_type, output_annot_table)  
        message = "\n13. Creating KEGG and COG hits table and LCA based taxonomy table  "
-       input_dir = blast_results_dir +PATHDELIM #D+ sample_name + "." + dbname + ".blastout.parsed"
-       create_report_cmd=create_report_files_cmd(dbs, input_dir, input_annotated_gff, sample_name, output_results_annotation_table_dir, config_settings)
+       input_dir = blast_results_dir + PATHDELIM # D+ sample_name + "." + dbname + ".blastout.parsed"
+       create_report_cmd = create_report_files_cmd(dbs, input_dir, input_annotated_gff, sample_name, 
+                                                   output_results_annotation_table_dir, config_settings, 
+                                                   algorithm)
        commands.append( [message  + " ....", create_report_cmd, 'CREATE_REPORT_FILES', command_Status, enable_flag])
 
     #################################

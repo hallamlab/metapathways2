@@ -601,17 +601,20 @@ class BlastOutputTsvParser(object):
            for x in fields:
             self.fieldmap[x] = k 
             k+=1
-
+           print self.fieldmap
+           
         except AttributeError:
            print "Cannot read the map file for database :" + dbname
            sys.exit(0)
   
     def __iter__(self):
         return self
- 
+    count = 0 
     def next(self):
         if self.i < self.size:
-           fields = [ x.strip()  for x in self.lines[self.i].rstrip().split('\t')]
+           
+           fields = [ x.strip()  for x in self.lines[self.i].split('\t')]
+           #print self.fieldmap['ec'], fields, self.i,  self.blastoutput
            self.data['query'] = fields[self.fieldmap['query']]
            self.data['q_length'] = int(fields[self.fieldmap['q_length']])
            self.data['bitscore'] = float(fields[self.fieldmap['bitscore']])

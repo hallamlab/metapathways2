@@ -11,7 +11,7 @@ METAPATHWAYS_PATH  /Users/michaelwu/workspace/metapathways2-master
 # Replace with your current
 PATHOLOGIC_EXECUTABLE  /Users/michaelwu/pathway-tools/pathway-tools
 
-REFDBS /Users/michaelwu/workspace/metapathways2-master/blastDB 
+REFDBS  /Users/michaelwu/workspace/metapathways2-master/blastDB
 
 # Executables: replace 'mac' to your platform linux, mac, win
 # Bit type - bit32 or bit64
