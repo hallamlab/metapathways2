@@ -253,7 +253,7 @@ def main(argv):
     config_params=parse_metapaths_parameters(parameter_f)
 
     # add check the config parameters 
-
+    
     # PART1 before the blast
     for input_file, output_dir in input_output_list.iteritems():
         if run_type=='overwrite' and  path.exists(output_dir):
