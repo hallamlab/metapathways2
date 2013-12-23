@@ -251,7 +251,9 @@ def get_species(hit):
 
 
 def create_annotation(results_dictionary, annotated_gff,  output_dir, ncbi_taxonomy_tree_file):
-    lca = LCAComputation(ncbi_taxonomy_tree_file)
+    if 'refseq' in results_dictionary:
+        lca = LCAComputation(ncbi_taxonomy_tree_file)
+        meganTree = MeganTree(lca)
 
     if not path.exists(output_dir):
        makedirs(output_dir)
@@ -266,10 +268,11 @@ def create_annotation(results_dictionary, annotated_gff,  output_dir, ncbi_taxon
   
     fprintf(output_table_file, "ORF_ID\tORF_length\tstart\tend\tContig_Name\tContig_length\tstrand\tec\ttaxonomy\tproduct\n")
 
-    meganTree = MeganTree(lca)
     count = 0
     for contig in  gffreader:
        for orf in  gffreader.orf_dictionary[contig]:
+          taxonomy = None
+          meganTree = None
           if count%10000==0 :
              # print "fandt " + str(count)
              pass 
@@ -282,8 +285,10 @@ def create_annotation(results_dictionary, annotated_gff,  output_dir, ncbi_taxon
                       species.append(names) 
                       #print species
                       #print '---------------------------'
-
-          taxonomy=lca.getTaxonomy(species)
+          
+          if taxonomy:
+              taxonomy=lca.getTaxonomy(species)
+              print 'taxonomy is ', taxonomy
           fprintf(output_table_file, "%s", orf['id'])
           fprintf(output_table_file, "\t%s", orf['orf_length'])
           fprintf(output_table_file, "\t%s", orf['start'])
@@ -295,17 +300,22 @@ def create_annotation(results_dictionary, annotated_gff,  output_dir, ncbi_taxon
           # fprintf(output_table_file, "\t%s", str(species))
           fprintf(output_table_file, "\t%s", taxonomy)
           fprintf(output_table_file, "\t%s\n", orf['product'])
-          meganTree.insertTaxon(taxonomy)
+          if meganTree:
+              meganTree.insertTaxon(taxonomy)
+              print 'inserted taxon of taxonomy : ', taxonomy
           #print meganTree.getChildToParentMap()
                       
     output_table_file.close()
     # print meganTree.getChildToParentMap()
     # print meganTree.getParentToChildrenMap()
-    megan_tree_file = open(output_dir + '/megan_tree.tre', 'w')
-    meganTree.printTree('1')
-    #exit()
-    fprintf(megan_tree_file,  "%s;", meganTree.printTree('1'))
-    megan_tree_file.close()
+    if meganTree:
+        megan_tree_file = open(output_dir + '/megan_tree.tre', 'w')
+        meganTree.printTree('1')
+        print 'printed megantree(1)'
+        #exit()
+        fprintf(megan_tree_file,  "%s;", meganTree.printTree('1'))
+        print 'wrote out megan_tree_file'
+        megan_tree_file.close()
     
 
 
@@ -482,8 +492,8 @@ class BlastOutputTsvParser(object):
               print 'index ' + str(self.i)
               print 'data ' + str(self.data)
               print ">>>>>>-------"
-              import traceback 
-              print traceback.print_exc()
+#              import traceback 
+#              print traceback.print_exc()
               self.i = self.i + 1
               return None
            
@@ -764,7 +774,7 @@ def print_orf_table(results, refseq2peg,  output_dir):
     outputfile = open( output_dir +'/ORF_annotation_table.txt', 'w')
 
     orf_dict = {}
-    for dbname in ['refseq', 'cog', 'kegg' ]:
+    for dbname in results.iterkeys():
       for seqname in results[dbname]:
          for orf in results[dbname][seqname]:
            if not orf['query'] in orf_dict:
