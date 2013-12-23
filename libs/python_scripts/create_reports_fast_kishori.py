@@ -45,7 +45,6 @@ cutoffs_group.add_option("--min_length", dest="min_length", type='float', defaul
 cutoffs_group.add_option("--max_length", dest="max_length", type='float', default=10000,
                   help='the maximum length of query cutoff [default = 10000 ] ')
 
-
 cutoffs_group.add_option("--min_identity", dest="min_identity", type='float', default=20,
                   help='the minimum identity of query cutoff [default 30 ] ')
 cutoffs_group.add_option("--max_identity", dest="max_identity", type='float', default=100,
@@ -65,10 +64,12 @@ output_options_group.add_option("--ncbi-taxonomy-map", dest="ncbi_taxonomy_map",
 
 output_options_group.add_option( "--input-cog-maps", dest="input_cog_maps",
                  help='input cog maps file')
-output_options_group.add_option( "--seed2ncbi-file", dest="seed2ncbi_file", default = False,
-                 help='seed to ncbi mapss file')
+
 output_options_group.add_option( "--input-kegg-maps", dest="input_kegg_maps",
                  help='input kegg maps file')
+
+output_options_group.add_option( "--seed2ncbi-file", dest="seed2ncbi_file", default = False,
+                 help='seed to ncbi mapss file')
 
 output_options_group.add_option('--input-annotated-gff', dest='input_annotated_gff',
                 metavar='INPUT', help='Annotated gff file [REQUIRED]')
@@ -87,9 +88,11 @@ def check_arguments(opts, args):
          print "There sould be at least one database name"  
          return False
 
+
     if len(opts.input_blastout) != len(opts.database_name)  :
          print "The number of database names, blastoutputs files should be equal"
          return False
+
 
     if opts.input_annotated_gff == None:
        print "Must specify the input annotated gff file"
@@ -251,6 +254,7 @@ def get_species(hit):
 
 
 def create_annotation(results_dictionary, annotated_gff,  output_dir, ncbi_taxonomy_tree_file):
+
     lca = LCAComputation(ncbi_taxonomy_tree_file)
 
     if not path.exists(output_dir):
@@ -273,10 +277,11 @@ def create_annotation(results_dictionary, annotated_gff,  output_dir, ncbi_taxon
           if count%10000==0 :
              # print "fandt " + str(count)
              pass 
+
           species = []
           if 'refseq' in results_dictionary:
-            if orf['id'] in results_dictionary['refseq']:
-                for hit in results_dictionary['refseq'][orf['id']]:
+            if orf['id']  in results_dictionary['refseq']:
+                for hit in   results_dictionary['refseq'][orf['id']]:
                    names = get_species(hit)
                    if names:
                       species.append(names) 
@@ -292,18 +297,17 @@ def create_annotation(results_dictionary, annotated_gff,  output_dir, ncbi_taxon
           fprintf(output_table_file, "\t%s", orf['contig_length'])
           fprintf(output_table_file, "\t%s", orf['strand'])
           fprintf(output_table_file, "\t%s", orf['ec'])
-          # fprintf(output_table_file, "\t%s", str(species))
+          #fprintf(output_table_file, "\t%s", str(species))
           fprintf(output_table_file, "\t%s", taxonomy)
           fprintf(output_table_file, "\t%s\n", orf['product'])
           meganTree.insertTaxon(taxonomy)
           #print meganTree.getChildToParentMap()
                       
     output_table_file.close()
-    # print meganTree.getChildToParentMap()
-    # print meganTree.getParentToChildrenMap()
+    #print meganTree.getChildToParentMap()
+   # print meganTree.getParentToChildrenMap()
+
     megan_tree_file = open(output_dir + '/megan_tree.tre', 'w')
-    meganTree.printTree('1')
-    #exit()
     fprintf(megan_tree_file,  "%s;", meganTree.printTree('1'))
     megan_tree_file.close()
     
@@ -462,15 +466,14 @@ class BlastOutputTsvParser(object):
            self.refillBuffer()
 
         if self.i % self.SIZE < self.size:
-           fields = [ x.strip()  for x in self.lines[self.i % self.SIZE].split('\t')]
+           fields = [ x.strip()  for x in self.lines[self.i % self.SIZE].rstrip().split('\t')]
            try:
               self.data = {}
               self.data['query'] = fields[self.fieldmap['query']]
+              self.data['target'] = fields[self.fieldmap['target']]
               self.data['q_length'] = int(fields[self.fieldmap['q_length']])
               self.data['bitscore'] = float(fields[self.fieldmap['bitscore']])
               self.data['bsr'] = float(fields[self.fieldmap['bsr']])
-              self.data['target'] = fields[self.fieldmap['target']]
-              self.data['aln_length'] = float(fields[self.fieldmap['aln_length']])
               self.data['expect'] = float(fields[self.fieldmap['expect']])
               self.data['identity'] = float(fields[self.fieldmap['identity']])
               self.data['ec'] = fields[self.fieldmap['ec']]
@@ -482,8 +485,7 @@ class BlastOutputTsvParser(object):
               print 'index ' + str(self.i)
               print 'data ' + str(self.data)
               print ">>>>>>-------"
-              import traceback 
-              print traceback.print_exc()
+                
               self.i = self.i + 1
               return None
            
@@ -526,14 +528,14 @@ def isWithinCutoffs(data, cutoffs):
 def process_parsed_blastoutput(dbname, blastoutput, cutoffs, annotation_results):
     blastparser =  BlastOutputTsvParser(dbname, blastoutput)
 
-    fields = ['target', 'q_length', 'bitscore', 'bsr', 'expect', 'identity', 'ec', 'query' ]
+    fields = ['q_length', 'bitscore', 'bsr', 'expect', 'identity', 'ec', 'query', 'target' ]
     fields.append('product')
 
     count = 0 
     for data in blastparser:
         if data!=None and isWithinCutoffs(data, cutoffs) :
-           # if dbname=='refseq':
-           # print data['query'] + '\t' + str(data['q_length']) +'\t' + str(data['bitscore']) +'\t' + str(data['expect']) +'\t' + str(data['identity']) + '\t' + str(data['bsr']) + '\t' + data['ec'] + '\t' + data['product']
+           #if dbname=='refseq':
+            # print data['query'] + '\t' + str(data['q_length']) +'\t' + str(data['bitscore']) +'\t' + str(data['expect']) +'\t' + str(data['identity']) + '\t' + str(data['bsr']) + '\t' + data['ec'] + '\t' + data['product']
            
            annotation = {}
            for field in fields:
@@ -604,6 +606,28 @@ def kegg_id(product):
        kegg_id=results.group(0)
     return kegg_id
 
+def refseq_id(product):
+    results = re.search(r'gi\|[0-9.]*', product)
+    refseq_id = ''
+    if results:
+       refseq_id=results.group(0)
+    return refseq_id
+
+
+def process_subsys2peg_file(refseq2peg, seed2ncbi_file):
+     try:
+         orgfile = open(seed2ncbi_file,'r')
+     except IOError:
+         print "Cannot open " + str(org_file)
+
+     lines = orgfile.readlines()
+     orgfile.close()
+     for line in lines:
+        hits = line.split('\t')
+        if len(hits) > 2:
+           refseq2peg[hits[0]]= hits[2]
+
+
 def create_table(results, dbname_map_filename, dbname, output_dir):
     if not path.exists(output_dir):
        makedirs(output_dir)
@@ -611,7 +635,7 @@ def create_table(results, dbname_map_filename, dbname, output_dir):
     field_to_description = {}
     hierarchical_map = {}
     read_map_file(dbname_map_filename, field_to_description, hierarchical_map)
-
+    
     orthology_count = {}
     for key in field_to_description:
        orthology_count[key] = 0 
@@ -665,6 +689,7 @@ def create_table(results, dbname_map_filename, dbname, output_dir):
 
 
 
+
 def print_counts_at_level(hierarchical_map, field_to_description,  depth, level, outputfile, printKey=True, header=None): 
     
     if type(hierarchical_map) is type(0):
@@ -713,16 +738,17 @@ def main(argv):
     dbname_weight={}
     #import traceback
     for dbname, blastoutput in zip( opts.database_name, opts.input_blastout):
-        print "Processing database " + dbname
+        #print "Processing database " + dbname
         try:
            results_dictionary[dbname]={}
            process_parsed_blastoutput( dbname, blastoutput, opts, results_dictionary[dbname])
         except:
-           traceback.print_exec()
+           #traceback.print_exc()
            print "Error: " + dbname
            pass
+
     create_annotation(results_dictionary, opts.input_annotated_gff, opts.output_dir, opts.ncbi_taxonomy_map)
-    print "created annotation in create report"
+
     for dbname in results_dictionary:
        if  dbname=='cog':
           create_table(results_dictionary[dbname], opts.input_cog_maps, 'cog', opts.output_dir)
@@ -736,27 +762,7 @@ def main(argv):
 
     print_orf_table(results_dictionary, refseq2peg,  opts.output_dir)
 
-def refseq_id(product):
-    results = re.search(r'gi\|[0-9.]*', product)
-    refseq_id = ''
-    if results:
-       refseq_id=results.group(0)
-    return refseq_id
-
-
-def process_subsys2peg_file(refseq2peg, seed2ncbi_file):
-     try:
-         orgfile = open(seed2ncbi_file,'r')
-     except IOError:
-         print "Cannot open " + str(org_file)
-
-     lines = orgfile.readlines()
-     orgfile.close()
-     for line in lines:
-        hits = line.split('\t')
-        if len(hits) > 2:
-           refseq2peg[hits[0]]= hits[2]
- 
+    
 def print_orf_table(results, refseq2peg,  output_dir):
     if not path.exists(output_dir):
        makedirs(output_dir)
@@ -814,8 +820,7 @@ def print_orf_table(results, refseq2peg,  output_dir):
 
     outputfile.close() 
 
-    print "ran through everything in create report" 
-#    create_annotation(results_dictionary, opts.input_annotated_gff, opts.output_dir)
+
 def MetaPathways_create_reports_fast(argv):       
     main(argv)
     return (0,'')

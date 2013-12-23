@@ -180,11 +180,11 @@ class BlastOutputParser(object):
  
     def permuteForLAST(self, words):
         try :
-           temp = copy(words) 
-           words[0] = temp[6]
-          # word[1] = temp[1]
+           temp = copy(words)
+           words[0] = temp[6] # query
+           words[1] = temp[1] # target
            words[2] = 100.0 # percent id
-          # word[3] = temp[3]  #aln length
+           words[3] = temp[3]  #aln length
            words[6] = temp[2]
            words[7] = int(temp[2]) + int(temp[3]) - 1
            words[10] = 0.0   # evalue
@@ -246,6 +246,11 @@ class BlastOutputParser(object):
               
 def isWithinCutoffs(words, data, cutoffs, annot_map, refscores):
     data['query'] = words[0]
+
+    try:
+       data['target'] = words[1]
+    except:
+       data['target'] = 0
 
     try:
        data['q_length'] = int(words[7]) - int(words[6]) + 1
@@ -375,7 +380,7 @@ def add_refscore_to_file(blast_table_out, refscore_file, allNames):
 def process_blastoutput(dbname, blastoutput,  mapfile, refscore_file, opts):
     blastparser =  BlastOutputParser(dbname, blastoutput, mapfile, refscore_file, opts)
 
-    fields = ['q_length', 'bitscore', 'bsr', 'expect', 'aln_length', 'identity', 'ec' ]
+    fields = ['target','q_length', 'bitscore', 'bsr', 'expect', 'aln_length', 'identity', 'ec' ]
     if opts.taxonomy:
        fields.append('taxonomy')
     fields.append('product')
