@@ -407,13 +407,12 @@ def  create_report_files_cmd(dbs, input_dir, input_annotated_gff,  sample_name, 
             db_argument_string += '.lastout.parsed.txt'
         else:
             db_argument_string += '.blastout.parsed.txt'
+    base = config_settings['REFDBS'] + PATHDELIM + 'functional_categories' + PATHDELIM
     # construct command        
-    cmd="%s %s --input-annotated-gff %s  --input-kegg-maps  %s  --input-cog-maps %s --output-dir %s --ncbi-taxonomy-map %s"\
+    cmd="%s %s --input-annotated-gff %s  --input-kegg-maps  %s  --input-cog-maps %s --output-dir %s --ncbi-taxonomy-map %s --seed2ncbi-file %s"\
            %((config_settings['METAPATHWAYS_PATH'] + config_settings['CREATE_REPORT_FILES']),\
               db_argument_string, input_annotated_gff,\
-              config_settings['REFDBS'] + PATHDELIM + 'KO_classification.txt',\
-            config_settings['REFDBS'] + PATHDELIM + 'COG_categories.txt',  output_dir, \
-        config_settings['REFDBS'] + PATHDELIM + 'ncbi_taxonomy_tree.txt')
+              base + 'KO_classification.txt', base + 'COG_categories.txt',  output_dir, base + 'ncbi_taxonomy_tree.txt', base + 'seed2ncbi' )
     return cmd
 
 
@@ -1010,7 +1009,7 @@ def run_metapathways_before_BLAST(input_fp, output_dir, command_handler, command
          enable_flag = shouldRunStep(run_type,  output_gff) 
         
          #add command
-         commands.append(["\n2. Running Orf Prediction ....", orf_prediction_cmd, 'ORF_PREDICTION',command_Status, enable_flag])
+         commands.append(["\n2. Running ORF Prediction ....", orf_prediction_cmd, 'ORF_PREDICTION',command_Status, enable_flag])
          #################################
 
 
