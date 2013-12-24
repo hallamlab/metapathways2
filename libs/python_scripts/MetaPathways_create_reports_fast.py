@@ -251,6 +251,7 @@ def get_species(hit):
 
 
 def create_annotation(results_dictionary, annotated_gff,  output_dir, ncbi_taxonomy_tree_file):
+    meganTree = None
     if 'refseq' in results_dictionary:
         lca = LCAComputation(ncbi_taxonomy_tree_file)
         meganTree = MeganTree(lca)
@@ -261,18 +262,14 @@ def create_annotation(results_dictionary, annotated_gff,  output_dir, ncbi_taxon
    
     orf_dictionary={}
     #process_gff_file(annotated_gff, orf_dictionary)
-
     gffreader = GffFileParser(annotated_gff)
-
     output_table_file = open(output_dir + '/functional_and_taxonomic_table.txt', 'w')
-  
     fprintf(output_table_file, "ORF_ID\tORF_length\tstart\tend\tContig_Name\tContig_length\tstrand\tec\ttaxonomy\tproduct\n")
 
     count = 0
     for contig in  gffreader:
        for orf in  gffreader.orf_dictionary[contig]:
           taxonomy = None
-          meganTree = None
           if count%10000==0 :
              # print "fandt " + str(count)
              pass 
@@ -286,9 +283,7 @@ def create_annotation(results_dictionary, annotated_gff,  output_dir, ncbi_taxon
                       #print species
                       #print '---------------------------'
           
-          if taxonomy:
-              taxonomy=lca.getTaxonomy(species)
-              print 'taxonomy is ', taxonomy
+          taxonomy=lca.getTaxonomy(species)
           fprintf(output_table_file, "%s", orf['id'])
           fprintf(output_table_file, "\t%s", orf['orf_length'])
           fprintf(output_table_file, "\t%s", orf['start'])
@@ -300,7 +295,7 @@ def create_annotation(results_dictionary, annotated_gff,  output_dir, ncbi_taxon
           # fprintf(output_table_file, "\t%s", str(species))
           fprintf(output_table_file, "\t%s", taxonomy)
           fprintf(output_table_file, "\t%s\n", orf['product'])
-          if meganTree:
+          if meganTree and taxonomy != '':
               meganTree.insertTaxon(taxonomy)
               print 'inserted taxon of taxonomy : ', taxonomy
           #print meganTree.getChildToParentMap()
@@ -621,7 +616,8 @@ def create_table(results, dbname_map_filename, dbname, output_dir):
     field_to_description = {}
     hierarchical_map = {}
     read_map_file(dbname_map_filename, field_to_description, hierarchical_map)
-
+    
+    #print field_to_description
     orthology_count = {}
     for key in field_to_description:
        orthology_count[key] = 0 
@@ -728,11 +724,13 @@ def main(argv):
            results_dictionary[dbname]={}
            process_parsed_blastoutput( dbname, blastoutput, opts, results_dictionary[dbname])
         except:
-           traceback.print_exec()
+           import traceback
+           traceback.print_exc()
            print "Error: " + dbname
            pass
     create_annotation(results_dictionary, opts.input_annotated_gff, opts.output_dir, opts.ncbi_taxonomy_map)
     print "created annotation in create report"
+    # print results_dictionary['cog']
     for dbname in results_dictionary:
        if  dbname=='cog':
           create_table(results_dictionary[dbname], opts.input_cog_maps, 'cog', opts.output_dir)
