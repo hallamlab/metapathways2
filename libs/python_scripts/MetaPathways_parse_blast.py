@@ -287,9 +287,7 @@ def isWithinCutoffs(words, data, cutoffs, annot_map, refscores):
     try:
        data['product'] = annot_map[words[1]]
     except:
-       print words
-       sys.exit()
-       sys.exit("Sequence with name \"" + words[1] + "\" is not present in map file ")
+       print("Sequence with name \"" + words[1] + "\" is not present in map file ")
        data['product'] = 'hypothetical protein'
 
     try:
@@ -400,7 +398,7 @@ def process_blastoutput(dbname, blastoutput,  mapfile, refscore_file, opts):
         try:
           fprintf(outputfile, "%s",data['query'])
         except:
-           print data
+           print 'data is : ', data, '\n'
            sys.exit()
         for field in fields:
            fprintf(outputfile, "\t%s",data[field])

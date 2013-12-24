@@ -17,7 +17,7 @@ orf_prediction:min_length 60
 # ORF annotation parameters
 annotation:algorithm last
 # e.g. blast or last
-annotation:dbs CAZy_2013-07-13_short
+annotation:dbs RefSeq_complete_nr_v62_dec2013_short,COG_2013-02-05_short,metacyc-v5-2011-10-21_short,KEGG_pep_2013_short
 # e.g. annotation:dbs    cog,kegg,refseq,metacyc
 annotation:min_bsr 0
 annotation:max_evalue 0.000001
@@ -26,7 +26,7 @@ annotation:min_length 60
 annotation:max_hits 5
 
 # rRNA annotation parameters
-rRNA:refdbs GREENGENES_gg16S-2013-09-12_short
+rRNA:refdbs GREENGENES_gg16S-2013-09-12_short,LSURef_111_tax_silva_short,SSURef_NR99_115_tax_silva_2012-12-12_short
 # e.g. rRNA:refdbs GREENGENES_gg16S,SSURef_111_NR_tax_silva,LSURef_111_tax_silva
 rRNA:max_evalue 0.000001
 rRNA:min_identity 20
