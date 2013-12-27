@@ -3,3 +3,8 @@ template_param.txt
 *.pyc
 MetaPathways2
 .*.swp
+blastDB
+executables
+mltreemap
+input
+output

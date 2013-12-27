@@ -14,7 +14,7 @@ try:
    import os
    import sys
    from sysutil import getstatusoutput, pathDelim
-   from utils import hasInput
+   from utils import hasInput, createFolderIfNotFound
    #from metapaths_utils  import parse_command_line_parameters
    from parse  import parse_metapaths_parameters
    from metapaths_pipeline import print_commands, call_commands_serially, WorkflowLogger, generate_log_fp, generate_steps_log_fp
@@ -182,7 +182,6 @@ def create_refscores_compute_cmd(input, output, config_settings, algorithm):
     return cmd
 
 def formatted_db_exists(dbname, suffixes):
-
     for suffix in suffixes:
        fileList = glob(dbname + suffix) 
        if not fileList:
@@ -196,38 +195,44 @@ def check_if_raw_sequences_exist(filename):
 # Makes sure that the ref database is formatted for blasting 
 def check_an_format_refdb(dbname, seqType,  config_settings, config_params): 
     algorithm=  get_parameter( config_params,'annotation','algorithm').upper()
-
+    
     suffixes=[]
-
-    # we do not use LAST for searchingin the SSU databases, e.g., greengenes, silva, etc
-    # if the db formatting request is done with nucl and LAST, we switch to BLAST based
-    # formatting
+    
+    # we do not use LAST for searchingin the taxonomic databases, e.g., greengenes, silva, etc
+    # if the db formatting request is done with nucl and LAST, we switch to BLAST-based formatting
     if algorithm == 'LAST' and seqType == 'nucl':
        algorithm = 'BLAST'
-
+    
     if algorithm == 'LAST' and seqType == 'prot':
         suffixes = [ '*.des', '*.sds', '*.suf', '*.bck', '*.prj', '*.ssp', '*.tis' ]
     
-        
     if algorithm == 'BLAST':
       if seqType=='prot':
         suffixes = ['*.phr', '*.psq', '*.pin']
-
+    
       if seqType=='nucl':
         suffixes = ['*.nhr', '*.nsq', '*.nin']
-
+        
+    # formatted DB directories
+    taxonomic_formatted = config_settings['REFDBS'] + PATHDELIM + 'taxonomic' + PATHDELIM + 'formatted'
+    functional_formatted = config_settings['REFDBS'] + PATHDELIM + 'functional' + PATHDELIM + 'formatted'
+    # check if formatted folder exists, if not create it
+    for d in [taxonomic_formatted, functional_formatted]:
+        if not createFolderIfNotFound(d):
+            print "WARNING : Creating formatted subdirectory in blastDB folder."
     
+    # formatted database output paths
     if seqType == 'nucl':
        seqPath= config_settings['REFDBS'] + PATHDELIM + 'taxonomic' + PATHDELIM +  dbname
-       formattedDBPath = config_settings['REFDBS'] + PATHDELIM + 'taxonomic' + PATHDELIM + 'formatted' + PATHDELIM +  dbname
+       formattedDBPath = taxonomic_formatted + PATHDELIM +  dbname
     elif seqType == 'prot':
        seqPath = config_settings['REFDBS'] + PATHDELIM + 'functional' + PATHDELIM +  dbname
-       formattedDBPath = config_settings['REFDBS'] + PATHDELIM + 'functional' + PATHDELIM + 'formatted' + PATHDELIM +  dbname
+       formattedDBPath = functional_formatted + PATHDELIM +  dbname
     else:
        print "WARNING : Undefined sequnce type for  " + dbname + "!" 
-       return 
-      
-
+       return
+    
+    # database formatting executables paths
     if algorithm == 'LAST' and seqType =='prot':
       executable  = config_settings['METAPATHWAYS_PATH'] + PATHDELIM + config_settings['LASTDB_EXECUTABLE']
     else: # algorithm == 'BLAST':
