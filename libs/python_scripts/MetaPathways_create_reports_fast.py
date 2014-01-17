@@ -252,6 +252,7 @@ def get_species(hit):
 
 def create_annotation(results_dictionary, annotated_gff,  output_dir, ncbi_taxonomy_tree_file):
     meganTree = None
+    lca = None
     if 'refseq' in results_dictionary:
         lca = LCAComputation(ncbi_taxonomy_tree_file)
         meganTree = MeganTree(lca)
@@ -282,8 +283,8 @@ def create_annotation(results_dictionary, annotated_gff,  output_dir, ncbi_taxon
                       species.append(names) 
                       #print species
                       #print '---------------------------'
-          
-          taxonomy=lca.getTaxonomy(species)
+          if lca: 
+            taxonomy=lca.getTaxonomy(species)
           fprintf(output_table_file, "%s", orf['id'])
           fprintf(output_table_file, "\t%s", orf['orf_length'])
           fprintf(output_table_file, "\t%s", orf['start'])
@@ -297,7 +298,7 @@ def create_annotation(results_dictionary, annotated_gff,  output_dir, ncbi_taxon
           fprintf(output_table_file, "\t%s\n", orf['product'])
           if meganTree and taxonomy != '':
               meganTree.insertTaxon(taxonomy)
-              print 'inserted taxon of taxonomy : ', taxonomy
+              # print 'inserted taxon of taxonomy : ', taxonomy
           #print meganTree.getChildToParentMap()
                       
     output_table_file.close()
@@ -306,10 +307,10 @@ def create_annotation(results_dictionary, annotated_gff,  output_dir, ncbi_taxon
     if meganTree:
         megan_tree_file = open(output_dir + '/megan_tree.tre', 'w')
         meganTree.printTree('1')
-        print 'printed megantree(1)'
-        #exit()
+        # print 'printed megantree(1)'
+        # exit()
         fprintf(megan_tree_file,  "%s;", meganTree.printTree('1'))
-        print 'wrote out megan_tree_file'
+        # print 'wrote out megan_tree_file'
         megan_tree_file.close()
     
 
