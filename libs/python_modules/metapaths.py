@@ -73,6 +73,9 @@ def get_refdb_name( dbstring ):
     if re.search("refseq",dbstring):
         dbname = "refseq"
         return dbname
+    if re.search("seed",dbstring):
+        dbname = "seed"
+        return dbname
 
     if re.search("InnateDB_human",dbstring, re.I):
         dbname = "innatehuman"
@@ -412,12 +415,15 @@ def  create_report_files_cmd(dbs, input_dir, input_annotated_gff,  sample_name, 
             db_argument_string += '.lastout.parsed.txt'
         else:
             db_argument_string += '.blastout.parsed.txt'
-    base = config_settings['REFDBS'] + PATHDELIM + 'functional_categories' + PATHDELIM
+    basefun = config_settings['REFDBS'] + PATHDELIM + 'functional_categories' + PATHDELIM
+    basencbi = config_settings['REFDBS'] + PATHDELIM + 'ncbi_tree' + PATHDELIM
     # construct command        
-    cmd="%s %s --input-annotated-gff %s  --input-kegg-maps  %s  --input-cog-maps %s --output-dir %s --ncbi-taxonomy-map %s --seed2ncbi-file %s"\
+    #cmd="%s %s --input-annotated-gff %s  --input-kegg-maps  %s  --input-cog-maps %s --output-dir %s --ncbi-taxonomy-map %s --seed2ncbi-file %s"\
+    cmd="%s %s --input-annotated-gff %s  --input-kegg-maps  %s  --input-cog-maps %s --output-dir %s --ncbi-taxonomy-map %s "\
            %((config_settings['METAPATHWAYS_PATH'] + config_settings['CREATE_REPORT_FILES']),\
               db_argument_string, input_annotated_gff,\
-              base + 'KO_classification.txt', base + 'COG_categories.txt',  output_dir, base + 'ncbi_taxonomy_tree.txt', base + 'seed2ncbi' )
+              basefun + 'KO_classification.txt', basefun + 'COG_categories.txt',  output_dir,\
+               basencbi + 'ncbi_taxonomy_tree.txt')
     return cmd
 
 
@@ -1045,7 +1051,7 @@ def run_metapathways_before_BLAST(input_fp, output_dir, command_handler, command
 
     create_filtered_amino_acid_sequences_cmd = create_create_filtered_amino_acid_sequences_cmd(input_gbk_faa, 
                                                output_filtered_faa, orf_lengths_file, amino_stats_file, min_length, config_settings)
-    command_Status=  get_parameter( config_params,'metapaths_steps','FILTERED_FASTA')
+    command_Status=  get_parameter(config_params,'metapaths_steps','FILTERED_FASTA')
     removeFileOnRedo(command_Status, output_filtered_faa)
     removeFileOnRedo(command_Status, amino_stats_file)
     removeFileOnRedo(command_Status, orf_lengths_file)
@@ -1124,7 +1130,7 @@ def run_metapathways_at_BLAST(input_fp, output_dir, command_handler, command_lin
 
     if config_params['INPUT']['format'] in ['fasta', 'gbk-unannotated', 'gff-unannotated' ]:
        command_Status=  get_parameter( config_params,'metapaths_steps','BLAST_REFDB')
-       message = "\n6. Blasting  ORFs against reference database - "
+       message = "\n6. " + algorithm.upper() + "ing ORFs against reference database - "
        for db in dbs:
              dbname = get_refdb_name(db);
              blastoutput = blast_results_dir + PATHDELIM + sample_name + "." + dbname    # append "algorithout"

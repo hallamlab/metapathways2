@@ -9,6 +9,9 @@ class LCAComputation:
     name_to_id={}
     id_to_name={}
     taxid_to_ptaxid = {}
+    min_score = 50
+    top_percent = 10 
+    min_support = 5
     def __init__(self, filename):
        taxonomy_file = open(filename, 'r')
        lines = taxonomy_file.readlines()
@@ -24,7 +27,11 @@ class LCAComputation:
           self.id_to_name[str(fields[1])] = str(fields[0])
           self.taxid_to_ptaxid[str(fields[1])] = [ str(fields[2]), 0]
 
-
+    def setParameters(self, min_score, top_percent, min_support):
+       self.min_score = min_score
+       self.top_percent =top_percent
+       self.min_support = min_support
+         
     def sizeTaxnames(self ):
          return len(self.name_to_id)
 

@@ -61,7 +61,7 @@ def contract_key_value_file(fileName):
 
      file = open(fileName,'r')
      lines = file.readlines()
-     if len(lines) < 200:
+     if len(lines) < 20:
         file.close()
         return
 
