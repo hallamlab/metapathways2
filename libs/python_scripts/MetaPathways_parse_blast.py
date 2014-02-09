@@ -384,9 +384,12 @@ def process_blastoutput(dbname, blastoutput,  mapfile, refscore_file, opts):
     fields.append('product')
 
     output_blastoutput_parsed = blastoutput + '.parsed.txt'
+    
+    # temporary file is used to deal with incomplete processing of the file
     output_blastoutput_parsed_tmp =  output_blastoutput_parsed + ".tmp"
     outputfile = open(output_blastoutput_parsed_tmp, 'w') 
 
+    # write the headers out
     fprintf(outputfile, "#%s",'query')
     for field in fields:
          fprintf(outputfile,"\t%s",field)

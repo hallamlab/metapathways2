@@ -62,8 +62,8 @@ cutoffs_group.add_option("--max_identity", dest="max_identity", type='float', de
 cutoffs_group.add_option("--limit", dest="limit", type='float', default=5,
                   help='max number of hits per query cutoff [default = 5 ] ')
 
-cutoffs_group.add_option("--min_bsr", dest="min_bsr", type='float', default=0.30,
-                  help='minimum BIT SCORE RATIO [default = 0.30 ] ')
+cutoffs_group.add_option("--min_bsr", dest="min_bsr", type='float', default=0.00,
+                  help='minimum BIT SCORE RATIO [default = 0.00 ] ')
 parser.add_option_group(cutoffs_group)
 
 
@@ -513,11 +513,11 @@ def process_product(product, database, similarity_threshold=0.9):
             kegg_product = kegg_product.strip()
             kegg_product = re.sub(r'(, \b[a-z]{3}[A-Z]?\b)+', '', kegg_product)
             kegg_product = re.sub(r'^\b[a-z]{3}[A-Z]?\b', '', kegg_product)
+            # get KO number 
             kegg_product = re.sub(r'\bK\d{5}\b', '', kegg_product)
-            
-            # Also toss out anything between square brackets
 
-            kegg_product = re.sub(r'\[.+?\]', '', kegg_product)
+            # Also toss out anything between square brackets
+            kegg_product = re.sub(r'\[.*\]', '', kegg_product)
 
             if kegg_product.strip():
                 processed_product=kegg_product.strip()
@@ -535,14 +535,25 @@ def process_product(product, database, similarity_threshold=0.9):
     # MetaCyc: split and process
 
     elif database == 'metacyc':
-        
         # Pull out first name after the accession code:
-
         product_name = product.split('#')[0].strip()
         product_name = re.sub(r'^[^ ]* ', '', product_name)
         product_name = re.sub(r' OS=.*', '', product_name)
         if product_name:
             processed_product=product_name
+
+    # Seed: split and process
+
+    elif database == 'seed':
+        for subproduct in product.split('; '):
+            #subproduct = re.sub(r'[a-z]{2,}\|(.+?)\|\S*', '', subproduct)
+            subproduct = re.sub(r'\[.+?\]', '', subproduct)
+            subproduct = re.sub(r'\(.+?\)', '', subproduct)
+            if subproduct.strip():
+                processed_product=subproduct.strip()
+
+    # MetaCyc: split and process
+
     # Generic
     else:
         processed_product=product
@@ -555,12 +566,11 @@ def process_product(product, database, similarity_threshold=0.9):
        if not  underscore_pattern.search(word) and not arrow_pattern.search(word):
            filtered_words.append(word)
     
+
     #processed_product = ' '.join(filtered_words)
     # Chop out hypotheticals
     processed_product = remove_repeats(filtered_words)
     processed_product = re.sub(';','',processed_product)
-
-
 
     processed_product = re.sub(r'hypothetical protein','', processed_product)
 
