@@ -427,7 +427,6 @@ def process_blastoutput(dbname, blastoutput,  mapfile, refscore_file, opts):
     rename(output_blastoutput_parsed_tmp, output_blastoutput_parsed)
 
 
-#    add_refscore_to_file(blastoutput,refscore_file, allNames)
     return None
 
 # the main function
