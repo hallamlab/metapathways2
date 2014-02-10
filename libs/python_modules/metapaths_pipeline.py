@@ -184,7 +184,7 @@ def call_commands_serially(commands, status_update_callback, logger, stepslogger
            return (0,'')
 
         if params['verbose']:
-             eprintf("\n\n\nIssuing Command : %s\n", c[1])
+             eprintf("\n\n\nEXECUTED COMMAND : %s\n", c[1])
 
         eprintf("%s" %(c[0]))
         stepslogger.write('%s\t%s\n' %(c[2], "RUNNING"))

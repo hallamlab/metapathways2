@@ -105,28 +105,49 @@ def check_arguments(opts, args):
 
     return True
 
-def create_dictionary(databasemapfile, annot_map):
-       seq_beg_pattern = re.compile(">")
 
+
+def create_query_dictionary(blastoutputfile, query_dictionary, algorithm ):
+       seq_beg_pattern = re.compile("^#")
+
+       blastoutfh = open( blastoutputfile,'r')
+
+       for line in blastoutfh:
+          if not seq_beg_pattern.search(line):
+              words = line.rstrip().split('\t')
+              if len(words) != 12: 
+                  continue
+
+              if algorithm =='BLAST': 
+                 query_dictionary[words[0]] = 1
+
+              if algorithm =='LAST': 
+                 query_dictionary[words[1]]= 1
+       blastoutfh.close()
+        
+       
+
+def create_dictionary(databasemapfile, annot_map, query_dictionary):
+#       print "query size " + str(len(query_dictionary))
+       seq_beg_pattern = re.compile(">")
        dbmapfile = open( databasemapfile,'r')
-       lines=dbmapfile.readlines()
-       dbmapfile.close()
-       for line in lines:
+
+       for line in dbmapfile:
           if seq_beg_pattern.search(line):
               words = line.rstrip().split()
               name = words[0].replace('>','',1)
-               
+              if not name in query_dictionary: 
+                 continue
               words.pop(0)
               annotation = ' '.join(words)
-              annot_map[name]= annotation
+              annot_map[name] = annotation
+       dbmapfile.close()
 
        if len(annot_map) ==0:
            sys.exit( "File " + databasemapfile + " seems to be empty!" ) 
         
-       
-
 def create_refscores(refscores_file, refscore_map):
-       print 'in refscores ' + refscores_file
+#       print 'in refscores ' + refscores_file
        refscorefile = open(refscores_file,'r')
        lines=refscorefile.readlines()
        refscorefile.close()
@@ -156,20 +177,15 @@ class BlastOutputParser(object):
 
         #print "trying to open blastoutput file " + blastoutput
         try:
-           self.blastoutputfile = open( blastoutput,'r')
-#           print "Going to read the blastout\n"
-    #       self.lines=self.blastoutputfile.readlines()
-           #self.blastoutputfile.close()
-#           print "Doing reading  blastout\n"
-    #       self.size = len(self.lines)
-     
-#           print "Going to read the refscores\n"
-           #print 'inside try/catch with refscore file ' + refscore_file
-           # exit()
+           query_dictionary = {}
+           create_query_dictionary(self.blastoutput, query_dictionary, self.opts.algorithm) 
+
+           self.blastoutputfile = open(self.blastoutput,'r')
            create_refscores(refscore_file, self.refscores)
-#           print "Doing reading  refscore\n"
+
 #           print "Going to read the dictionary\n"
-           create_dictionary(database_mapfile, self.annot_map)
+           create_dictionary(database_mapfile, self.annot_map, query_dictionary)
+           query_dictionary = {}
 #           print "Doing reading  dictionary\n"
         except AttributeError:
            print "Cannot read the map file for database :" + dbname
