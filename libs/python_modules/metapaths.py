@@ -877,7 +877,7 @@ def run_metapathways_before_BLAST(input_fp, output_dir, command_handler, command
 
     algorithm = get_parameter(config_params, 'annotation', 'algorithm', default='BLAST').upper()
     logger = WorkflowLogger(generate_log_fp(output_dir))
-    stepslogger = WorkflowLogger(generate_steps_log_fp(output_dir),open_mode='c')
+    stepslogger = WorkflowLogger(generate_steps_log_fp(output_dir),open_mode='w')
     
     ####################  IMPORTANT VARIABLES ########################
     checkMetapaths_Steps(config_params, logger)
