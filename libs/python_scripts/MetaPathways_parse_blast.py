@@ -26,57 +26,62 @@ except:
 
 
 usage= """./MetapathWays_parse_blast.py -d dbname1 -b blastout_for_database1 -m map_for_database1 [-d dbname2 -b blastout_for_database2 -m map_for_database2 ] """
-parser = OptionParser(usage)
-parser.add_option("-b", "--blastoutput", dest="input_blastout", action='append', default=[],
-                  help='the input blastout files [at least 1 REQUIRED]')
-parser.add_option("-d", "--dbasename", dest="database_name", action='append', default=[],
-                  help='the database names [at least 1 REQUIRED]')
-
-parser.add_option("-r", "--ref_score", dest="refscore_file", 
-                  help='the refscore  table [REQUIRED]')
-
-parser.add_option("-m", "--map_for_database", dest="database_map", action='append', default=[],
-                  help='the map file for the database  [at least 1 REQUIRED]')
-
-parser.add_option("-a", "--algorithm", dest="algorithm", choices = ['BLAST', 'LAST'], default = "BLAST",
-                   help='the algorithm used for computing homology [DEFAULT: BLAST]')
-
-cutoffs_group =  OptionGroup(parser, 'Cuttoff Related Options')
-
-cutoffs_group.add_option("--min_score", dest="min_score", type='float', default=20,
-                  help='the minimum bit score cutoff [default = 20 ] ')
-cutoffs_group.add_option("--min_query_coverage", dest="min_query_coverage", type='float', default=0,
-                  help='the minimum bit query_coverage cutoff [default = 0 ] ')
-cutoffs_group.add_option("--max_evalue", dest="max_evalue", type='float', default=1e-6,
-                  help='the maximum E-value cutoff [ default = 1e-6 ] ')
-cutoffs_group.add_option("--min_length", dest="min_length", type='float', default=30,
-                  help='the minimum length of query cutoff [default = 30 ] ')
-cutoffs_group.add_option("--max_length", dest="max_length", type='float', default=10000,
-                  help='the maximum length of query cutoff [default = 10000 ] ')
-
-cutoffs_group.add_option("--min_identity", dest="min_identity", type='float', default=20,
-                  help='the minimum identity of query cutoff [default 30 ] ')
-cutoffs_group.add_option("--max_identity", dest="max_identity", type='float', default=100,
-                  help='the maximum identity of query cutoff [default = 100 ] ')
-
-cutoffs_group.add_option("--max_gaps", dest="max_gaps", type='float', default=1000,
-                  help='the maximum gaps of query cutoff [default = 1000] ')
-cutoffs_group.add_option("--limit", dest="limit", type='float', default=5,
-                  help='max number of hits per query cutoff [default = 5 ] ')
-
-cutoffs_group.add_option("--min_bsr", dest="min_bsr", type='float', default=0.30,
-                  help='minimum BIT SCORE RATIO [default = 0.30 ] ')
-parser.add_option_group(cutoffs_group)
 
 
-output_options_group =  OptionGroup(parser, 'Output Options')
-output_options_group.add_option("--tax", dest="taxonomy", action='store_true', default=False,
-                  help='add the taxonomy info [useful for refseq] ')
-output_options_group.add_option("--remove_tax", dest="remove_taxonomy", action='store_true', default=False,
-                  help='removes the taxonomy from product [useful for refseq] ')
-output_options_group.add_option("--remove_ec", dest="remove_ec", action='store_true', default=False,
-                  help='removes the EC number from product [useful for kegg/metacyc] ')
-parser.add_option_group(output_options_group)
+parser = None
+
+def createParser():
+    global parser
+    parser = OptionParser(usage)
+    parser.add_option("-b", "--blastoutput", dest="input_blastout", action='append', default=[],
+                      help='the input blastout files [at least 1 REQUIRED]')
+    parser.add_option("-d", "--dbasename", dest="database_name", action='append', default=[],
+                      help='the database names [at least 1 REQUIRED]')
+    
+    parser.add_option("-r", "--ref_score", dest="refscore_file", 
+                      help='the refscore  table [REQUIRED]')
+    
+    parser.add_option("-m", "--map_for_database", dest="database_map", action='append', default=[],
+                      help='the map file for the database  [at least 1 REQUIRED]')
+    
+    parser.add_option("-a", "--algorithm", dest="algorithm", choices = ['BLAST', 'LAST'], default = "BLAST",
+                       help='the algorithm used for computing homology [DEFAULT: BLAST]')
+    
+    cutoffs_group =  OptionGroup(parser, 'Cuttoff Related Options')
+    
+    cutoffs_group.add_option("--min_score", dest="min_score", type='float', default=20,
+                      help='the minimum bit score cutoff [default = 20 ] ')
+    cutoffs_group.add_option("--min_query_coverage", dest="min_query_coverage", type='float', default=0,
+                      help='the minimum bit query_coverage cutoff [default = 0 ] ')
+    cutoffs_group.add_option("--max_evalue", dest="max_evalue", type='float', default=1e-6,
+                      help='the maximum E-value cutoff [ default = 1e-6 ] ')
+    cutoffs_group.add_option("--min_length", dest="min_length", type='float', default=30,
+                      help='the minimum length of query cutoff [default = 30 ] ')
+    cutoffs_group.add_option("--max_length", dest="max_length", type='float', default=10000,
+                      help='the maximum length of query cutoff [default = 10000 ] ')
+    
+    cutoffs_group.add_option("--min_identity", dest="min_identity", type='float', default=20,
+                      help='the minimum identity of query cutoff [default 30 ] ')
+    cutoffs_group.add_option("--max_identity", dest="max_identity", type='float', default=100,
+                      help='the maximum identity of query cutoff [default = 100 ] ')
+    
+    cutoffs_group.add_option("--max_gaps", dest="max_gaps", type='float', default=1000,
+                      help='the maximum gaps of query cutoff [default = 1000] ')
+    cutoffs_group.add_option("--limit", dest="limit", type='float', default=5,
+                      help='max number of hits per query cutoff [default = 5 ] ')
+    
+    cutoffs_group.add_option("--min_bsr", dest="min_bsr", type='float', default=0.30,
+                      help='minimum BIT SCORE RATIO [default = 0.30 ] ')
+    parser.add_option_group(cutoffs_group)
+    
+    output_options_group =  OptionGroup(parser, 'Output Options')
+    output_options_group.add_option("--tax", dest="taxonomy", action='store_true', default=False,
+                      help='add the taxonomy info [useful for refseq] ')
+    output_options_group.add_option("--remove_tax", dest="remove_taxonomy", action='store_true', default=False,
+                      help='removes the taxonomy from product [useful for refseq] ')
+    output_options_group.add_option("--remove_ec", dest="remove_ec", action='store_true', default=False,
+                      help='removes the EC number from product [useful for kegg/metacyc] ')
+    parser.add_option_group(output_options_group)
 
 
 
@@ -410,6 +415,7 @@ def process_blastoutput(dbname, blastoutput,  mapfile, refscore_file, opts):
     for field in fields:
          fprintf(outputfile,"\t%s",field)
     fprintf(outputfile, "\n")
+    print "writing to file " + output_blastoutput_parsed_tmp + ' ' + blastoutput + ' ' + mapfile 
 
     for data in blastparser:
         if not data:
@@ -431,25 +437,34 @@ def process_blastoutput(dbname, blastoutput,  mapfile, refscore_file, opts):
 
 # the main function
 def main(argv): 
+    global parser
     (opts, args) = parser.parse_args(argv)
     if not check_arguments(opts, args):
        print usage
        sys.exit(0)
     
+
+
+    
   # input file to blast with itself to commpute refscore
 #    infile = open(input_fasta,'r')
+
     dictionary={}
     for dbname, blastoutput, mapfile in zip( opts.database_name, opts.input_blastout, opts.database_map):
         temp_refscore = ""
         if opts.algorithm == "LAST":
             temp_refscore = opts.refscore_file + ".LAST"
+        if opts.algorithm == "BLAST":
+            temp_refscore = opts.refscore_file + ".BLAST"
         process_blastoutput( dbname, blastoutput,  mapfile, temp_refscore, opts)
 
 def MetaPathways_parse_blast(argv):       
+    createParser()
     main(argv)
     return (0,'')
 
 # the main function of metapaths
 if __name__ == "__main__":
+    createParser()
     main(sys.argv[1:])
 
