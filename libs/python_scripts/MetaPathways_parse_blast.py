@@ -415,7 +415,6 @@ def process_blastoutput(dbname, blastoutput,  mapfile, refscore_file, opts):
     for field in fields:
          fprintf(outputfile,"\t%s",field)
     fprintf(outputfile, "\n")
-    print "writing to file " + output_blastoutput_parsed_tmp + ' ' + blastoutput + ' ' + mapfile 
 
     for data in blastparser:
         if not data:
