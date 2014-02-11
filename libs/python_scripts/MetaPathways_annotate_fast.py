@@ -25,60 +25,64 @@ except:
 
 
 usage= """./MetapathWays_annotate.py -d dbname1 -b parsed_blastout_for_database1 -w weight_for_database1 [-d dbname2 -b parsed_blastout_for_database2 -w weight_for_database2 ] [ --rRNA_16S  16SrRNA-stats-table ] [ --tRNA tRNA-stats-table ]"""
-parser = OptionParser(usage)
-parser.add_option("-b", "--blastoutput", dest="input_blastout", action='append', default=[],
-                  help='blastout files in TSV format [at least 1 REQUIRED]')
-parser.add_option("-a", "--algorithm", dest="algorithm", default="BLAST", help="algorithm BLAST or LAST" )
+parser = None
 
-parser.add_option("-d", "--dbasename", dest="database_name", action='append', default=[],
-                  help='the database names [at least 1 REQUIRED]')
-
-parser.add_option("-w", "--weight_for_database", dest="weight_db", action='append', default=[], type='float',
-                  help='the map file for the database  [at least 1 REQUIRED]')
-
-parser.add_option( "--rRNA_16S", dest="rRNA_16S", action="append", default=[], 
-                  help='the 16s rRNA stats file [OPTIONAL]')
-
-parser.add_option( "--tRNA", dest="tRNA", action="append", default=[], 
-                  help='the tRNA stats file [OPTIONAL]')
-
-cutoffs_group =  OptionGroup(parser, 'Cuttoff Related Options')
-
-cutoffs_group.add_option("--min_score", dest="min_score", type='float', default=20,
-                  help='the minimum bit score cutoff [default = 20 ] ')
-
-cutoffs_group.add_option("--max_evalue", dest="max_evalue", type='float', default=1e-6,
-                  help='the maximum E-value cutoff [ default = 1e-6 ] ')
-cutoffs_group.add_option("--min_length", dest="min_length", type='float', default=30,
-                  help='the minimum length of query cutoff [default = 30 ] ')
-cutoffs_group.add_option("--max_length", dest="max_length", type='float', default=10000,
-                  help='the maximum length of query cutoff [default = 10000 ] ')
-
-cutoffs_group.add_option("--min_identity", dest="min_identity", type='float', default=20,
-                  help='the minimum identity of query cutoff [default 30 ] ')
-cutoffs_group.add_option("--max_identity", dest="max_identity", type='float', default=100,
-                  help='the maximum identity of query cutoff [default = 100 ] ')
-
-cutoffs_group.add_option("--limit", dest="limit", type='float', default=5,
-                  help='max number of hits per query cutoff [default = 5 ] ')
-
-cutoffs_group.add_option("--min_bsr", dest="min_bsr", type='float', default=0.00,
-                  help='minimum BIT SCORE RATIO [default = 0.00 ] ')
-parser.add_option_group(cutoffs_group)
-
-
-output_options_group =  OptionGroup(parser, 'Output Options')
-output_options_group.add_option("--tax", dest="taxonomy", action='store_true', default=False,
-                  help='add the taxonomy info [useful for refseq] ')
-parser.add_option_group(output_options_group)
-
-parser.add_option('-o' , "--output_gff", dest="output_gff",
-                 help='the output gff file [REQUIRED]')
-
-parser.add_option('--output-comparative-annotation', dest="output_comparative_annotation",
-                 help='the comparative output table [REQUIRED]')
-
-parser.add_option('--input_gff', dest='input_gff',
+def createParser():
+     global parser
+     parser = OptionParser(usage)
+     parser.add_option("-b", "--blastoutput", dest="input_blastout", action='append', default=[],
+                       help='blastout files in TSV format [at least 1 REQUIRED]')
+     parser.add_option("-a", "--algorithm", dest="algorithm", default="BLAST", help="algorithm BLAST or LAST" )
+     
+     parser.add_option("-d", "--dbasename", dest="database_name", action='append', default=[],
+                       help='the database names [at least 1 REQUIRED]')
+     
+     parser.add_option("-w", "--weight_for_database", dest="weight_db", action='append', default=[], type='float',
+                       help='the map file for the database  [at least 1 REQUIRED]')
+     
+     parser.add_option( "--rRNA_16S", dest="rRNA_16S", action="append", default=[], 
+                       help='the 16s rRNA stats file [OPTIONAL]')
+     
+     parser.add_option( "--tRNA", dest="tRNA", action="append", default=[], 
+                       help='the tRNA stats file [OPTIONAL]')
+     
+     cutoffs_group =  OptionGroup(parser, 'Cuttoff Related Options')
+     
+     cutoffs_group.add_option("--min_score", dest="min_score", type='float', default=20,
+                       help='the minimum bit score cutoff [default = 20 ] ')
+     
+     cutoffs_group.add_option("--max_evalue", dest="max_evalue", type='float', default=1e-6,
+                       help='the maximum E-value cutoff [ default = 1e-6 ] ')
+     cutoffs_group.add_option("--min_length", dest="min_length", type='float', default=30,
+                       help='the minimum length of query cutoff [default = 30 ] ')
+     cutoffs_group.add_option("--max_length", dest="max_length", type='float', default=10000,
+                       help='the maximum length of query cutoff [default = 10000 ] ')
+     
+     cutoffs_group.add_option("--min_identity", dest="min_identity", type='float', default=20,
+                       help='the minimum identity of query cutoff [default 30 ] ')
+     cutoffs_group.add_option("--max_identity", dest="max_identity", type='float', default=100,
+                       help='the maximum identity of query cutoff [default = 100 ] ')
+     
+     cutoffs_group.add_option("--limit", dest="limit", type='float', default=5,
+                       help='max number of hits per query cutoff [default = 5 ] ')
+     
+     cutoffs_group.add_option("--min_bsr", dest="min_bsr", type='float', default=0.00,
+                       help='minimum BIT SCORE RATIO [default = 0.00 ] ')
+     parser.add_option_group(cutoffs_group)
+     
+     
+     output_options_group =  OptionGroup(parser, 'Output Options')
+     output_options_group.add_option("--tax", dest="taxonomy", action='store_true', default=False,
+                       help='add the taxonomy info [useful for refseq] ')
+     parser.add_option_group(output_options_group)
+     
+     parser.add_option('-o' , "--output_gff", dest="output_gff",
+                      help='the output gff file [REQUIRED]')
+     
+     parser.add_option('--output-comparative-annotation', dest="output_comparative_annotation",
+                      help='the comparative output table [REQUIRED]')
+     
+     parser.add_option('--input_gff', dest='input_gff',
                 metavar='INPUT', help='Unannotated gff file [REQUIRED]')
 
 
@@ -249,10 +253,6 @@ def create_dictionary(databasemapfile, annot_map):
 def write_annotation_for_orf(outputgff_file, candidatedbname, dbname_weight, results_dictionary, orf_dictionary, contig, candidate_orf_pos,  orfid):
       fields = [  'source', 'feature', 'start', 'end', 'score', 'strand', 'frame' ]
 
-#      print contig
-#      print orf_dictionary[contig]
- 
-#      print results_dictionary
 
       output_line= orf_dictionary[contig][candidate_orf_pos]['seqname']
 
@@ -611,7 +611,7 @@ class BlastOutputTsvParser(object):
            for x in fields:
             self.fieldmap[x] = k 
             k+=1
-           print self.fieldmap
+           print "Processing :" + dbname
            
         except AttributeError:
            print "Cannot read the map file for database :" + dbname
@@ -730,6 +730,7 @@ def process_parsed_blastoutput(dbname, weight,  blastoutput, cutoffs, annotation
 
 # the main function
 def main(argv): 
+    global parser
     (opts, args) = parser.parse_args(argv)
     if not check_arguments(opts, args):
        print usage
@@ -747,10 +748,12 @@ def main(argv):
 
 
 def MetaPathways_annotate_fast(argv):       
+    createParser()
     main(argv)
     return (0,'')
 
 # the main function of metapaths
 if __name__ == "__main__":
+    createParser()
     main(sys.argv[1:])
 
