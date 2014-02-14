@@ -26,72 +26,75 @@ except:
 
 
 usage= """./MetapathWays_annotate.py -d dbname1 -b parsed_blastout_for_database1 [-d dbname2 -b parsed_blastout_for_database2 ] --input-annotated-gff input.gff  """
-parser = OptionParser(usage)
-parser.add_option("-b", "--blastoutput", dest="input_blastout", action='append', default=[],
-                  help='blastout files in TSV format [at least 1 REQUIRED]')
-
-parser.add_option("-d", "--dbasename", dest="database_name", action='append', default=[],
-                  help='the database names [at least 1 REQUIRED]')
-
-cutoffs_group =  OptionGroup(parser, 'Cuttoff Related Options')
-
-cutoffs_group.add_option("--min_score", dest="min_score", type='float', default=20,
-                  help='the minimum bit score cutoff [default = 20 ] ')
-
-cutoffs_group.add_option("--max_evalue", dest="max_evalue", type='float', default=1e-6,
-                  help='the maximum E-value cutoff [ default = 1e-6 ] ')
-cutoffs_group.add_option("--min_length", dest="min_length", type='float', default=30,
-                  help='the minimum length of query cutoff [default = 30 ] ')
-cutoffs_group.add_option("--max_length", dest="max_length", type='float', default=10000,
-                  help='the maximum length of query cutoff [default = 10000 ] ')
-
-
-cutoffs_group.add_option("--min_identity", dest="min_identity", type='float', default=20,
-                  help='the minimum identity of query cutoff [default 30 ] ')
-cutoffs_group.add_option("--max_identity", dest="max_identity", type='float', default=100,
-                  help='the maximum identity of query cutoff [default = 100 ] ')
-
-cutoffs_group.add_option("--limit", dest="limit", type='float', default=5,
-                  help='max number of hits per query cutoff [default = 5 ] ')
-
-cutoffs_group.add_option("--min_bsr", dest="min_bsr", type='float', default=0.0,
-                  help='minimum BIT SCORE RATIO [default = 0.30 ] ')
-parser.add_option_group(cutoffs_group)
-
-
-output_options_group =  OptionGroup(parser, 'Output table Options')
-output_options_group.add_option("--ncbi-taxonomy-map", dest="ncbi_taxonomy_map",  default=False,
-                  help='add the ncbi taxonomy map ')
-
-output_options_group.add_option( "--input-cog-maps", dest="input_cog_maps",
-                 help='input cog maps file')
-
-output_options_group.add_option( "--subsystems2peg-file", dest="subsystems2peg_file", default = False,
-                 help='the subsystems to peg file from fpt.theseed.org')
-
-output_options_group.add_option( "--input-kegg-maps", dest="input_kegg_maps",
-                 help='input kegg maps file')
-
-output_options_group.add_option( "--input-seed-maps", dest="input_seed_maps",
-                 help='input seed maps file')
-
-output_options_group.add_option('--input-annotated-gff', dest='input_annotated_gff',
-                metavar='INPUT', help='Annotated gff file [REQUIRED]')
-
-output_options_group.add_option('--output-dir', dest='output_dir',
-                metavar='INPUT', help='Output directory [REQUIRED]')
-parser.add_option_group(output_options_group)
-
-lca_options_group =  OptionGroup(parser, 'LCA algorithm Options')
-lca_options_group.add_option("--lca-min-score", dest="lca_min_score",  type='float', default=50,
-                  help='minimum BLAST/LAST score to consider as for LCA rule')
-lca_options_group.add_option("--lca-top-percent", dest="lca_top_percent",  type='float', default=10,
-                  help='set of considered matches are within this percent of the highest score hit')
-lca_options_group.add_option("--lca-min-support", dest="lca_min_support",  type='int', default=5,
-                  help='minimum number of reads that must be assigned to a taxon for ' +\
-                       'that taxon to be present otherwise move up the tree until there ' + 
-                       'is a taxon that meets the requirement')
-parser.add_option_group(lca_options_group)
+parser=None
+def createParser():
+     global parser
+     parser = OptionParser(usage)
+     parser.add_option("-b", "--blastoutput", dest="input_blastout", action='append', default=[],
+                       help='blastout files in TSV format [at least 1 REQUIRED]')
+     
+     parser.add_option("-d", "--dbasename", dest="database_name", action='append', default=[],
+                       help='the database names [at least 1 REQUIRED]')
+     
+     cutoffs_group =  OptionGroup(parser, 'Cuttoff Related Options')
+     
+     cutoffs_group.add_option("--min_score", dest="min_score", type='float', default=20,
+                       help='the minimum bit score cutoff [default = 20 ] ')
+     
+     cutoffs_group.add_option("--max_evalue", dest="max_evalue", type='float', default=1e-6,
+                       help='the maximum E-value cutoff [ default = 1e-6 ] ')
+     cutoffs_group.add_option("--min_length", dest="min_length", type='float', default=30,
+                       help='the minimum length of query cutoff [default = 30 ] ')
+     cutoffs_group.add_option("--max_length", dest="max_length", type='float', default=10000,
+                       help='the maximum length of query cutoff [default = 10000 ] ')
+     
+     
+     cutoffs_group.add_option("--min_identity", dest="min_identity", type='float', default=20,
+                       help='the minimum identity of query cutoff [default 30 ] ')
+     cutoffs_group.add_option("--max_identity", dest="max_identity", type='float', default=100,
+                       help='the maximum identity of query cutoff [default = 100 ] ')
+     
+     cutoffs_group.add_option("--limit", dest="limit", type='float', default=5,
+                       help='max number of hits per query cutoff [default = 5 ] ')
+     
+     cutoffs_group.add_option("--min_bsr", dest="min_bsr", type='float', default=0.0,
+                       help='minimum BIT SCORE RATIO [default = 0.30 ] ')
+     parser.add_option_group(cutoffs_group)
+     
+     
+     output_options_group =  OptionGroup(parser, 'Output table Options')
+     output_options_group.add_option("--ncbi-taxonomy-map", dest="ncbi_taxonomy_map",  default=False,
+                       help='add the ncbi taxonomy map ')
+     
+     output_options_group.add_option( "--input-cog-maps", dest="input_cog_maps",
+                      help='input cog maps file')
+     
+     output_options_group.add_option( "--subsystems2peg-file", dest="subsystems2peg_file", default = False,
+                      help='the subsystems to peg file from fpt.theseed.org')
+     
+     output_options_group.add_option( "--input-kegg-maps", dest="input_kegg_maps",
+                      help='input kegg maps file')
+     
+     output_options_group.add_option( "--input-seed-maps", dest="input_seed_maps",
+                      help='input seed maps file')
+     
+     output_options_group.add_option('--input-annotated-gff', dest='input_annotated_gff',
+                     metavar='INPUT', help='Annotated gff file [REQUIRED]')
+     
+     output_options_group.add_option('--output-dir', dest='output_dir',
+                     metavar='INPUT', help='Output directory [REQUIRED]')
+     parser.add_option_group(output_options_group)
+     
+     lca_options_group =  OptionGroup(parser, 'LCA algorithm Options')
+     lca_options_group.add_option("--lca-min-score", dest="lca_min_score",  type='float', default=50,
+                       help='minimum BLAST/LAST score to consider as for LCA rule')
+     lca_options_group.add_option("--lca-top-percent", dest="lca_top_percent",  type='float', default=10,
+                       help='set of considered matches are within this percent of the highest score hit')
+     lca_options_group.add_option("--lca-min-support", dest="lca_min_support",  type='int', default=5,
+                       help='minimum number of reads that must be assigned to a taxon for ' +\
+                            'that taxon to be present otherwise move up the tree until there ' + 
+                            'is a taxon that meets the requirement')
+     parser.add_option_group(lca_options_group)
 
 
 def check_arguments(opts, args):
@@ -725,6 +728,7 @@ def  add_counts_to_hierarchical_map(hierarchical_map, orthology_count):
    
 # the main function
 def main(argv): 
+    global parser
     (opts, args) = parser.parse_args(argv)
     if not check_arguments(opts, args):
        print usage
@@ -841,10 +845,12 @@ def print_orf_table(results, output_dir):
     outputfile.close() 
 
 def MetaPathways_create_reports_fast(argv):       
+    createParser()
     main(argv)
     return (0,'')
 
 # the main function of metapaths
 if __name__ == "__main__":
+    createParser()
     main(sys.argv[1:])
 

@@ -180,7 +180,6 @@ def call_commands_serially(commands, status_update_callback, logger, stepslogger
         if c[3]=='stop':
            print "Stopping!"
            stepslogger.write('%s\t%s\n' %(c[2], "STOPPED"))
-           sys.exit(0)
            return (0,'')
 
         if params['verbose']:

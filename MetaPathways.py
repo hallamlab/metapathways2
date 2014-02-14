@@ -254,8 +254,14 @@ def main(argv):
 
     # add check the config parameters 
     
+    sorted_input_output_list = sorted(input_output_list.keys())
     # PART1 before the blast
-    for input_file, output_dir in input_output_list.iteritems():
+    if len(input_output_list): 
+      print 'length '
+      print input_output_list
+
+      for input_file in sorted_input_output_list:
+        output_dir = input_output_list[input_file]
         if run_type=='overwrite' and  path.exists(output_dir):
            shutil.rmtree(output_dir)
            makedirs(output_dir)
@@ -284,7 +290,7 @@ def main(argv):
 
     if blasting_system =='grid':
        #  blasting the files files on the grids
-        input_files = input_output_list.keys()
+        input_files = sorted_input_output_list
         blast_in_grid(
               input_files, 
               path.abspath(opts.output_dir),   #important to use opts.
@@ -296,7 +302,8 @@ def main(argv):
 
     else:
        #  blasting  the files files locally
-       for input_file, output_dir in input_output_list.iteritems():
+       for input_file in sorted_input_output_list:
+           output_dir = input_output_list[input_file]
            run_metapathways_at_BLAST(
               input_file, 
               output_dir,
@@ -312,7 +319,8 @@ def main(argv):
            )
 
     # after blasting  the files
-    for input_file, output_dir in input_output_list.iteritems():
+    for input_file in sorted_input_output_list:
+        output_dir = input_output_list[input_file]
         run_metapathways_after_BLAST(
            input_file, 
            output_dir,
