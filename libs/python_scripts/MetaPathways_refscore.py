@@ -27,17 +27,20 @@ except:
 PATHDELIM = pathDelim()
 
 usage= """./run_pgdb_pipeline.py -i input_fasta_file -o output_file [-B blast_executable -F formatdb_executable] """
-parser = OptionParser(usage)
-parser.add_option("-i", "--input_file", dest="input_fasta",
-                  help='the input fasta file [REQUIRED]')
-parser.add_option("-o", "--output_file", dest="output_file",
-                  help='the output fasta file [REQUIRED]')
-parser.add_option("-B", "--BLAST_EXEUTABLE", dest="blast_executable",
-                  help='the BLAST executable  [REQUIRED]')
-parser.add_option("-F", "--FORMAT_EXECUTABLE", dest="formatdb_executable",
-                  help='the FORMATDB executable file [REQUIRED]')
-parser.add_option("-a", "--algorithm", dest="algorithm", choices = ['BLAST', 'LAST'], default = "BLAST", 
-                  help='the algorithm used for computing homology [DEFAULT: BLAST]')
+parser = None
+def createParser():
+    global parser
+    parser = OptionParser(usage)
+    parser.add_option("-i", "--input_file", dest="input_fasta",
+                      help='the input fasta file [REQUIRED]')
+    parser.add_option("-o", "--output_file", dest="output_file",
+                      help='the output fasta file [REQUIRED]')
+    parser.add_option("-B", "--BLAST_EXEUTABLE", dest="blast_executable",
+                      help='the BLAST executable  [REQUIRED]')
+    parser.add_option("-F", "--FORMAT_EXECUTABLE", dest="formatdb_executable",
+                      help='the FORMATDB executable file [REQUIRED]')
+    parser.add_option("-a", "--algorithm", dest="algorithm", choices = ['BLAST', 'LAST'], default = "BLAST", 
+                      help='the algorithm used for computing homology [DEFAULT: BLAST]')
 
 
 def check_arguments(opts, args):
@@ -190,6 +193,7 @@ def remove_last_index_files(filename):
 SIZE = 1000
 
 def main(argv): 
+    global parser
     (opts, args) = parser.parse_args(argv)
     if check_arguments(opts, args):
        print usage
@@ -252,10 +256,12 @@ def main(argv):
     outfile.close()
 
 def MetaPathways_refscore(argv):
+    createParser()
     main(argv)
     return (0,'')
 
 # the main function of metapaths
 if __name__ == "__main__":
+    createParser()
     main(sys.argv[1:])
 

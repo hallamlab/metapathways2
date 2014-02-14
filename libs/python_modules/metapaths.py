@@ -874,7 +874,6 @@ def run_metapathways_before_BLAST(input_fp, output_dir, command_handler, command
 #    latlon = get_parameter(ncbi_sequin_params, 'SequinHeader', 'Lat_Lon', default='_Lat_Lon_')
 #    isolation = get_parameter(ncbi_sequin_params, 'SequinHeader', 'isolation', default='_isolation_')
     
-
     algorithm = get_parameter(config_params, 'annotation', 'algorithm', default='BLAST').upper()
     logger = WorkflowLogger(generate_log_fp(output_dir))
     stepslogger = WorkflowLogger(generate_steps_log_fp(output_dir),open_mode='w')
@@ -952,7 +951,7 @@ def run_metapathways_before_BLAST(input_fp, output_dir, command_handler, command
        enable_flag = shouldRunStep(run_type, output_fna) or shouldRunStep(run_type, output_faa)  or shouldRunStep(run_type, output_gff)  
 
        input_gff_to_fasta_faa_gff_cmd=convert_gff_to_fna_faa_gff([input_gff, input_fasta, input_faa], [ output_gff, output_fasta, output_faa], config_settings) 
-       commands.append(["\n1. Converting gff file to fna, faa and gff files ....", input_gff_to_fasta_faa_gff_cmd,\
+       commands.append(["\n" + '*** ' + sample_name + ' ***\n' + "1. Converting gff file to fna, faa and gff files ....", input_gff_to_fasta_faa_gff_cmd,\
                        'PREPROCESS_FASTA', command_Status, enable_flag])
 
 
@@ -1035,7 +1034,7 @@ def run_metapathways_before_BLAST(input_fp, output_dir, command_handler, command
          enable_flag=shouldRunStep1(run_type, orf_prediction_dir,  [ sample_name + '.unannot.gff',  sample_name + '.faa' , sample_name + '.fna'] )  
          create_aa_sequences_cmd = create_aa_orf_sequences_cmd(input_gff, input_fasta, output_fna, output_faa, output_gff, config_settings) 
 
-         commands.append(["\n3. Creating the Amino Acid sequences ....", create_aa_sequences_cmd, 'GFF_TO_AMINO',command_Status, enable_flag])
+         commands.append(["\n" + '*** ' + sample_name + ' ***\n' +"\n3. Creating the Amino Acid sequences ....", create_aa_sequences_cmd, 'GFF_TO_AMINO',command_Status, enable_flag])
     #################################
 
     
@@ -1059,7 +1058,7 @@ def run_metapathways_before_BLAST(input_fp, output_dir, command_handler, command
 
     #add command
 
-    commands.append( ["\n4. Creating the filtered fasta sequences ....", create_filtered_amino_acid_sequences_cmd, 'FILTERED_FASTA', command_Status, enable_flag])
+    commands.append( ["\n" + '*** ' + sample_name + ' ***\n' +"\n4. Creating the filtered fasta sequences ....", create_filtered_amino_acid_sequences_cmd, 'FILTERED_FASTA', command_Status, enable_flag])
     #################################
 
 
@@ -1080,7 +1079,7 @@ def run_metapathways_before_BLAST(input_fp, output_dir, command_handler, command
        removeFileOnRedo(command_Status, output_refscores)
        enable_flag=shouldRunStep(run_type, output_refscores)  
        # add command
-       commands.append( ["\n5. Computing refscores for the ORFs ....", refscores_compute_cmd,'COMPUTE_REFSCORE', command_Status, enable_flag])
+       commands.append( ["\n" + '*** ' + sample_name + ' ***\n' +"\n5. Computing refscores for the ORFs ....", refscores_compute_cmd,'COMPUTE_REFSCORE', command_Status, enable_flag])
     #################################
 
 #   Now call the commands
@@ -1091,6 +1090,7 @@ def run_metapathways_before_BLAST(input_fp, output_dir, command_handler, command
 #################################################################################
 def run_metapathways_at_BLAST(input_fp, output_dir, command_handler, command_line_params, config_params, metapaths_config, status_update_callback, config_file, ncbi_sequin_params, ncbi_sequin_sbt, run_type):
 
+    
     algorithm = get_parameter(config_params, 'annotation', 'algorithm', default='BLAST').upper()
     logger = WorkflowLogger(generate_log_fp(output_dir), open_mode='a')
     stepslogger = WorkflowLogger(generate_steps_log_fp(output_dir),open_mode='c')
@@ -1130,7 +1130,7 @@ def run_metapathways_at_BLAST(input_fp, output_dir, command_handler, command_lin
 
     if config_params['INPUT']['format'] in ['fasta', 'gbk-unannotated', 'gff-unannotated' ]:
        command_Status=  get_parameter( config_params,'metapaths_steps','BLAST_REFDB')
-       message = "\n6. " + algorithm.upper() + "ing ORFs against reference database - "
+       message = "\n" + '*** ' + sample_name + ' ***\n' + "\n6. " + algorithm.upper() + "ing ORFs against reference database - "
        for db in dbs:
              dbname = get_refdb_name(db);
              blastoutput = blast_results_dir + PATHDELIM + sample_name + "." + dbname    # append "algorithout"
@@ -1193,7 +1193,7 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
     output_filtered_faa = orf_prediction_dir + PATHDELIM +  sample_name + ".qced.faa"   
     # PARSE THE BLAST RESULTS 
     #input_gbk_faa =  output_gbk_faa 
-    message = "\n7. Parsing blast outputs for reference database - "
+    message = "\n" + '*** ' + sample_name + ' ***\n' +"\n7. Parsing blast outputs for reference database - "
     if config_params['INPUT']['format'] in ['fasta', 'gbk-unannotated', 'gff-unannotated' ]:
        for db in dbs:
           dbname = get_refdb_name(db);
@@ -1232,7 +1232,7 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
     refdbnames= [ x.strip() for x in refdbstring.split(',') ]
 
 
-    message = "\n8. Scan for rRNA sequences in reference database - "
+    message = "\n" + '*** ' + sample_name + ' ***\n' +"\n8. Scan for rRNA sequences in reference database - "
     for refdbname in refdbnames:
        # print '----------'
        # print refdbname
@@ -1255,7 +1255,7 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
     eval_cutoff = get_parameter(config_params, 'rRNA', 'max_evalue', default=6)
     identity_cutoff = get_parameter(config_params, 'rRNA', 'min_identity', default=40)
 
-    message = "\n9. Gathering rRNA stats .... "
+    message = "\n" + '*** ' + sample_name + ' ***\n' +"\n9. Gathering rRNA stats .... "
     print refdbnames
     for refdbname in refdbnames:
         rRNA_stat_results= output_results_rRNA_dir + sample_name + "." + get_refdb_name(refdbname) + ".rRNA.stats.txt"
@@ -1285,7 +1285,7 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
     enable_flag=shouldRunStep1(run_type, output_results_tRNA_dir, [sample_name + ".tRNA.stats.txt", sample_name + ".tRNA.fasta"] )
 
     #add command
-    commands.append( ["\n10. Scanning for tRNA using tRNAscan 1.4 ... ", scan_tRNA_seqs_cmd, 'SCAN_tRNA', command_Status, enable_flag])
+    commands.append( ["\n" + '*** ' + sample_name + ' ***\n' +"\n10. Scanning for tRNA using tRNAscan 1.4 ... ", scan_tRNA_seqs_cmd, 'SCAN_tRNA', command_Status, enable_flag])
     #################################
 
     # ANNOTATION STEP 
@@ -1323,7 +1323,7 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
         removeFileOnRedo(command_Status, output_annotated_gff)
         enable_flag=shouldRunStep(run_type, output_annotated_gff)  
     
-        commands.append( ["\n11. Annotate gff files    ....", annotate_gbk_cmd,'ANNOTATE',command_Status, enable_flag])
+        commands.append( ["\n" + '*** ' + sample_name + ' ***\n' +"\n11. Annotate gff files    ....", annotate_gbk_cmd,'ANNOTATE',command_Status, enable_flag])
     #################################
  
     
@@ -1386,7 +1386,7 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
     genbank_annotation_table_cmd = create_genbank_ptinput_sequin_cmd(input_annot_gff, input_nucleotide_fasta, input_amino_acid_fasta, outputs, config_settings, ncbi_sequin_params, ncbi_sequin_sbt)
     #add command
 
-    commands.append( ["\n12. Create genbank/sequin/ptools input command    ....", genbank_annotation_table_cmd,'GENBANK_FILE', command_Status, enable_flag])
+    commands.append( ["\n" + '*** ' + sample_name + ' ***\n' +"\n12. Create genbank/sequin/ptools input command    ....", genbank_annotation_table_cmd,'GENBANK_FILE', command_Status, enable_flag])
     #################################
  
     
@@ -1397,7 +1397,7 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
        command_Status=  get_parameter(config_params,'metapaths_steps','CREATE_REPORT_FILES')
        removeFileOnRedo(command_Status, output_annot_table)
        enable_flag=shouldRunStep(run_type, output_annot_table)  
-       message = "\n13. Creating KEGG and COG hits table and LCA based taxonomy table  "
+       message = "\n" + '*** ' + sample_name + ' ***\n' +"\n13. Creating KEGG and COG hits table and LCA based taxonomy table  "
        input_dir = blast_results_dir + PATHDELIM # D+ sample_name + "." + dbname + ".blastout.parsed"
        create_report_cmd = create_report_files_cmd(dbs, input_dir, input_annotated_gff, sample_name, 
                                                    output_results_annotation_table_dir, config_settings, 
@@ -1431,7 +1431,7 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
 
 
     mltreemap_calculation_cmd = create_MLTreeMap_Calculations(mltreemap_input_file, output_mltreemap_calculations_dir, config_settings)
-    commands.append( ["\n16. MLTreeMap Calculations  ....", mltreemap_calculation_cmd, 'MLTREEMAP_CALCULATION', command_Status, enable_flag])
+    commands.append( ["\n" + '*** ' + sample_name + ' ***\n' +"\n16. MLTreeMap Calculations  ....", mltreemap_calculation_cmd, 'MLTREEMAP_CALCULATION', command_Status, enable_flag])
 
 
     #MLTreeMap Image Creating 
@@ -1445,7 +1445,7 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
    # mltreemap_gather_hits_cmd=create_MLTreeMap_Hits(output_mltreemap_calculations_dir+ PATHDELIM + 'various_outputs', mltreemap_image_output, config_settings)
 
     #add command
-    commands.append( ["\n17. Making MLTreeMap Images  ....", mltreemap_imagemaker_cmd, 'MLTREEMAP_IMAGEMAKER', command_Status, enable_flag])
+    commands.append( ["\n" + '*** ' + sample_name + ' ***\n' +"\n17. Making MLTreeMap Images  ....", mltreemap_imagemaker_cmd, 'MLTREEMAP_IMAGEMAKER', command_Status, enable_flag])
    # commands.append( ["\n17a. Gather MLTreeMap Hits  ....", mltreemap_gather_hits_cmd, 'MLTREEMAP_CALCULATION', command_Status, enable_flag])
     #################################
 
@@ -1465,7 +1465,7 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
     create_pgdb_cmd = create_pgdb_using_pathway_tools_cmd(output_fasta_pf_dir, taxonomic_pruning_flag, config_settings)
 
  #   print taxonomic_pruning_flag
-    commands.append( ["\n18. Create PGDB  ....", create_pgdb_cmd, 'PATHOLOGIC', command_Status, enable_flag])
+    commands.append( ["\n" + '*** ' + sample_name + ' ***\n' +"\n18. Create PGDB  ....", create_pgdb_cmd, 'PATHOLOGIC', command_Status, enable_flag])
     #################################
 
     create_pgdb_table_cmd = create_pgdb_using_pathway_tools_cmd(output_fasta_pf_dir, taxonomic_pruning_flag, config_settings)
