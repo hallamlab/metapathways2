@@ -235,7 +235,7 @@ def main(argv):
            else:
                fprintf(outfile, ">%s\n",  sample_name + '_' + str(seq_count) )
                key = re.sub(r'^>','',seqname)
-               fprintf(mapfile, "%s\n", sample_name+ '_' + str(seq_count) + '\t' + key)
+               fprintf(mapfile, "%s\n", sample_name+ '_' + str(seq_count) + '\t' + key + '\t' + str(seqlen))
                seq_count += 1
 
            fprintf(outfile, "%s\n",seqvalue)
