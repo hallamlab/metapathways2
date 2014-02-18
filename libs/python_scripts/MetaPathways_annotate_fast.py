@@ -33,6 +33,8 @@ def createParser():
      parser.add_option("-b", "--blastoutput", dest="input_blastout", action='append', default=[],
                        help='blastout files in TSV format [at least 1 REQUIRED]')
      parser.add_option("-a", "--algorithm", dest="algorithm", default="BLAST", help="algorithm BLAST or LAST" )
+
+     parser.add_option("-m", "--contig-map", dest="contig_map_file", default=None, help="contig map file" )
      
      parser.add_option("-d", "--dbasename", dest="database_name", action='append', default=[],
                        help='the database names [at least 1 REQUIRED]')
@@ -289,8 +291,8 @@ def  write_16S_tRNA_gene_info(rRNA_dictionary, outputgff_file, tag):
 
           attributes = "ID="+rRNA_dictionary[rRNA]['seqname'] + tag
           attributes += ";" + "locus_tag="+rRNA_dictionary[rRNA]['seqname'] + tag
-          attributes += ";" + "orf_length=0"
-          attributes += ";" + "contig_length=0"
+          attributes += ";" + "orf_length=" + str(rRNA_dictionary[rRNA]['orf_length'])
+          attributes += ";" + "contig_length=" + str(rRNA_dictionary[rRNA]['contig_length'])
           attributes += ";" + "ec="
           attributes += ";" + "product="+rRNA_dictionary[rRNA]['product']
           output_line += '\t' + attributes
@@ -348,24 +350,49 @@ def process_tRNA_stats(tRNA_stats_file, tRNA_dictionary):
               tRNA_dictionary[fields[0]] =  [ fields[3], fields[4], fields[5], fields[1] ]
 
 # this adds the features and attributes to  be added to the gff file format for the tRNA genes
-def add_tRNA_genes(tRNA_dictionary, tRNA_gff_dictionary) :
-    for tRNA in tRNA_dictionary: 
+def add_tRNA_genes(tRNA_dictionary, tRNA_gff_dictionary, contig_lengths) :
+
+     for tRNA in tRNA_dictionary: 
+        try:
+           orf_length = abs(int( tRNA_dictionary[tRNA][1] )-int( tRNA_dictionary[tRNA][0] )) + 1
+        except:
+           orf_length = 0
+
+        if tRNA in  contig_lengths: 
+           contig_length = contig_lengths[tRNA]
+        else:
+           contig_length = 0
+
         dict = { 'id':tRNA, 'seqname': tRNA, 'start':str(tRNA_dictionary[tRNA][0]), 'end':str(tRNA_dictionary[tRNA][1]),\
-                 'strand':tRNA_dictionary[tRNA][2], 'score':" ", 'orf_length':'0', 'contig_length':'0', 
+                 'strand':tRNA_dictionary[tRNA][2], 'score':" ", 'orf_length':str(orf_length),\
+                 'contig_length':str(contig_length),\
                  'feature':'tRNA', 'source':'tranScan-1.4', 'frame':0, 'product':'tRNA-' + tRNA_dictionary[tRNA][3], 'ec':'' }      
         tRNA_gff_dictionary[tRNA] = dict.copy() 
 
 
 # this adds the features and attributes to  be added to the gff file format for the 16S rRNA genes
-def add_16S_genes(rRNA_16S_dictionary, rRNA_dictionary) :
+def add_16S_genes(rRNA_16S_dictionary, rRNA_dictionary, contig_lengths) :
+
     for rRNA in rRNA_16S_dictionary: 
+        try:
+           orf_length = abs(int( tRNA_dictionary[tRNA][1] )-int( tRNA_dictionary[tRNA][0] )) + 1
+        except:
+           orf_length = 0
+
+        if tRNA in  contig_lengths: 
+           contig_length = contig_lengths[tRNA]
+        else:
+           contig_length = 0
+
+
         dict = { 'id':rRNA, 'seqname': rRNA, 'start':str(rRNA_16S_dictionary[rRNA][0]), 'end':str(rRNA_16S_dictionary[rRNA][1]),\
-                 'strand':'+', 'score':str(rRNA_16S_dictionary[rRNA][2]),  'orf_length':'0', 'contig_length':'0',
+                 'strand':'+', 'score':str(rRNA_16S_dictionary[rRNA][2]),  'orf_length':str(orf_length),\
+                 'contig_length':str(contig_length),\
                  'feature':'CDS', 'source':'BLAST Search', 'frame':0, 'product':'16S rRNA', 'ec':'' }      
         rRNA_dictionary[rRNA] = dict.copy() 
 
     
-def create_annotation(dbname_weight, results_dictionary, input_gff,  rRNA_16S_stats_files, tRNA_stats_files,  output_gff, output_comparative_annotation):
+def create_annotation(dbname_weight, results_dictionary, input_gff,  rRNA_16S_stats_files, tRNA_stats_files,  output_gff, output_comparative_annotation, contig_lengths):
     orf_dictionary={}
 #    process_gff_file(input_gff, orf_dictionary)
     gffreader = GffFileParser(input_gff)
@@ -459,8 +486,7 @@ def create_annotation(dbname_weight, results_dictionary, input_gff,  rRNA_16S_st
           process_rRNA_16S_stats(rRNA_16S_stats_file, rRNA_16S_dictionary)
 
        rRNA_dictionary = {}
-       add_16S_genes(rRNA_16S_dictionary, rRNA_dictionary) 
-       #print rRNA_dictionary
+       add_16S_genes(rRNA_16S_dictionary, rRNA_dictionary, contig_lengths) 
        write_16S_tRNA_gene_info(rRNA_dictionary, outputgff_file, '_rRNA')
 
     # now deal with the tRNA sequences  if there is tRNA stats file
@@ -470,7 +496,7 @@ def create_annotation(dbname_weight, results_dictionary, input_gff,  rRNA_16S_st
           process_tRNA_stats(tRNA_stats_file, tRNA_dictionary)
 
        tRNA_gff_dictionary = {}
-       add_tRNA_genes(tRNA_dictionary, tRNA_gff_dictionary) 
+       add_tRNA_genes(tRNA_dictionary, tRNA_gff_dictionary, contig_lengths) 
        write_16S_tRNA_gene_info(tRNA_gff_dictionary, outputgff_file, '_tRNA')
        #print tRNA_dictionary
 
@@ -728,6 +754,23 @@ def process_parsed_blastoutput(dbname, weight,  blastoutput, cutoffs, annotation
  
     return None
 
+def read_contig_lengths(contig_map_file, contig_lengths):
+     try:
+        mapfile = open(contig_map_file, 'r')
+     except IOError:
+        print "Cannot read file " + contig_map_file + " !"
+
+     mapfile_lines = mapfile.readlines()
+     mapfile.close()
+     
+     for line in mapfile_lines:
+        line = line.strip() 
+        fields = [ x.strip() for x in line.split('\t') ]
+        if len(fields) != 3: 
+            contig_lengths = {}
+            return 
+        contig_lengths[fields[0] ] = int(fields[2])
+     
 # the main function
 def main(argv): 
     global parser
@@ -738,13 +781,17 @@ def main(argv):
 
     results_dictionary={}
     dbname_weight={}
+
+    contig_lengths = {}     
+    read_contig_lengths(opts.contig_map_file, contig_lengths) 
+
     for dbname, blastoutput, weight in zip( opts.database_name, opts.input_blastout, opts.weight_db): 
         results_dictionary[dbname]={}
         dbname_weight[dbname] = weight
         process_parsed_blastoutput( dbname, weight, blastoutput,opts, results_dictionary[dbname])
 
     #create the annotations from he results
-    create_annotation(dbname_weight, results_dictionary, opts.input_gff, opts.rRNA_16S, opts.tRNA, opts.output_gff, opts.output_comparative_annotation)
+    create_annotation(dbname_weight, results_dictionary, opts.input_gff, opts.rRNA_16S, opts.tRNA, opts.output_gff, opts.output_comparative_annotation, contig_lengths)
 
 
 def MetaPathways_annotate_fast(argv):       

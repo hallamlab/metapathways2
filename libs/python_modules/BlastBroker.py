@@ -24,7 +24,6 @@ try:
     from glob import glob
     from BlastService import BlastService
     from utils import *
-    import cli 
 except:
     print """ Could not load some user defined  module functions"""
     print """ Make sure your typed \"source MetaPathwaysrc\""""
@@ -123,13 +122,6 @@ class BlastBroker:
          return True
 
       def addService(self, service):
-          if hasattr(service, 'type') and service.type=="AWS":
-             service.server = self.startAWS(service)
-             #service.keyfile = path.abspath(service.keyfile)
-             if service.server==None:
-               self.messagelogger.write("WARNING: Failed to set up an AWS cluster!\n")
-               return False
-
           self.BlastServices.append(service) 
           self.BlastServers[service.server ]  = service
           self.serverLoads[service.server] = 0

@@ -366,7 +366,7 @@ def create_parse_blast_cmd(input, refscorefile, dbname, dbmapfile,  config_setti
     return cmd
 
 # this function creates the command that is required to make the annotated genbank file
-def create_annotate_genebank_cmd(sample_name, input_unannotated_gff, output_annotated_gff,\
+def create_annotate_genebank_cmd(sample_name, mapping_txt, input_unannotated_gff, output_annotated_gff,\
            blast_results_dir,  options, refdbs, output_comparative_annotation,\
            config_settings, algorithm):
     cmd="%s --input_gff  %s -o %s  %s --output-comparative-annotation %s \
@@ -381,6 +381,7 @@ def create_annotate_genebank_cmd(sample_name, input_unannotated_gff, output_anno
         else:
             cmd = cmd + " -b " + blast_results_dir + PATHDELIM + sample_name + "." + refdb+ ".blastout.parsed.txt -d " + refdb + " -w 1 "
 
+    cmd = cmd + " -m " +  mapping_txt
     return cmd
 
 def create_genbank_ptinput_sequin_cmd(input_annotated_gff, nucleotide_fasta, amino_fasta, outputs, config_settings, ncbi_params_file, ncbi_sequin_sbt):
@@ -1256,7 +1257,7 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
     identity_cutoff = get_parameter(config_params, 'rRNA', 'min_identity', default=40)
 
     message = "\n" + '*** ' + sample_name + ' ***\n' +"\n9. Gathering rRNA stats .... "
-    print refdbnames
+    #print refdbnames
     for refdbname in refdbnames:
         rRNA_stat_results= output_results_rRNA_dir + sample_name + "." + get_refdb_name(refdbname) + ".rRNA.stats.txt"
         rRNA_blastout= blast_results_dir + PATHDELIM + sample_name + ".rRNA." + get_refdb_name(refdbname) + ".blastout"
@@ -1292,6 +1293,7 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
     input_unannotated_gff = orf_prediction_dir +PATHDELIM + sample_name+".unannot.gff"
     output_annotated_gff  = genbank_dir +PATHDELIM + sample_name+".annot.gff"
     output_comparative_annotation  =  output_results_annotation_table_dir + PATHDELIM + sample_name
+    mapping_txt =  preprocessed_dir + PATHDELIM + sample_name + ".mapping.txt" 
 
     if config_params['INPUT']['format'] in ['fasta', 'gbk-unannotated', 'gff-unannotated' ]:
         parse_blasts = [] 
@@ -1314,7 +1316,7 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
            options += " --tRNA " +  tRNA_stat_results 
     
         # create the command
-        annotate_gbk_cmd = create_annotate_genebank_cmd(sample_name, input_unannotated_gff,\
+        annotate_gbk_cmd = create_annotate_genebank_cmd(sample_name, mapping_txt,  input_unannotated_gff,\
                              output_annotated_gff,  blast_results_dir, options,\
                               parse_blasts, output_comparative_annotation,\
                               config_settings, algorithm)
