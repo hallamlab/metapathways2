@@ -257,9 +257,6 @@ def main(argv):
     sorted_input_output_list = sorted(input_output_list.keys())
     # PART1 before the blast
     if len(input_output_list): 
-      print 'length '
-      print input_output_list
-
       for input_file in sorted_input_output_list:
         output_dir = input_output_list[input_file]
         if run_type=='overwrite' and  path.exists(output_dir):
@@ -283,6 +280,9 @@ def main(argv):
            ncbi_sequin_sbt = ncbi_sequin_sbt,
            run_type = run_type
         )
+    else: 
+        print "ERROR :No input files were found in the input folder"
+        sys.exit(0)
 
     # blast the files
 

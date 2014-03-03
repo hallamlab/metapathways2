@@ -21,42 +21,100 @@ from optparse import make_option
 import sys 
 import os
 import math
-#from copy import deepcopy
-#from numpy import min, max, median, mean
-#import numpy
-#from numpy.ma import MaskedArray
-#from numpy.ma.extras import apply_along_axis
-#from numpy import array, zeros, argsort, shape, vstack,ndarray, asarray, \
-#        float, where, isnan
-#from cogent import LoadSeqs, Sequence
-#from cogent.cluster.procrustes import procrustes
-#from cogent.core.alignment import Alignment
-#from cogent.core.moltype import MolType, IUPAC_DNA_chars, IUPAC_DNA_ambiguities,\
-#    IUPAC_DNA_ambiguities_complements, DnaStandardPairs, ModelDnaSequence
-#from cogent.data.molecular_weight import DnaMW
-#from cogent.core.sequence import DnaSequence
-#from cogent.app.blast import Blastall
-#from cogent.app.util import get_tmp_filename
-#from cogent.parse.blast import BlastResult
-#from cogent.parse.fasta import MinimalFastaParser
-#from cogent.util.misc import remove_files
-#from cogent.util.dict2d import Dict2D
-#from cogent.app.formatdb import build_blast_db_from_fasta_path,\
-#    build_blast_db_from_fasta_file
-#from cogent import LoadSeqs
-#from cogent.util.misc import (parse_command_line_parameters, 
-#                                     create_dir, 
-#                                     handle_error_codes)
-#
-#
-#from qiime.parse import (parse_otu_table,
-#                         parse_qiime_config_files,
-#                         parse_coords,
-#                         parse_newick,
-#                         PhyloNode,
-#                         parse_mapping_file)
-#from qiime.format import format_otu_table
-#
+import re
+
+
+class GffFileParser(object):
+   def __init__(self, gff_filename):
+        self.Size = 10000
+        self.i=0
+        self.orf_dictionary = {}
+        self.gff_beg_pattern = re.compile("^#")
+        self.lines= []
+        self.size=0
+        try:
+           self.gff_file = open( gff_filename,'r')
+        except AttributeError:
+           print "Cannot read the map file for database :" + dbname
+           sys.exit(0)
+
+   def __iter__(self):
+        return self
+
+   def refillBuffer(self):
+       self.orf_dictionary = {}
+       i = 0
+       while  i < self.Size:
+          line=self.gff_file.readline()
+          if not line:
+            break
+          if self.gff_beg_pattern.search(line):
+            continue
+          self.insert_orf_into_dict(line, self.orf_dictionary)
+          i += 1
+
+       self.orfs = self.orf_dictionary.keys()
+       self.size = len(self.orfs)
+       self.i = 0
+
+   def next(self):
+        if self.i == self.size:
+           self.refillBuffer()
+
+        if self.size==0:
+           self.gff_file.close()
+           raise StopIteration()
+
+        #print self.i
+        if self.i < self.size:
+           self.i = self.i + 1
+           return self.orfs[self.i-1]
+
+
+
+   def insert_orf_into_dict(self, line, contig_dict):
+        rawfields = re.split('\t', line)
+        fields = []
+        for field in rawfields:
+           fields.append(field.strip());
+       
+        
+        if( len(fields) != 9):
+          return
+   
+        attributes = {}
+        attributes['seqname'] =  fields[0]   # this is a bit of a  duplication  
+        attributes['source'] =  fields[1]
+        attributes['feature'] =  fields[2]
+        attributes['start'] =  int(fields[3])
+        attributes['end'] =  int(fields[4])
+   
+        try:
+           attributes['score'] =  float(fields[5])
+        except:
+           attributes['score'] =  fields[5]
+   
+        attributes['strand'] =  fields[6]
+        attributes['frame'] =  fields[7]
+        
+        self.split_attributes(fields[8], attributes)
+   
+        if not fields[0] in contig_dict :
+          contig_dict[fields[0]] = []
+   
+        contig_dict[fields[0]].append(attributes)
+   
+   def insert_attribute(self, attributes, attribStr):
+        rawfields = re.split('=', attribStr)
+        if len(rawfields) == 2:
+          attributes[rawfields[0].strip().lower()] = rawfields[1].strip()
+   
+   def split_attributes(self, str, attributes):
+        rawattributes = re.split(';', str)
+        for attribStr in rawattributes:
+           self.insert_attribute(attributes, attribStr)
+   
+        return attributes
 
 class Performance:
    def  __init__(self):

@@ -16,7 +16,7 @@ try:
 
      from python_modules.LCAComputation import *
      from python_modules.MeganTree import *
-     from python_modules.metapaths_utils  import parse_command_line_parameters, fprintf, printf
+     from python_modules.metapaths_utils  import parse_command_line_parameters, fprintf, printf, GffFileParser
      from python_modules.sysutil import getstatusoutput
 except:
      print """ Could not load some user defined  module functions"""
@@ -120,100 +120,6 @@ def check_arguments(opts, args):
 
     return True
 
-def insert_attribute(attributes, attribStr):
-     rawfields = re.split('=', attribStr)
-     if len(rawfields) == 2:
-       attributes[rawfields[0].strip().lower()] = rawfields[1].strip()
-
-def split_attributes(str, attributes):
-     rawattributes = re.split(';', str)
-     for attribStr in rawattributes:
-        insert_attribute(attributes, attribStr)
-
-     return attributes
-
-def insert_orf_into_dict(line, contig_dict):
-     rawfields = re.split('\t', line)
-     fields = []
-     for field in rawfields:
-        fields.append(field.strip());
-    
-     
-     if( len(fields) != 9):
-       return
-
-     attributes = {}
-     attributes['seqname'] =  fields[0]   # this is a bit of a  duplication  
-     attributes['source'] =  fields[1]
-     attributes['feature'] =  fields[2]
-     attributes['start'] =  int(fields[3])
-     attributes['end'] =  int(fields[4])
-
-     try:
-        attributes['score'] =  float(fields[5])
-     except:
-        attributes['score'] =  fields[5]
-
-     attributes['strand'] =  fields[6]
-     attributes['frame'] =  fields[7]
-     
-     split_attributes(fields[8], attributes)
-
-     if not fields[0] in contig_dict :
-       contig_dict[fields[0]] = []
-
-     contig_dict[fields[0]].append(attributes)
-  
-
-class GffFileParser(object):
-
-   def __init__(self, gff_filename):
-        self.Size = 10000
-        self.i=0
-        self.orf_dictionary = {}
-        self.gff_beg_pattern = re.compile("#")
-        self.lines= []
-        self.size=0
-        try:
-           self.gff_file = open( gff_filename,'r')
-        except AttributeError:
-           print "Cannot read the map file for database :" + dbname
-           sys.exit(0)
-
-   def __iter__(self):
-        return self
-
-   def refillBuffer(self):
-       self.orf_dictionary = {}
-       line = self.gff_file.readline()
-       i = 0
-       while line and i < self.Size:
-          line=self.gff_file.readline()
-          if self.gff_beg_pattern.search(line):
-            continue
-          if not line:
-            break
-          insert_orf_into_dict(line, self.orf_dictionary)
-          i += 1
-
-       self.orfs = self.orf_dictionary.keys()
-       self.size = len(self.orfs)
-       self.i = 0
-
-   def next(self):
-        if self.i == self.size:
-           self.refillBuffer()
-
-        if self.size==0:
-           self.gff_file.close()
-           raise StopIteration()
-
-        #print self.i
-        if self.i < self.size:
-           self.i = self.i + 1
-           return self.orfs[self.i-1]
-
-
 def process_gff_file(gff_file_name, orf_dictionary):
      try:
         gfffile = open(gff_file_name, 'r')
@@ -269,43 +175,35 @@ def get_species(hit):
        return None
 
 
-def create_annotation(results_dictionary, annotated_gff,  output_dir, ncbi_taxonomy_tree_file, min_score, top_percent, min_support):
+def create_annotation(results_dictionary, dbnames,  annotated_gff,  output_dir, Taxons, orfsPicked, orfToContig):
     meganTree = None
-    lca = None
-    if 'refseq' in results_dictionary:
-        lca = LCAComputation(ncbi_taxonomy_tree_file)
-        lca.setParameters(min_score, top_percent, min_support)
-        meganTree = MeganTree(lca)
-
+    #lca.set_results_dictionary(results_dictionary)
     if not path.exists(output_dir):
        makedirs(output_dir)
 
-   
     orf_dictionary={}
     #process_gff_file(annotated_gff, orf_dictionary)
     gffreader = GffFileParser(annotated_gff)
-    output_table_file = open(output_dir + '/functional_and_taxonomic_table.txt', 'w')
-    fprintf(output_table_file, "ORF_ID\tORF_length\tstart\tend\tContig_Name\tContig_length\tstrand\tec\ttaxonomy\tproduct\n")
+    output_table_file = open(output_dir + '/functional_and_taxonomic_table.txt', 'a')
 
     count = 0
     for contig in  gffreader:
        for orf in  gffreader.orf_dictionary[contig]:
+          if not orf['id'] in orfsPicked:
+            continue
+
+          orfToContig[orf['id']] = contig
+
           taxonomy = None
           if count%10000==0 :
              pass 
-          species = []
-          if 'refseq' in results_dictionary:
-            if orf['id'] in results_dictionary['refseq']:
-                for hit in results_dictionary['refseq'][orf['id']]:
-                   if hit['bitscore'] >= min_score:
-                      names = get_species(hit)
-                      if names:
-                        species.append(names) 
-                      #print '---------------------------'
-          #         else:
-          #              print "hit " + hit['query']  + ' ' + hit['dbname'] + ' ' + str(hit['bitscore'] )
-          if lca: 
-            taxonomy=lca.getTaxonomy(species)
+
+          #update the sequence name
+
+          #taxonomy=lca.getMeganTaxonomy(orf['id'])
+          #print orf['id']
+          taxonomy=Taxons[orf['id']]
+
           fprintf(output_table_file, "%s", orf['id'])
           fprintf(output_table_file, "\t%s", orf['orf_length'])
           fprintf(output_table_file, "\t%s", orf['start'])
@@ -317,23 +215,21 @@ def create_annotation(results_dictionary, annotated_gff,  output_dir, ncbi_taxon
           # fprintf(output_table_file, "\t%s", str(species))
           fprintf(output_table_file, "\t%s", taxonomy)
           fprintf(output_table_file, "\t%s\n", orf['product'])
-          if meganTree and taxonomy != '':
-              meganTree.insertTaxon(taxonomy)
-              # print 'inserted taxon of taxonomy : ', taxonomy
+
+          # adding taxons to the megan tree
+          #if meganTree and taxonomy != '':
+          #    meganTree.insertTaxon(taxonomy)
           #print meganTree.getChildToParentMap()
+
     output_table_file.close()
     # print meganTree.getParentToChildrenMap()
 
-    if meganTree:
-        print output_dir + '/megan_tree.tre'
-        megan_tree_file = open(output_dir + '/megan_tree.tre', 'w')
-        #print meganTree.printTree('1')
-        # exit()
-        fprintf(megan_tree_file,  "%s;", meganTree.printTree('1'))
-        # print 'wrote out megan_tree_file'
-        megan_tree_file.close()
+    # this prints out the megan tree
+#    if meganTree:
+#        megan_tree_file = open(output_dir + '/megan_tree.tre', 'w')
+#        fprintf(megan_tree_file,  "%s;", meganTree.printTree('1'))
+#        megan_tree_file.close()
     
-
 
             #write_annotation_for_orf(outputgff_file, candidatedbname, dbname_weight, results_dictionary, orf_dictionary, contig, candidate_orf_pos,  orf['id']) 
 
@@ -439,14 +335,16 @@ def remove_repeats(filtered_words):
 class BlastOutputTsvParser(object):
 
     def __init__(self, dbname,  blastoutput):
+        self.lineToProcess = ""
         self.dbname = dbname
         self.blastoutput = blastoutput
         self.i=0
         self.SIZE = 10000
         self.data = {}
         self.fieldmap={}
-        self.seq_beg_pattern = re.compile("#")
+        self.seq_beg_pattern = re.compile("^#")
         self.lines = []
+        self.headerline = None
 
         try:
            self.blastoutputfile = open( blastoutput,'r')
@@ -454,32 +352,43 @@ class BlastOutputTsvParser(object):
            if not self.seq_beg_pattern.search(line) :
               print "First line must have field header names and begin with \"#\""
               sys.exit(0)
-           header = re.sub('#','',line)
 
+           self.headerline = line.strip()
+           self.lineToProcess = self.headerline
+           header = re.sub('^#','',line)
            fields = [ x.strip()  for x in header.rstrip().split('\t')]
            k = 0 
            for x in fields:
-            self.fieldmap[x] = k 
-            k+=1
+             self.fieldmap[x] = k 
+             k += 1
 
         except AttributeError:
            print "Cannot read the map file for database :" + dbname
            sys.exit(0)
 
+    def getHeaderLine(self):
+       return self.headerline
+
+    def getProcessedLine(self):
+       return self.lineToProcess
+
     def refillBuffer(self):
        i = 0 
        self.lines = []
-       line = self.blastoutputfile.readline()
-       while line and i < self.SIZE:
-         line=self.blastoutputfile.readline()
+       while i < self.SIZE:
+         line = self.blastoutputfile.readline().strip()
          if not line:
            break
+         if self.seq_beg_pattern.search(line):
+            continue
+
          self.lines.append(line)
          i += 1
-
        self.size = len(self.lines)
  
-  
+    def rewind(self): 
+        self.i = self.i - 1
+
     def __iter__(self):
         return self
  
@@ -501,24 +410,26 @@ class BlastOutputTsvParser(object):
               self.data['identity'] = float(fields[self.fieldmap['identity']])
               self.data['ec'] = fields[self.fieldmap['ec']]
               self.data['product'] = re.sub(r'=',' ',fields[self.fieldmap['product']])
+              self.lineToProcess = self.lines[self.i % self.SIZE]
            except:
               print "<<<<<<-------"
               print 'self size ' + str(self.size)
               print 'line ' + self.lines[self.i % self.SIZE]
+              print 'next line ' + self.lines[(self.i + 1) % self.SIZE]
+              print ' field map ' + str(self.fieldmap)
               print 'index ' + str(self.i)
               print 'data ' + str(self.data)
+              print 'fields ' + str(fields)
               print ">>>>>>-------"
-#              import traceback 
-#              print traceback.print_exc()
+              import traceback 
+              print traceback.print_exc()
               self.i = self.i + 1
-              return None
+              sys.exit(0)
            
            self.i = self.i + 1
-           try:
-              return self.data
-           except:
-              return None
+           return self.data
         else:
+           self.lineToProcess = None
            self.blastoutputfile.close()
            raise StopIteration()
               
@@ -548,31 +459,29 @@ def isWithinCutoffs(data, cutoffs):
   return True
 
 
-# compute the refscores
-def process_parsed_blastoutput(dbname, blastoutput, cutoffs, annotation_results):
-    blastparser =  BlastOutputTsvParser(dbname, blastoutput)
-
+def process_parsed_blastoutput(dbname, blastparser, cutoffs, annotation_results, pickorfs):
     fields = ['target', 'q_length', 'bitscore', 'bsr', 'expect', 'identity', 'ec', 'query' ]
     fields.append('product')
-
-    count = 0 
     for data in blastparser:
-        if data!=None and isWithinCutoffs(data, cutoffs) :
+        if  data!=None and isWithinCutoffs(data, cutoffs) :
            # if dbname=='refseq':
            # print data['query'] + '\t' + str(data['q_length']) +'\t' + str(data['bitscore']) +'\t' + str(data['expect']) +'\t' + str(data['identity']) + '\t' + str(data['bsr']) + '\t' + data['ec'] + '\t' + data['product']
            annotation = {}
            for field in fields:
              if field in data:
                 annotation[field] = data[field] 
+
+           if not data['query'] in pickorfs: 
+              blastparser.rewind()
+              return None
+          
            annotation['dbname'] = dbname
 
            if not data['query'] in annotation_results:
                annotation_results[data['query']] = []
 
            annotation_results[data['query']].append(annotation)
-        count += 1
-       # if count%100==0:
-       #    print count
+
     return None
 
 def beginning_valid_field(line):
@@ -628,7 +537,7 @@ def kegg_id(product):
        kegg_id=results.group(0)
     return kegg_id
 
-def create_table(results, dbname_map_filename, dbname, output_dir):
+def create_table(results, dbname_map_filename, dbname, output_dir, filePermType = 'w'):
     if not path.exists(output_dir):
        makedirs(output_dir)
 
@@ -657,33 +566,33 @@ def create_table(results, dbname_map_filename, dbname, output_dir):
     add_counts_to_hierarchical_map(hierarchical_map, orthology_count)
 
     if dbname=='cog':
-       outputfile = open( output_dir +'/COG_stats_1.txt', 'w')
+       outputfile = open( output_dir +'/COG_stats_1.txt', filePermType)
        print_counts_at_level(hierarchical_map, field_to_description,  0, 0, outputfile, printKey=False,\
           header="Functional Category\tGene Count") 
        outputfile.close()
-       outputfile = open( output_dir +'/COG_stats_2.txt', 'w')
+       outputfile = open( output_dir +'/COG_stats_2.txt', filePermType)
        print_counts_at_level(hierarchical_map, field_to_description,  0, 1, outputfile,\
           header="Function Abbr\tFunctional Category\tGene Count") 
        outputfile.close()
-       outputfile = open( output_dir +'/COG_stats_3.txt', 'w')
+       outputfile = open( output_dir +'/COG_stats_3.txt', filePermType)
        print_counts_at_level(hierarchical_map, field_to_description,  0, 2, outputfile,\
           header="COGID\tFunction\tGene Count") 
        outputfile.close()
 
     if dbname=='kegg':
-       outputfile = open( output_dir +'/KEGG_stats_1.txt', 'w')
+       outputfile = open( output_dir +'/KEGG_stats_1.txt', filePermType)
        print_counts_at_level(hierarchical_map, field_to_description,  0, 0, outputfile, printKey=False,\
           header="Function Category Level 1\tGene Count") 
        outputfile.close()
-       outputfile = open( output_dir +'/KEGG_stats_2.txt', 'w')
+       outputfile = open( output_dir +'/KEGG_stats_2.txt', filePermType)
        print_counts_at_level(hierarchical_map, field_to_description,  0, 1, outputfile, printKey=False,\
           header="Function Category Level 2a\tGene Count") 
        outputfile.close()
-       outputfile = open( output_dir +'/KEGG_stats_3.txt', 'w')
+       outputfile = open( output_dir +'/KEGG_stats_3.txt', filePermType)
        print_counts_at_level(hierarchical_map, field_to_description,  0, 2, outputfile,\
          header="ID\tFunction Category Level 3\tGene Count" ) 
        outputfile.close()
-       outputfile = open( output_dir +'/KEGG_stats_4.txt', 'w')
+       outputfile = open( output_dir +'/KEGG_stats_4.txt', filePermType)
        print_counts_at_level(hierarchical_map, field_to_description,  0, 3, outputfile,\
          header="KO\tFunction Category Level 4\tGene Count") 
        outputfile.close()
@@ -726,6 +635,181 @@ def  add_counts_to_hierarchical_map(hierarchical_map, orthology_count):
        else:
           add_counts_to_hierarchical_map(hierarchical_map[key], orthology_count)
    
+def get_list_of_queries(annotated_gff):
+    orfList = {}
+    gffreader = GffFileParser(annotated_gff)
+    count = 0
+    for contig in  gffreader:
+       for orf in  gffreader.orf_dictionary[contig]:
+          orfList[orf['id']]  = 1
+          count += 1
+    #      if count%500000==0:
+    #         print count
+            
+    return orfList.keys()
+
+
+def Heapify(A, i, S):
+    while True:
+       l = 2*i + 1
+       r = l + 1
+       max = i
+       if l < S and A[l][1] > A[max][1]:  # should be > 
+          max = l
+       if r < S and A[r][1] > A[max][1]:  # should be >
+          max = r
+
+       if max != i and i < S:
+          temp = A[i]
+          A[i] =  A[max]
+          A[max] =  temp
+       else:
+          break
+       i = max
+
+def BuildHeap(S, A):
+    i = int(S/2)
+    while  i >= 0:
+        Heapify(A, i, S)
+        i = i - 1
+
+def writeParsedLines(fieldmapHeaderline, parsedLines, list, names, outputfilename):
+    try:
+      outputfile = open(outputfilename, 'w')
+    except OSError:
+      print "ERROR: Cannot create sequence file : " + faa_file
+      sys.exit(0)
+
+    outputStr=fieldmapHeaderline + "\n"
+    i = 0
+    for item in list:
+       outputStr += parsedLines[item[0]]+'\n'
+       if i > 1000:
+          fprintf(outputfile, "%s", outputStr)
+          i= 0
+          outputStr=""
+       i += 1
+    if i > 0:
+      fprintf(outputfile, "%s", outputStr)
+    outputfile.close()
+
+def merge_sorted_parsed_files(dbname, filenames, outputfilename, orfRanks):
+    linecount = 0
+    readerhandles = []
+
+    try:
+       for i in range(len(filenames)):
+         readerhandles.append(BlastOutputTsvParser(dbname, filenames[i]) )
+    except OSError:
+      print "ERROR: Cannot read sequence file : " + filenames[i]
+      sys.exit(1)
+
+    try:
+       outputfile = open(outputfilename, 'w')
+       fieldmapHeaderLine = readerhandles[0].getHeaderLine()
+       fprintf(outputfile, "%s\n",fieldmapHeaderLine) 
+      
+    except OSError: 
+       print "ERROR: Cannot create sequence file : " + outputfilename
+       sys.exit(1)
+
+    values = []    
+    for i in range(len(filenames)):
+       iterate = iter(readerhandles[i])
+       next(iterate)
+       line = readerhandles[i].getProcessedLine()  
+       fields  = [ x.strip() for x in line.split('\t') ]
+       values.append( (i, orfRanks[fields[0]], line) )
+
+    S = len(filenames) 
+    BuildHeap(S, values)
+    
+    while S>0:
+       try:
+          iterate = iter(readerhandles[values[0][0]])
+          line = readerhandles[values[0][0]].getProcessedLine()  
+          fields  = [ x.strip() for x in line.split('\t') ]
+          fprintf(outputfile, "%s\n",line) 
+          next(iterate)
+
+          line = readerhandles[values[0][0]].getProcessedLine()  
+          fields  = [ x.strip() for x in line.split('\t') ]
+          values[0] = (values[0][0], orfRanks[fields[0]], line) 
+       except:
+          #import traceback
+          #traceback.print_exc()
+          #print 'finished ' + str(S)
+          values[0] = values[S-1] 
+          S = S - 1
+
+       if S>0:
+          Heapify(values, 0, S)
+
+    #print 'line count ' + str(linecount)
+    outputfile.close()
+
+
+def  create_sorted_parse_blast_files(dbname, blastoutput, listOfOrfs, size = 100000):
+    orfRanks = {}
+    count = 0
+    for orf in listOfOrfs:
+       orfRanks[orf] = count
+       count += 1
+
+    sorted_parse_file =  blastoutput + ".tmp"
+
+    try:
+        inputfilehandle = open(blastoutput, 'r')
+    except OSError:
+      print "ERROR: Cannot read parsed b/last results : " + blastoutput
+      sys.exit(1)
+
+
+    currSize = 0 
+    parsedLines={}
+    list = []
+    names = {}
+    seqid =0
+    batch = 0 
+    filenames = []
+
+    blastparser =  BlastOutputTsvParser(dbname, blastoutput)
+    
+    for data in blastparser:
+       names[seqid] = data['query']
+       parsedLines[seqid] = blastparser.getProcessedLine()
+       list.append( (seqid, names[seqid]) )
+         
+       seqid +=1 
+       currSize += 1
+       if currSize > size: 
+           list.sort(key=lambda tup: tup[1], reverse=False)
+           fieldmapHeaderLine = blastparser.getHeaderLine()
+           writeParsedLines(fieldmapHeaderLine, parsedLines, list, names, sorted_parse_file + "." + str(batch))
+           filenames.append(sorted_parse_file + "." + str(batch))
+           batch += 1
+           currSize = 0
+           sequences={}
+           list = []
+           names = {}
+           seqid =0
+
+    if currSize > 0:
+        list.sort(key=lambda tup: tup[1], reverse=False)
+        fieldmapHeaderLine = blastparser.getHeaderLine()
+        writeParsedLines(fieldmapHeaderLine, parsedLines, list, names, sorted_parse_file + "." + str(batch))
+        filenames.append(sorted_parse_file + "." + str(batch))
+
+    inputfilehandle.close()
+    merge_sorted_parsed_files(dbname, filenames, sorted_parse_file, orfRanks)
+
+    for file in filenames:
+       remove(file)
+
+
+import gc
+import resource
+
 # the main function
 def main(argv): 
     global parser
@@ -736,35 +820,129 @@ def main(argv):
 
     results_dictionary={}
     dbname_weight={}
-    #import traceback
+
+#    print "memory used  = %s" %(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss /1000000)
+    listOfOrfs =  get_list_of_queries(opts.input_annotated_gff)       
+    listOfOrfs.sort(key=lambda tup: tup, reverse=False)
+
+##### uncomment the following lines
+    for dbname, blastoutput in zip(opts.database_name, opts.input_blastout):
+      create_sorted_parse_blast_files(dbname, blastoutput, listOfOrfs) 
+#####
+
+    # process in blocks of size _stride
+    output_table_file = open(opts.output_dir + '/functional_and_taxonomic_table.txt', 'w')
+    fprintf(output_table_file, "ORF_ID\tORF_length\tstart\tend\tContig_Name\tContig_length\tstrand\tec\ttaxonomy\tproduct\n")
+    output_table_file.close()
+
+    lca = LCAComputation(opts.ncbi_taxonomy_map)
+    lca.setParameters(opts.lca_min_score, opts.lca_top_percent, opts.lca_min_support)
+
+    blastParsers={}
     for dbname, blastoutput in zip( opts.database_name, opts.input_blastout):
-        print "Processing database : " + dbname
-        try:
-           results_dictionary[dbname]={}
-           process_parsed_blastoutput(dbname, blastoutput, opts, results_dictionary[dbname])
-        except:
-           import traceback
-           traceback.print_exc()
-           print "Error: " + dbname
-           pass
+        blastParsers[dbname] =  BlastOutputTsvParser(dbname, blastoutput + '.tmp')
 
-    create_annotation(results_dictionary, opts.input_annotated_gff, opts.output_dir,\
-         opts.ncbi_taxonomy_map, opts.lca_min_score, opts.lca_top_percent, opts.lca_min_support)
+    #this part of the code computes the occurence of each of the taxons
+    # which is use in the later stage is used to evaluate the min support
+    # as used in the MEGAN software
 
-    # print results_dictionary['cog']
-    for dbname in results_dictionary:
-       if  dbname=='cog':
-          create_table(results_dictionary[dbname], opts.input_cog_maps, 'cog', opts.output_dir)
+    start = 0
+    Length = len(listOfOrfs) 
+    _stride = 100000
+    Taxons = {}
+    while start < Length:
+       pickorfs= {}
+       last =  min(Length, start + _stride)
+       for  i in range(start, last): 
+          pickorfs[listOfOrfs[i]]= 'all'
+       start = last
+       print 'min support ' + str(start)
 
-       if  dbname=='kegg':
-          create_table(results_dictionary[dbname], opts.input_kegg_maps, 'kegg', opts.output_dir)
+       results_dictionary={}
+       for dbname, blastoutput in zip( opts.database_name, opts.input_blastout):
+          if dbname=='refseq':
+            try:
+               results_dictionary[dbname]={}
+               process_parsed_blastoutput(dbname, blastParsers[dbname], opts, results_dictionary[dbname], pickorfs)
+               lca.set_results_dictionary(results_dictionary)
+               lca.compute_min_support_tree(opts.input_annotated_gff, pickorfs )
+               for key, taxon  in pickorfs.iteritems():
+                   Taxons[key] = taxon
+            except:
+               print "Error: while training for min support tree " + dbname
+               import traceback
+               traceback.print_exc()
 
-    peg2subsystem = {} 
+    blastParsers={}
+    for dbname, blastoutput in zip( opts.database_name, opts.input_blastout):
+        blastParsers[dbname] =  BlastOutputTsvParser(dbname, blastoutput + '.tmp')
+
+    # this loop determines the actual/final taxonomy of each of the ORFs 
+    # taking into consideration the min support
+    filePermTypes= {}
+    orfTablefilePermType = False
+    start = 0
+    while start < Length:
+       pickorfs= {}
+       last =  min(Length, start + _stride)
+       for  i in range(start, last): 
+          pickorfs[listOfOrfs[i]]= True
+       start = last
+       
+       gc.collect()
+       printf("memory used  = %s MB", str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1000000))
+       results_dictionary={}
+       for dbname, blastoutput in zip( opts.database_name, opts.input_blastout):
+            try:
+               results_dictionary[dbname]={}
+               printf("Processing database %s ", dbname)
+               process_parsed_blastoutput(dbname, blastParsers[dbname], opts, results_dictionary[dbname], pickorfs)
+               printf("done\n")
+            except:
+               import traceback
+               traceback.print_exc()
+               print "Error: " + dbname
+               pass
+            print dbname + ' ' + str(len(results_dictionary[dbname]))
+
+       print 'done = ' + str(start)
+
+       # create the annotations now
+       orfToContig = {}
+       create_annotation(results_dictionary, opts.database_name,  opts.input_annotated_gff, opts.output_dir, Taxons, pickorfs, orfToContig)
+        
+       for dbname in results_dictionary:
+          if dbname in filePermTypes:
+              filePermType = 'a'
+          else:
+              filePermType = 'w'
+              filePermTypes[dbname] = True
+
+          if  dbname=='cog':
+             create_table(results_dictionary[dbname], opts.input_cog_maps, 'cog', opts.output_dir, filePermType)
+          if  dbname=='kegg':
+             create_table(results_dictionary[dbname], opts.input_kegg_maps, 'kegg', opts.output_dir, filePermType)
+
+    #peg2subsystem = {} 
     # this feature is useless with the new refseq
-    if opts.subsystems2peg_file:
-       process_subsys2peg_file(peg2subsystem, opts.subsystems2peg_file)
+    #if opts.subsystems2peg_file:
+    #   process_subsys2peg_file(peg2subsystem, opts.subsystems2peg_file)
 
-    print_orf_table(results_dictionary, opts.output_dir)
+       orfTableFilePermType = False
+       if orfTableFilePermType:
+           filePermType = 'a'
+           orfTablefilePermType = True
+       else:
+           filePermType = 'w'
+
+       print_orf_table(results_dictionary, orfToContig, opts.output_dir, filePermType)
+
+    # now remove the temporary files
+    for dbname, blastoutput in zip( opts.database_name, opts.input_blastout):
+        try:
+           remove( blastoutput + '.tmp')
+        except:
+           pass
 
 def refseq_id(product):
     results = re.search(r'gi\|[0-9.]*', product)
@@ -773,13 +951,11 @@ def refseq_id(product):
        refseq_id=results.group(0)
     return refseq_id
 
-
 def process_subsys2peg_file(subsystems2peg, subsystems2peg_file):
      try:
          orgfile = open(subsystems2peg_file,'r')
      except IOError:
          print "Cannot open " + str(org_file)
-
      lines = orgfile.readlines()
      orgfile.close()
      for line in lines:
@@ -791,16 +967,16 @@ def process_subsys2peg_file(subsystems2peg, subsystems2peg_file):
      except:
          print "Cannot close " + str(org_file)
  
-def print_orf_table(results, output_dir):
+def print_orf_table(results, orfToContig,  output_dir, filePermType):
     if not path.exists(output_dir):
        makedirs(output_dir)
    
-    outputfile = open( output_dir +'/ORF_annotation_table.txt', 'w')
+    outputfile = open( output_dir +'/ORF_annotation_table.txt', filePermType)
 
     orf_dict = {}
     for dbname in results.iterkeys():
-      for seqname in results[dbname]:
-         for orf in results[dbname][seqname]:
+      for orfname in results[dbname]:
+         for orf in results[dbname][orfname]:
            if not orf['query'] in orf_dict:
                orf_dict[orf['query']] = {}
 
@@ -817,7 +993,7 @@ def print_orf_table(results, output_dir):
               orf_dict[orf['query']][dbname] = re.sub(r'\[.*\]','', seed).strip()
              
 
-           orf_dict[orf['query']]['contig'] = seqname
+           orf_dict[orf['query']]['contig'] = orfToContig[orfname]
 
     for orfn in orf_dict:
        if 'cog' in orf_dict[orfn]:
@@ -853,4 +1029,3 @@ def MetaPathways_create_reports_fast(argv):
 if __name__ == "__main__":
     createParser()
     main(sys.argv[1:])
-

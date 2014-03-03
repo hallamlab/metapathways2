@@ -107,8 +107,7 @@ def format_db(formatdb_executable, seqType, raw_sequence_file, formatted_db,  al
 
      if algorithm=='LAST':
          # dirname = os.path.dirname(raw_sequence_file)    
-         cmd='%s -p -c %s  %s' %(formatdb_executable, formatted_db, raw_sequence_file)
-         print cmd
+         cmd='%s -s 5G -p -c %s  %s' %(formatdb_executable, formatted_db, raw_sequence_file)
 
      result= getstatusoutput(cmd)
      if result[0]==0:
@@ -187,8 +186,9 @@ def create_refscores_compute_cmd(input, output, config_settings, algorithm):
 def formatted_db_exists(dbname, suffixes):
     for suffix in suffixes:
        fileList = glob(dbname + suffix) 
-       if not fileList:
-        return False
+       if len(fileList)==0 :
+          print 'ERROR :  if formatted correctely then expected the files with pattern ' + dbname + suffix
+          return False
     return True
 
 def check_if_raw_sequences_exist(filename):
@@ -233,7 +233,7 @@ def check_an_format_refdb(dbname, seqType,  config_settings, config_params):
        formattedDBPath = functional_formatted + PATHDELIM +  dbname
     else:
        print "WARNING : Undefined sequnce type for  " + dbname + "!" 
-       return
+       sys.exit(0)
     
     # database formatting executables paths
     if algorithm == 'LAST' and seqType =='prot':
@@ -244,18 +244,18 @@ def check_an_format_refdb(dbname, seqType,  config_settings, config_params):
     if not (formatted_db_exists(formattedDBPath, suffixes) ):
         print "WARNING : You do not seem to have Database " + dbname + " formatted!"
         if check_if_raw_sequences_exist(seqPath):
-            print "          Found raw sequences for  Database " + dbname + "!"
-            print "          Trying to format on the fly ....!"
+            print "          Found raw sequences for  Database " + dbname + " in folder " + seqPath + "  !"
+            print "          Trying to format on the fly .... for " + algorithm + "!"
             result =format_db(executable, seqType, seqPath, formattedDBPath, algorithm)
             if result ==True:
                 print "          Formatting successful!"
                 return 
             else:
-                print "          Formatting failed! Please consider formatting manually or do not try to annotated with this database!"
+                print "          Formatting failed! Please consider formatting manually or do not try to annotate with this database!"
                 sys.exit(0)
 
-        print 'seqpath ' + seqPath
         print "ERROR : You do not even have the raw sequence for Database " + dbname + " to format!"
+        print "        in the folder "+ seqPath
         print "        Please put the appropriate files in folder \"blastDB\""
         sys.exit(0)
   
@@ -305,8 +305,6 @@ def create_blastp_against_refdb_cmd(input, output, output_dir, sample_name,
          check_an_format_refdb(dbfilename, 'prot',  config_settings, config_params)
 
     if system=='grid':
-       
-       
        batch_size = get_parameter(config_params,  'grid_engine', 'batch_size', default=500)
        max_concurrent_batches = get_parameter(config_params,  'grid_engine', 'max_concurrent_batches', default=500)
        user = get_parameter(config_params,  'grid_engine', 'user', default='')
@@ -385,9 +383,6 @@ def create_annotate_genebank_cmd(sample_name, mapping_txt, input_unannotated_gff
     return cmd
 
 def create_genbank_ptinput_sequin_cmd(input_annotated_gff, nucleotide_fasta, amino_fasta, outputs, config_settings, ncbi_params_file, ncbi_sequin_sbt):
-    
-    #tbl2asn_exe = config_settings['METAPATHWAYS_PATH'] + config_settings['TBL2ASN_EXECUTABLE']
-
     cmd="%s -g %s -n %s -p %s " %((config_settings['METAPATHWAYS_PATH'] + config_settings['GENBANK_FILE']), input_annotated_gff, nucleotide_fasta, amino_fasta) ; 
 
     if 'gbk' in outputs:
@@ -396,9 +391,7 @@ def create_genbank_ptinput_sequin_cmd(input_annotated_gff, nucleotide_fasta, ami
     if ncbi_params_file and  'sequin' in outputs:
        cmd += ' --out-sequin ' + outputs['sequin']
        cmd += ' --sequin-params-file ' + ncbi_params_file
-    #   cmd += ' --sequin-tbl2asn ' +  tbl2asn_exe
        cmd += ' --ncbi-sbt-file ' +  ncbi_sequin_sbt
-
 
     if 'ptinput' in outputs:
        cmd += ' --out-ptinput ' + outputs['ptinput']
@@ -490,8 +483,8 @@ def create_rRNA_scan_statistics(blastoutput, refdbname, bscore_cutoff, eval_cuto
 def create_tRNA_scan_statistics(in_file,stat_file, fasta_file,  config_settings):
     cmd= "%s -o %s -F %s  -i %s -T %s  -D %s"  %((config_settings['METAPATHWAYS_PATH'] + config_settings['SCAN_tRNA']) ,\
            stat_file, fasta_file, in_file,\
-          (config_settings['METAPATHWAYS_PATH'] + config_settings['EXECUTABLES_DIR'])+ PATHDELIM + 'TPCsignal',\
-          (config_settings['METAPATHWAYS_PATH'] + config_settings['EXECUTABLES_DIR'])+ PATHDELIM + 'Dsignal')
+          (config_settings['METAPATHWAYS_PATH'] + config_settings['RESOURCES_DIR'])+ PATHDELIM + 'TPCsignal',\
+          (config_settings['METAPATHWAYS_PATH'] + config_settings['RESOURCES_DIR'])+ PATHDELIM + 'Dsignal')
     return cmd
 
 # create the command to make the MLTreeMap Images
@@ -591,7 +584,7 @@ def write_run_parameters_file(fileName, parameters):
 
 # checks if the necessary files, directories  and executables really exists or not
 def check_config_settings(config_settings, file):
-   essentialItems= ['METAPATHWAYS_PATH', 'EXECUTABLES_DIR']
+   essentialItems= ['METAPATHWAYS_PATH', 'EXECUTABLES_DIR', 'RESOURCES_DIR']
    missingItems = []
    for key, value in  config_settings.items():
       # make sure  MetaPathways directory is present
@@ -619,6 +612,13 @@ def check_config_settings(config_settings, file):
             missingItems.append(key) 
          continue
 
+      # make sure RESOURCES_DIR directories are present
+      if key in [ 'RESOURCES_DIR']:
+         if not path.isdir( config_settings['METAPATHWAYS_PATH'] + PATHDELIM + config_settings[key]) :
+            print "ERROR: Path for \"%s\" is NOT set properly in configuration file \"%s\"" %(key, file)  
+            print "ERROR: Currently it is set to \"%s\"\n" %( config_settings[key] )  
+            missingItems.append(key) 
+         continue
 
       # make sure  MetaPaths directory is present
       if key in ['PERL_EXECUTABLE',  'PYTHON_EXECUTABLE' , 'PATHOLOGIC_EXECUTABLE' ]:
@@ -791,8 +791,8 @@ def  checkMissingParam_values(config_params, choices, logger):
      for category in choices:
        for parameter in choices[category]:
          if not config_params[category][parameter]:
-            logger.write('ERROR: Empty paramter %s of type %s'  %(parameter, category))
-            print('ERROR: Empty paramter %s of type %s'  %(parameter, category))
+            logger.write('ERROR: Empty parameter %s of type %s'  %(parameter, category))
+            print('ERROR: Empty parameter %s of type %s'  %(parameter, category))
             success = False
 
      return success
@@ -1457,7 +1457,7 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
     command_Status=  get_parameter( config_params,'metapaths_steps','PATHOLOGIC')
 
     enable_flag = False
-    if (run_type in ['overwrite', 'overlay']  and  command_Status== 'yes'):
+    if (run_type in ['overwrite', 'overlay'])  and  (command_Status in ['redo', 'yes']):
        enable_flag = True
        #remove the pathologic dir for the pgdb with the same sample name since a new pgdb is requested
        remove_existing_pgdb( sample_name, config_settings['PATHOLOGIC_EXECUTABLE'])

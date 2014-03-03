@@ -115,22 +115,30 @@ def check_arguments(opts, args):
 def create_query_dictionary(blastoutputfile, query_dictionary, algorithm ):
        seq_beg_pattern = re.compile("^#")
 
-       blastoutfh = open( blastoutputfile,'r')
-
-       for line in blastoutfh:
-          if not seq_beg_pattern.search(line):
-              words = line.rstrip().split('\t')
-              if len(words) != 12: 
-                  continue
-
-              if algorithm =='BLAST': 
-                 query_dictionary[words[0]] = 1
-
-              if algorithm =='LAST': 
-                 query_dictionary[words[1]]= 1
-       blastoutfh.close()
-        
-       
+       try:
+          blastoutfh = open( blastoutputfile,'r')
+       except:
+          print ""
+          print "ERROR : cannot open B/LAST output file " + blastoutputfile + " to parse "
+          pass
+  
+       try:
+          for line in blastoutfh:
+             if not seq_beg_pattern.search(line):
+                 words = line.rstrip().split('\t')
+                 if len(words) != 12: 
+                     continue
+   
+                 if algorithm =='BLAST': 
+                    query_dictionary[words[0]] = 1
+   
+                 if algorithm =='LAST': 
+                    query_dictionary[words[1]]= 1
+          blastoutfh.close()
+       except:
+          print "ERROR : while reading  B/LAST output file " + blastoutputfile + " to partse "
+          print "      : make sure B/LAST ing was done for the particular database"
+          pass 
 
 def create_dictionary(databasemapfile, annot_map, query_dictionary):
 #       print "query size " + str(len(query_dictionary))
@@ -184,8 +192,14 @@ class BlastOutputParser(object):
         try:
            query_dictionary = {}
            create_query_dictionary(self.blastoutput, query_dictionary, self.opts.algorithm) 
+           try:
+              self.blastoutputfile = open(self.blastoutput,'r')
+           except:
+              print ""
+              print "ERROR : cannot open B/LAST output file " + blastoutput + " to parse "
+              print "      : make sure \"B/LAST\"ing was done for the particular database"
+              sys.exit(0)
 
-           self.blastoutputfile = open(self.blastoutput,'r')
            create_refscores(refscore_file, self.refscores)
 
 #           print "Going to read the dictionary\n"

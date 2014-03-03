@@ -137,7 +137,6 @@ def insert_orf_into_dict(line, contig_dict):
      fields = []
      for field in rawfields:
         fields.append(field.strip());
-    
      
      if( len(fields) != 9):
        return
@@ -171,7 +170,7 @@ class GffFileParser(object):
         self.Size = 10000
         self.i=0
         self.orf_dictionary = {}
-        self.gff_beg_pattern = re.compile("#")
+        self.gff_beg_pattern = re.compile("^#")
         self.lines= []
         self.size=0
         try:
@@ -185,14 +184,13 @@ class GffFileParser(object):
  
     def refillBuffer(self):
        self.orf_dictionary = {}
-       line = self.gff_file.readline()
        i = 0
-       while line and i < self.Size:
+       while i < self.Size:
           line=self.gff_file.readline()
-          if self.gff_beg_pattern.search(line):
-            continue
           if not line:
             break
+          if self.gff_beg_pattern.search(line):
+            continue
           insert_orf_into_dict(line, self.orf_dictionary)
           i += 1
 
@@ -375,12 +373,12 @@ def add_16S_genes(rRNA_16S_dictionary, rRNA_dictionary, contig_lengths) :
 
     for rRNA in rRNA_16S_dictionary: 
         try:
-           orf_length = abs(int( tRNA_dictionary[tRNA][1] )-int( tRNA_dictionary[tRNA][0] )) + 1
+           orf_length = abs(int( tRNA_dictionary[rRNA][1] )-int( tRNA_dictionary[rRNA][0] )) + 1
         except:
            orf_length = 0
 
-        if tRNA in  contig_lengths: 
-           contig_length = contig_lengths[tRNA]
+        if rRNA in  contig_lengths: 
+           contig_length = contig_lengths[rRNA]
         else:
            contig_length = 0
 
@@ -417,7 +415,7 @@ def create_annotation(dbname_weight, results_dictionary, input_gff,  rRNA_16S_st
     for contig in  gffreader:
        count = 0
        for orf in  gffreader.orf_dictionary[contig]:
-         #print orf
+         #print orf['id']
          value = 0.0001
          success =False
          output_comp_annot_file1_Str = ''
@@ -463,7 +461,6 @@ def create_annotation(dbname_weight, results_dictionary, input_gff,  rRNA_16S_st
                    output_comp_annot_file2_Str += '\t{0}\t{1}\t{2}'.format('', '','')
                 else:
                    output_comp_annot_file2_Str += '{0}\t{1}\t{2}\t{3}'.format(orf['id'], '','','','')
-
 
          if success:  # there was a database hit
             fprintf(output_comp_annot_file1,'%s\n', output_comp_annot_file1_Str)
