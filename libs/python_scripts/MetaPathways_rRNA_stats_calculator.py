@@ -53,6 +53,16 @@ def getFormat(dbstring):
          format = 2
     return format
 
+#sequences with no seperate taxonomic name gets the sequences name
+def parse_Format_0(line):
+    fields = re.split(' ', line)
+    if len( fields ) ==1:
+       name = fields[0].replace('>','')
+       taxonomy = name
+    else:
+       return( None, None ) 
+    return( name.strip(), taxonomy.strip() )
+
 #silva 
 def parse_Format_1(line):
     fields = re.split(' ', line)
@@ -84,12 +94,10 @@ def parse_Format_2(line):
 
 
 def getName_and_Taxonomy(line, format=0):
-    
-    if format==0:
-        print "ERROR: Unknown format for the rRNA database files!"
-        sys.exit(3)
 
-    if format==1:
+    if format==0:
+       name, taxonomy = parse_Format_0(line)
+    elif format==1:
        name, taxonomy = parse_Format_1(line)
     #   print name + "  " + taxonomy
     elif format==2:
@@ -244,7 +252,6 @@ rRNA_stats_table.py -i x.blastout [y.blastout] -d  xdatabase [ydatabase]  -m xta
 
 
     options, args = parser.parse_args(argv)
-    print options
     if not len(options.blast_files):
        parser.error('At least one taxonomic BLAST output is required')
 
