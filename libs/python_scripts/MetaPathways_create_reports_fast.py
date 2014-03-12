@@ -699,6 +699,8 @@ def merge_sorted_parsed_files(dbname, filenames, outputfilename, orfRanks):
 
     try:
        for i in range(len(filenames)):
+         print 'handles ' + str(len(readerhandles))
+         print filenames
          readerhandles.append(BlastOutputTsvParser(dbname, filenames[i]) )
     except OSError:
       print "ERROR: Cannot read sequence file : " + filenames[i]
@@ -708,7 +710,6 @@ def merge_sorted_parsed_files(dbname, filenames, outputfilename, orfRanks):
        outputfile = open(outputfilename, 'w')
        fieldmapHeaderLine = readerhandles[0].getHeaderLine()
        fprintf(outputfile, "%s\n",fieldmapHeaderLine) 
-      
     except OSError: 
        print "ERROR: Cannot create sequence file : " + outputfilename
        sys.exit(1)
