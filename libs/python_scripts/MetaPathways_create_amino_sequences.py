@@ -196,16 +196,12 @@ def process_gff_file(gff_file_name, output_amino_file_name, output_nuc_file_name
      gfffile.close()
      
      contig_dict={} 
-     count = 0
      for line in gff_lines:
         line = line.strip() 
         if gff_beg_pattern.search(line):
           continue
         insert_orf_into_dict(line, contig_dict)
 
-        #if count > 100:
-        #   break 
-        #count = count + 1
      create_the_gene_IDs(contig_dict, nucleotide_seq_dict)
      create_sequnces(output_amino_file_name, output_nuc_file_name, contig_dict, nucleotide_seq_dict)
      write_gff_file(output_gff_file_name, contig_dict)
@@ -429,6 +425,7 @@ def process_sequence_file(sequence_file_name,  seq_dictionary):
      if len(name) > 0:
         sequence=''.join(fragments)
         seq_dictionary[name]=sequence
+
 
 
 

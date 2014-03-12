@@ -141,7 +141,10 @@ def create_query_dictionary(blastoutputfile, query_dictionary, algorithm ):
           pass 
 
 def create_dictionary(databasemapfile, annot_map, query_dictionary):
-#       print "query size " + str(len(query_dictionary))
+       if not query_dictionary:
+          print "WARNING : empty query dictionary in parse B/LAST"
+          return 
+
        seq_beg_pattern = re.compile(">")
        dbmapfile = open( databasemapfile,'r')
 
@@ -149,6 +152,7 @@ def create_dictionary(databasemapfile, annot_map, query_dictionary):
           if seq_beg_pattern.search(line):
               words = line.rstrip().split()
               name = words[0].replace('>','',1)
+              
               if not name in query_dictionary: 
                  continue
               words.pop(0)
@@ -229,19 +233,18 @@ class BlastOutputParser(object):
            sys.exit(0) 
 
     def refillBuffer(self):
-       i = 0
-       self.lines = []
-       line = self.blastoutputfile.readline()
-       while line and i < self.Size:
-         line=self.blastoutputfile.readline()
-         if self.commentPATTERN.match(line):
-            continue
-         self.lines.append(line)
-         if not line:
-           break
-         i += 1
-
-       self.size = len(self.lines)
+        i = 0
+        self.lines = []
+        line = self.blastoutputfile.readline()
+        while line and i < self.Size:
+          line=self.blastoutputfile.readline()
+          if self.commentPATTERN.match(line):
+             continue
+          self.lines.append(line)
+          if not line:
+            break
+          i += 1
+        self.size = len(self.lines)
        
     def next(self):
         if self.i % self.Size ==0:

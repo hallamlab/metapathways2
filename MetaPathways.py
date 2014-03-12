@@ -32,7 +32,7 @@ except:
    print """ Could not load some user defined  module functions"""
    print """ Make sure your typed \"source MetaPathwaysrc\""""
    print """ """
-   print traceback.print_exc(10)
+   #print traceback.print_exc(10)
    sys.exit(3)
 
 
@@ -110,8 +110,13 @@ def create_an_input_output_pair(input_file, output_dir):
     shortname = re.sub('[.](fasta|fas|fna|faa|gbk|gff|fa)$','',input_file, re.I) 
     shortname = re.sub(r'.*' + PATHDELIM ,'',shortname) 
     shortname = re.sub(r'[.]','_',shortname) 
+    
     if re.search(r'.(fasta|fas|fna|faa|gbk|gff|fa)$',input_file, re.I):
-       input_output[input_file] = path.abspath(output_dir) + PATHDELIM + shortname
+       if len(shortname)>1:
+           input_output[input_file] = path.abspath(output_dir) + PATHDELIM + shortname
+       else:
+           print "WARNING : sample with one character name " + shortname + "(i.e., file \"" + input_file + "\" will be ignored"
+           print "          because prodigal creates some problem with such files"
 
     return input_output
 
@@ -125,7 +130,11 @@ def create_input_output_pairs(input_dir, output_dir):
        shortname = re.sub('.(fasta|fas|fna|faa|gbk|gff|fa)$','',file,re.I) 
        shortname = re.sub(r'[.]','_',shortname) 
        if re.search('.(fasta|fas|fna|faa|gff|gbk|fa)$',file, re.I):
-         input_files[file] = shortname
+          if len(shortname)>1:
+             input_files[file] = shortname
+          else:
+             print "WARNING : sample with one character name " + shortname + "(i.e., file \"" + file + "\" will be ignored"
+             print "          because prodigal creates some problem with such files"
 
     paired_input = {} 
     for key, value in input_files.iteritems():
