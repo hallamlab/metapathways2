@@ -189,21 +189,23 @@ def create_annotation(results_dictionary, dbnames,  annotated_gff,  output_dir, 
     count = 0
     for contig in  gffreader:
        for orf in  gffreader.orf_dictionary[contig]:
-          if not orf['id'] in orfsPicked:
+          if orf['id'] not in orfsPicked:
             continue
-
+          
           orfToContig[orf['id']] = contig
-
+          
           taxonomy = None
-          if count%10000==0 :
-             pass 
+          # if count%10000==0 :
+          #    pass 
 
           #update the sequence name
 
           #taxonomy=lca.getMeganTaxonomy(orf['id'])
           #print orf['id']
-          taxonomy=Taxons[orf['id']]
-
+          if "refseq" in opts_global.database_name:
+              taxonomy=Taxons[orf['id']]
+          else:
+              taxonomy = ""
           fprintf(output_table_file, "%s", orf['id'])
           fprintf(output_table_file, "\t%s", orf['orf_length'])
           fprintf(output_table_file, "\t%s", orf['start'])
@@ -811,10 +813,14 @@ def  create_sorted_parse_blast_files(dbname, blastoutput, listOfOrfs, size = 100
 import gc
 import resource
 
+opts_global = ""
+
 # the main function
 def main(argv): 
     global parser
     (opts, args) = parser.parse_args(argv)
+    global opts_global
+    opts_global = opts
     if not check_arguments(opts, args):
        print usage
        sys.exit(0)
@@ -889,7 +895,6 @@ def main(argv):
        for  i in range(start, last): 
           pickorfs[listOfOrfs[i]]= True
        start = last
-       
        gc.collect()
        printf("memory used  = %s MB", str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1000000))
        results_dictionary={}
