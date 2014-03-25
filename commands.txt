@@ -1,0 +1,3 @@
+t
+n MetaPathways.py -c template_config.txt -p template_param.txt -i ~/workshop/juniper/input/ -o ~/workshop/juniper/output/ -v -r overlay
+
