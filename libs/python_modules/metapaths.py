@@ -653,6 +653,7 @@ def check_config_settings(config_settings, file):
 # This function reads the pipeline configuration file and sets the 
 # paths to differenc scripts and executables the pipeline call
 def read_pipeline_configuration( file ):
+    patternKEYVALUE = re.compile(r'^([^\t\s]+)[\t\s]+\'(.*)\'')
     try:
        configfile = open(file, 'r')
     except IOError:
@@ -664,18 +665,16 @@ def read_pipeline_configuration( file ):
     for line in lines:
         if not re.match("#",line) and len(line.strip()) > 0 :
            line = line.strip()
-           line = re.sub('\t+', ' ', line)
-           line = re.sub('\s+', ' ', line)
-           line = re.sub('\'', '', line)
-           line = re.sub('\"', '', line)
-           fields = re.split('\s', line)
-           if not len(fields) == 2:
+           result = patternKEYVALUE.search(line)
+           
+           if  len(result.groups()) == 2:
+              fields = result.groups()
+           else:
               print """     The following line in your config settings files is set set up yet"""
               print """     Please rerun the pipeline after setting up this line"""
               print """ Error ine line :""" + line
               sys.exit(-1);
               
-#           print fields[0] + "\t" + fields[1]
            if PATHDELIM=='\\':
               config_settings[fields[0]] = re.sub(r'/',r'\\',fields[1])   
            else:
