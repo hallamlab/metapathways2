@@ -156,7 +156,10 @@ def create_dictionary(databasemapfile, annot_map, query_dictionary):
               if not name in query_dictionary: 
                  continue
               words.pop(0)
-              annotation = ' '.join(words)
+              if len(words)==0:
+                 annotation = 'hypothetical protein'
+              else:
+                 annotation = ' '.join(words)
               annot_map[name] = annotation
        dbmapfile.close()
 

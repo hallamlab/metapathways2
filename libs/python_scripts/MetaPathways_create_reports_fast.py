@@ -417,6 +417,10 @@ class BlastOutputTsvParser(object):
               print "<<<<<<-------"
               print 'self size ' + str(self.size)
               print 'line ' + self.lines[self.i % self.SIZE]
+              print 'num fields ' + str(len(fields))
+              fields = [ x  for x in self.lines[self.i % self.SIZE].split('\t')]
+              for field in fields:
+                 print field
               print 'next line ' + self.lines[(self.i + 1) % self.SIZE]
               print ' field map ' + str(self.fieldmap)
               print 'index ' + str(self.i)
@@ -701,8 +705,8 @@ def merge_sorted_parsed_files(dbname, filenames, outputfilename, orfRanks):
 
     try:
        for i in range(len(filenames)):
-         print 'handles ' + str(len(readerhandles))
-         print filenames
+         #print 'handles ' + str(len(readerhandles))
+         #print filenames
          readerhandles.append(BlastOutputTsvParser(dbname, filenames[i]) )
     except OSError:
       print "ERROR: Cannot read sequence file : " + filenames[i]
