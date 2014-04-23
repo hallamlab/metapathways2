@@ -945,22 +945,22 @@ def main(argv):
           pickorfs[listOfOrfs[i]]= True
        start = last
        gc.collect()
-       printf("Memory used  = %s MB\n", str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1000000))
+       eprintf("Memory used  = %s MB\n", str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1000000))
        results_dictionary={}
        for dbname, blastoutput in zip( opts.database_name, opts.input_blastout):
             try:
                results_dictionary[dbname]={}
-               printf("Processing database %s...", dbname)
+               eprintf("Processing database %s...", dbname)
                process_parsed_blastoutput(dbname, blastParsers[dbname], opts, results_dictionary[dbname], pickorfs)
-               printf("done\n")
+               eprintf("done\n")
             except:
                import traceback
                traceback.print_exc()
-               print "Error: " + dbname
+               eprintf("Error: %s\n", dbname)
                pass
             print dbname + ' ' + str(len(results_dictionary[dbname]))
 
-       print 'Num orfs processed  : ' + str(start)
+       eprintf("Num orfs processed  : %s\n", str(start))
 
        # create the annotations now
        orfToContig = {}
