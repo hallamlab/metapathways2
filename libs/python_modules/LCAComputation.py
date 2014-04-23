@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+from __future__ import division
 try:
      import sys, traceback
      import re
@@ -33,6 +34,7 @@ class LCAComputation:
     lca_top_percent = 10    # an LCA param to confine the hits to within the top hits score upto the top_percent% 
     lca_min_support = 5   # a minimum number of reads in the sample to consider a taxon to be present
     results_dictionary = None
+    tax_dbname = 'refseq'
 
     # initialize with the ncbi tree file 
     def __init__(self, filename):
@@ -133,11 +135,14 @@ class LCAComputation:
     def get_supported_taxon(self, taxonomy):
          id = self.get_a_Valid_ID( [taxonomy ])
          tid = id 
+         #i =0
          while( tid in self.taxid_to_ptaxid and tid !='1' ):
+            #print   str(i) + ' ' + self.translateIdToName(tid)
             if self.lca_min_support > self.taxid_to_ptaxid[tid][2] :
                 tid = self.taxid_to_ptaxid[tid][0]
             else:
                 return self.translateIdToName(tid)
+            #i+=1
 
          return  self.translateIdToName(tid)
     
@@ -196,22 +201,17 @@ class LCAComputation:
          #compute the top hit wrt score
          names = []
          species = []
-         if 'refseq' in self.results_dictionary:
-            if orfid in self.results_dictionary['refseq']:
+         if self.tax_dbname in self.results_dictionary:
+            if orfid in self.results_dictionary[self.tax_dbname]:
                  
                top_score = 0 
-               for hit in self.results_dictionary['refseq'][orfid]:
+               for hit in self.results_dictionary[self.tax_dbname][orfid]:
                   if hit['bitscore'] >= self.lca_min_score and hit['bitscore'] >= top_score:
                      top_score = hit['bitscore']
 
-               for hit in self.results_dictionary['refseq'][orfid]:
+               for hit in self.results_dictionary[self.tax_dbname][orfid]:
                   if (100-self.lca_top_percent)*top_score/100 < hit['bitscore']:
                      names = self.get_species(hit)
-                     #if 'MD_2_95' == orfid:
-                     #  for hit in self.results_dictionary['refseq'][orfid]:
-                     #     print  orfid  + ':' + str(names)
-                     #  else:
-                     #     print orfid  + ':' + str([])
                      if names:
                        species.append(names) 
 
@@ -222,7 +222,8 @@ class LCAComputation:
 
     # this is use to compute the min support for each taxon in the tree
     # this is called before the  getMeganTaxonomy
-    def compute_min_support_tree(self, annotate_gff_file, pickorfs):
+    def compute_min_support_tree(self, annotate_gff_file, pickorfs, dbname= 'refseq'):
+        self.tax_dbname = dbname
         gffreader = GffFileParser(annotate_gff_file)
         try:
            for contig in  gffreader:
@@ -231,23 +232,31 @@ class LCAComputation:
                      continue
                  taxonomy = None
                  species = []
-                 if 'refseq' in self.results_dictionary:
-                   if orf['id'] in self.results_dictionary['refseq']:
+                 if self.tax_dbname in self.results_dictionary:
+                   if orf['id'] in self.results_dictionary[self.tax_dbname]:
                        #compute the top hit wrt score
                        top_score = 0 
-                       for hit in self.results_dictionary['refseq'][orf['id']]:
+                       for hit in self.results_dictionary[self.tax_dbname][orf['id']]:
+                          #print hit['bitscore'], self.lca_min_score, top_score 
                           if hit['bitscore'] >= self.lca_min_score and hit['bitscore'] >= top_score:
                             top_score = hit['bitscore']
        
-                       for hit in self.results_dictionary['refseq'][orf['id']]:
+                       for hit in self.results_dictionary[self.tax_dbname][orf['id']]:
                           if (100-self.lca_top_percent)*top_score/100 < hit['bitscore']:
                              names = self.get_species(hit)
                              if names:
                                species.append(names) 
+
+                 #print orf['id']
+                 #print  orf['id'], species
+                 #print  orf['id'], len(self.results_dictionary[dbname][orf['id']]), species
                  taxonomy=self.getTaxonomy(species)
+                 #print taxonomy,  orf['id'], species
                  self.update_taxon_support_count(taxonomy)
                  pickorfs[orf['id']] = taxonomy
         except:
+           import traceback
+           traceback.print_exc()
            print "ERROR : Cannot read annotated gff file "
           
 

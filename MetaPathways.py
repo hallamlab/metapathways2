@@ -15,12 +15,13 @@ try:
      from os import makedirs, sys, listdir, environ, path
      import re 
      import inspect
+     import signal
      #from commands import getstatusoutput
      from optparse import OptionParser
      import shutil 
      
      from libs.python_modules import metapaths_utils
-     from libs.python_modules.metapaths_utils  import parse_command_line_parameters
+     from libs.python_modules.metapaths_utils  import parse_command_line_parameters, eprintf, exit_process
      from libs.python_modules.parse  import parse_metapaths_parameters, parse_parameter_file
      from libs.python_modules.metapaths_pipeline import print_commands, call_commands_serially, print_to_stdout, no_status_updates
      from libs.python_modules.sysutil import pathDelim
@@ -83,6 +84,9 @@ parser.add_option('-r','--run-type', dest="run_type", default='safe',
 parser.add_option("-v", "--verbose",
                   action="store_true", dest="verbose", default=False,
                   help="print lots of information on the stdout [default]")
+parser.add_option("--stats",
+                  dest="compute_stats", default='off', choices= ['on', 'off', 'auto'], 
+                  help="force compute the stats [default OFF]")
 parser.add_option("-P", "--print-only",
                   action="store_true", dest="print_only", default=False,
                   help="print only  the commands [default False]")
@@ -90,8 +94,11 @@ parser.add_option("-P", "--print-only",
 parser.add_option("-n", "--ncbi-header", dest="ncbi_header", 
                   help="NCBI sequin submission parameters file" )
 
-parser.add_option("-s", "--ncbi-sbt-file", dest="ncbi_sbt", 
-                  help="the NCBI sbt location created by the \"Create Submission Template\" form: http://www.ncbi.nlm.nih.gov/WebSub/template.cgi" )
+parser.add_option("-s", "--subset", dest="sample_subset", action="append", default=[],
+                  help="Processes only samples in the list  subset specified [ -s sample1 -s sample2 ]" )
+
+#parser.add_option("-s", "--ncbi-sbt-file", dest="ncbi_sbt", 
+#                  help="the NCBI sbt location created by the \"Create Submission Template\" form: http://www.ncbi.nlm.nih.gov/WebSub/template.cgi" )
 
 
 
@@ -103,15 +110,47 @@ def valid_arguments(opts, args):
     else:
        return False
 
+#keep only the samples that are specified  before processing 
+def remove_unspecified_samples(input_output_list, sample_subset):
+
+   shortened_names = {}
+   for input_file in input_output_list.keys():
+      shortname = re.sub('[.](fasta|fas|fna|faa|gbk|gff|fa)$','',input_file, flags= re.IGNORECASE) 
+      shortname = re.sub(r'[.]','_',shortname) 
+      shortened_names[shortname] = input_file
+
+   shortened_subset_names = [] 
+   for sample_in_subset in sample_subset:
+      shortname = re.sub('[.](fasta|fas|fna|faa|gbk|gff|fa)$','',sample_in_subset,  flags=re.IGNORECASE) 
+      shortname = re.sub(r'[.]','_',shortname) 
+      if len(shortname)!=0:
+        shortened_subset_names.append(shortname)
+
+   samples_to_keep = {} 
+
+   for keep_sample in shortened_subset_names:
+      sampleMatchPAT = re.compile(r'' + keep_sample + '$') 
+      for sample  in shortened_names:
+         result = sampleMatchPAT.search(sample, re.IGNORECASE)
+         if result:
+            samples_to_keep[shortened_names[sample]]= True
+            break
+    
+   input_sample_list = input_output_list.keys()
+   for sample in input_sample_list:
+      if not sample in samples_to_keep:
+         del input_output_list[sample]
+
+
 
 #creates an input output pair if input is just an input file
 def create_an_input_output_pair(input_file, output_dir):
     input_output = {}
-    shortname = re.sub('[.](fasta|fas|fna|faa|gbk|gff|fa)$','',input_file, re.I) 
+    shortname = re.sub('[.](fasta|fas|fna|faa|gbk|gff|fa)$','',input_file, flags=re.IGNORECASE) 
     shortname = re.sub(r'.*' + PATHDELIM ,'',shortname) 
     shortname = re.sub(r'[.]','_',shortname) 
     
-    if re.search(r'.(fasta|fas|fna|faa|gbk|gff|fa)$',input_file, re.I):
+    if re.search(r'.(fasta|fas|fna|faa|gbk|gff|fa)$',input_file, flags=re.IGNORECASE):
        if len(shortname)>1:
            input_output[input_file] = path.abspath(output_dir) + PATHDELIM + shortname
        else:
@@ -150,6 +189,9 @@ def openRank():
 
 # main function
 
+def sigint_handler(signum, frame):
+    eprintf("Received TERMINATION signal\n")
+    exit_process()
 
 def main(argv):
 
@@ -158,11 +200,16 @@ def main(argv):
        print usage
        sys.exit(0)
 
+    signal.signal(signal.SIGINT, sigint_handler)
+    signal.signal(signal.SIGTERM, sigint_handler)
+
+    eprintf("COMMAND : %s\n", ' '.join(argv))
     # initialize the input directory or file
     input_fp = opts.input_fp 
     output_dir = path.abspath(opts.output_dir)
     verbose = opts.verbose
     print_only = opts.print_only
+    sample_subset= opts.sample_subset
 
     run_type = opts.run_type.strip()
 
@@ -252,15 +299,18 @@ def main(argv):
        if path.exists(input_fp):   # check if dir exists
           input_output_list = create_input_output_pairs(input_fp, output_dir)
        else:   # must be an error
-          print "No valid input sample file or directory containing samples exists .!"
-          print "As provided as arguments in the -in option.!"
+          eprintf("No valid input sample file or directory containing samples exists .!")
+          eprintf("As provided as arguments in the -in option.!\n")
           sys.exit(1)
    
-    #print input_output_list
-    #sys.exit(1)
+    # these are the subset of sample to process if specified
+    # in case of an empty subset process all the samples
+    if sample_subset:
+       remove_unspecified_samples(input_output_list, sample_subset)
 
     config_params=parse_metapaths_parameters(parameter_f)
 
+    state_vars = {}
     # add check the config parameters 
     
     sorted_input_output_list = sorted(input_output_list.keys())
@@ -268,14 +318,16 @@ def main(argv):
     if len(input_output_list): 
       for input_file in sorted_input_output_list:
         output_dir = input_output_list[input_file]
+
         if run_type=='overwrite' and  path.exists(output_dir):
            shutil.rmtree(output_dir)
            makedirs(output_dir)
         if not  path.exists(output_dir):
            makedirs(output_dir)
-        print ""
-        print "##################################################"
-        print "PROCESSING INPUT " + input_file
+        eprintf("\n")
+        sample_name_banner = "PROCESSING INPUT " + input_file
+        eprintf('#'*len(sample_name_banner) + "\n")
+        eprintf(sample_name_banner + '\n')
         run_metapathways_before_BLAST(
            input_file, 
            output_dir,
@@ -287,10 +339,12 @@ def main(argv):
            config_file=config_file,
            ncbi_sequin_params = ncbi_sequin_params,
            ncbi_sequin_sbt = ncbi_sequin_sbt,
-           run_type = run_type
+           run_type = run_type, 
+           state_vars = state_vars,
+           compute_stats = opts.compute_stats
         )
     else: 
-        print "ERROR :No input files were found in the input folder"
+        eprintf("ERROR :No input files to process!\n")
         sys.exit(0)
 
     # blast the files
@@ -313,6 +367,7 @@ def main(argv):
        #  blasting  the files files locally
        for input_file in sorted_input_output_list:
            output_dir = input_output_list[input_file]
+
            run_metapathways_at_BLAST(
               input_file, 
               output_dir,
@@ -324,12 +379,14 @@ def main(argv):
               config_file=config_file,
               ncbi_sequin_params = ncbi_sequin_params,
               ncbi_sequin_sbt = ncbi_sequin_sbt,
-              run_type = run_type
+              run_type = run_type,
+              state_vars = state_vars
            )
 
     # after blasting  the files
     for input_file in sorted_input_output_list:
         output_dir = input_output_list[input_file]
+
         run_metapathways_after_BLAST(
            input_file, 
            output_dir,
@@ -341,10 +398,16 @@ def main(argv):
            config_file=config_file,
            ncbi_sequin_params = ncbi_sequin_params,
            ncbi_sequin_sbt = ncbi_sequin_sbt,
-           run_type = run_type
+           run_type = run_type,
+           state_vars = state_vars
         )
+    eprintf("            ***********                \n")
+    eprintf("INFO : FINISHED PROCESSING THE SAMPLES \n")
+    eprintf("             THE END                   \n")
+    eprintf("            ***********                \n")
 
 # the main function of metapaths
 if __name__ == "__main__":
     main(sys.argv[1:])    
+    
 

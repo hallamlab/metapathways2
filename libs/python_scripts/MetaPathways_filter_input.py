@@ -167,7 +167,7 @@ def main(argv):
     BEFORE = 'BEFORE'
     AFTER = 'AFTER'
     NUMSEQ = "#INFO\tNumber of sequences :"   
-    NUMSEQ_SHORTER = "@INFO\tNumber of sequences shorter than "
+    NUMSEQ_SHORTER = "@INFO\tNumber of sequences shorter than minimum length of sequences"
     AV_LENGTH= "@INFO\tAverage length of sequences:"
     MIN_LENGTH= "@INFO\tMinimum length of sequences:"
     MAX_LENGTH= "@INFO\tMaximum length of sequences:" 
@@ -265,12 +265,12 @@ def main(argv):
        mapfile.close()
 
 
-    fprintf(logfile, "@INFO\tBEFORE\tAFTER");
-    fprintf(logfile, "@INFO\t%s\n", NUMSEQ +'\t' + str(stats[NUMSEQ][BEFORE]) + '\t' + str(stats[NUMSEQ][AFTER]));
-    fprintf(logfile, "@INFO\t%s\n", NUMSEQ_SHORTER + str(MIN_LENGTH) + ':\t'+ str(stats[NUMSEQ_SHORTER][BEFORE]) + '\t' + str(stats[NUMSEQ_SHORTER][AFTER]))
-    fprintf(logfile, "@INFO\t%s\n", AV_LENGTH +'\t' + str(stats[AV_LENGTH][BEFORE]) + '\t'+ str(stats[AV_LENGTH][AFTER] ))
-    fprintf(logfile, "@INFO\t%s\n", MIN_LENGTH + '\t' + str(stats[MIN_LENGTH][BEFORE]) +'\t'+ str(stats[MIN_LENGTH][AFTER]))
-    fprintf(logfile, "@INFO\t%s\n", MAX_LENGTH +'\t'+ str(stats[MAX_LENGTH][BEFORE]) + '\t' +  str(stats[MAX_LENGTH][AFTER]))
+    fprintf(logfile, "@INFO\tBEFORE\tAFTER\n");
+    fprintf(logfile, "%s\n", NUMSEQ +'\t' + str(stats[NUMSEQ][BEFORE]) + '\t' + str(stats[NUMSEQ][AFTER]));
+    fprintf(logfile, "%s\n", NUMSEQ_SHORTER   + '\t'+ str(stats[NUMSEQ_SHORTER][BEFORE]) + '\t' + str(stats[NUMSEQ_SHORTER][AFTER]))
+    fprintf(logfile, "%s\n", AV_LENGTH +'\t' + str(stats[AV_LENGTH][BEFORE]) + '\t'+ str(stats[AV_LENGTH][AFTER] ))
+    fprintf(logfile, "%s\n", MIN_LENGTH + '\t' + str(stats[MIN_LENGTH][BEFORE]) +'\t'+ str(stats[MIN_LENGTH][AFTER]))
+    fprintf(logfile, "%s\n", MAX_LENGTH +'\t'+ str(stats[MAX_LENGTH][BEFORE]) + '\t' +  str(stats[MAX_LENGTH][AFTER]))
     fprintf(logfile, "@INFO\tLOW\tHIGH\tFREQUENCY\tCUMULATIVE_FREQUENCY\n");
 #    fprintf(logfile, "#   ---\t-----\t--------\t---------\t----------\n");
 

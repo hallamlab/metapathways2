@@ -7,42 +7,41 @@ INPUT:format fasta
 # e.g. fasta gbk-annotated gbk-unannotated gff-annotated gff-unannotated
 
 # Quality Control  parameters 
-quality_control:min_length 180
-quality_control:delete_replicates yes
+quality_control:min_length 0
+quality_control:delete_replicates 
 
 # ORF prediction parameters 
 orf_prediction:algorithm prodigal
-orf_prediction:min_length 60
+orf_prediction:min_length 1
 
 # ORF annotation parameters
 annotation:algorithm last
 # e.g. blast or last
-#annotation:dbs
-annotation:dbs metacyc-v4-2011-07-03,COG-2013-02-05,refseq-nr-2014-01-18,kegg-pep-2011-06-18,seed-2014-01-30
-
+annotation:dbs metacyc-v4-2011-07-03,refseq-nr-2014-01-18,MDM_SAG_proteins,COG_2013-12-27,kegg-pep-2011-06-18,seed-2014-01-30
+# e.g. annotation:dbs    cog,kegg,refseq,metacyc
 annotation:min_bsr 0
-annotation:max_evalue 0.000001
-annotation:min_score 20
-annotation:min_length 60
-annotation:max_hits 5
+annotation:max_evalue 0.00001
+annotation:min_score 1
+annotation:min_length 0
+annotation:max_hits 0
 
 # rRNA annotation parameters
 rRNA:refdbs 
 # e.g. rRNA:refdbs GREENGENES_gg16S,SSURef_111_NR_tax_silva,LSURef_111_tax_silva
-rRNA:max_evalue 0.000001
-rRNA:min_identity 20
-rRNA:min_bitscore 50
+rRNA:max_evalue 
+rRNA:min_identity 0
+rRNA:min_bitscore 1
 
 # pathway tools parameters
-ptools_settings:taxonomic_pruning no
+ptools_settings:taxonomic_pruning 
 
 # grid settings
-grid_engine0:batch_size 200
-grid_engine0:max_concurrent_batches 400
-grid_engine0:walltime 10:00:00   
-grid_engine0:RAM 10gb
-grid_engine0:user myusername
-grid_engine0:server mygrid.domain.com
+grid_engine:batch_size 200
+grid_engine:max_concurrent_batches 400
+grid_engine:walltime 10:00:00   
+grid_engine:RAM 10gb
+grid_engine:user myusername
+grid_engine:server mygrid.domain.com
 
 # pipeline execution flags
 # e.g. yes, skip, redo
@@ -60,7 +59,7 @@ metapaths_steps:ANNOTATE skip
 metapaths_steps:PATHOLOGIC_INPUT skip
 metapaths_steps:GENBANK_FILE skip
 metapaths_steps:CREATE_SEQUIN_FILE skip
-metapaths_steps:CREATE_REPORT_FILES skip
+metapaths_steps:CREATE_REPORT_FILES redo
 metapaths_steps:MLTREEMAP_CALCULATION skip
 metapaths_steps:MLTREEMAP_IMAGEMAKER skip
 metapaths_steps:PATHOLOGIC skip

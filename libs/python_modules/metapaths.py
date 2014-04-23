@@ -18,9 +18,10 @@ try:
    #from metapaths_utils  import parse_command_line_parameters
    from parse  import parse_metapaths_parameters
    from metapaths_pipeline import print_commands, call_commands_serially, WorkflowLogger, generate_log_fp, generate_steps_log_fp
+   from MetaPathways_gather_run_stats import MetaPathways_gather_run_stats
    import shutil
    import re
-   from metapaths_utils import fprintf, printf, remove_existing_pgdb
+   from metapaths_utils import fprintf, printf, eprintf, remove_existing_pgdb, exit_process
    import  errno
    from glob import glob
    from datetime import date
@@ -61,44 +62,8 @@ def get_refdb_name( dbstring ):
     dbstring = dbstring.rstrip()
     dbstring = dbstring.lstrip()
     dbstring = dbstring.lower() 
-    if re.search("kegg",dbstring):
-        dbname = "kegg"
-        return dbname
-    if re.search("cog",dbstring):
-        dbname = "cog"
-        return dbname
-    if re.search("metacyc",dbstring):
-        dbname = "metacyc"
-        return dbname
-    if re.search("refseq",dbstring):
-        dbname = "refseq"
-        return dbname
-    if re.search("seed",dbstring):
-        dbname = "seed"
-        return dbname
-
-    if re.search("InnateDB_human",dbstring, re.I):
-        dbname = "innatehuman"
-        return dbname
-     
-    if re.search("InnateDB_mus",dbstring, re.I):
-        dbname = "innatemus"
-        return dbname
-
-    if re.search("SSU",dbstring):
-        dbname = "silvaSSU"
-        return dbname
-   
-    if re.search("LSU",dbstring):
-        dbname = "silvaLSU"
-        return dbname
-
-    if re.search("greengenes",dbstring):
-        dbname="greengenes"
-        return dbname
-
-    #dbname= re.sub("[^a-zA-Z].*","", dbstring)
     return dbstring
+
 
 
 def format_db(formatdb_executable, seqType, raw_sequence_file, formatted_db,  algorithm):
@@ -178,7 +143,7 @@ def create_refscores_compute_cmd(input, output, config_settings, algorithm):
              (config_settings['METAPATHWAYS_PATH'] + config_settings['LAST_EXECUTABLE']), \
               output, input, algorithm) 
     else:
-         print "Unknown choice for annotation algorithm\n Please check your parameter file"
+         eprintf("Unknown choice for annotation algorithm\n Please check your parameter file\n")
          sys.exit(0)
 
     return cmd
@@ -187,7 +152,7 @@ def formatted_db_exists(dbname, suffixes):
     for suffix in suffixes:
        fileList = glob(dbname + suffix) 
        if len(fileList)==0 :
-          print 'ERROR :  if formatted correctely then expected the files with pattern ' + dbname + suffix
+          eprintf("ERROR :  if formatted correctely then expected the files with pattern %s\n", dbname + suffix)
           return False
     return True
 
@@ -222,7 +187,7 @@ def check_an_format_refdb(dbname, seqType,  config_settings, config_params):
     # check if formatted folder exists, if not create it
     for d in [taxonomic_formatted, functional_formatted]:
         if not createFolderIfNotFound(d):
-            print "WARNING : Creating formatted subdirectory in blastDB folder."
+            eprintf("WARNING : Creating formatted subdirectory in blastDB folder.\n")
     
     # formatted database output paths
     if seqType == 'nucl':
@@ -232,8 +197,8 @@ def check_an_format_refdb(dbname, seqType,  config_settings, config_params):
        seqPath = config_settings['REFDBS'] + PATHDELIM + 'functional' + PATHDELIM +  dbname
        formattedDBPath = functional_formatted + PATHDELIM +  dbname
     else:
-       print "WARNING : Undefined sequnce type for  " + dbname + "!" 
-       sys.exit(0)
+       eprintf("ERROR : Undefined sequnce type for %s!\n", dbname) 
+       exit_process()
     
     # database formatting executables paths
     if algorithm == 'LAST' and seqType =='prot':
@@ -242,28 +207,26 @@ def check_an_format_refdb(dbname, seqType,  config_settings, config_params):
       executable  = config_settings['METAPATHWAYS_PATH'] + PATHDELIM + config_settings['FORMATDB_EXECUTABLE']
 
     if not (formatted_db_exists(formattedDBPath, suffixes) ):
-        print "WARNING : You do not seem to have Database " + dbname + " formatted!"
+        eprintf("WARNING : You do not seem to have Database %s formatted!\n", dbname)
         if check_if_raw_sequences_exist(seqPath):
-            print "          Found raw sequences for  Database " + dbname + " in folder " + seqPath + "  !"
-            print "          Trying to format on the fly .... for " + algorithm + "!"
+            eprintf("          Found raw sequences for  Database %s in folder %s!\n", dbname, seqPath)
+            eprintf("          Trying to format on the fly .... for %s!\n", algorithm )
             result =format_db(executable, seqType, seqPath, formattedDBPath, algorithm)
             if result ==True:
-                print "          Formatting successful!"
+                eprintf("          Formatting successful!\n")
                 return 
             else:
-                print "          Formatting failed! Please consider formatting manually or do not try to annotate with this database!"
-                sys.exit(0)
+                eprintf("          Formatting failed! Please consider formatting manually or do not try to annotate with this database!\n")
+                exit_process()
 
-        print "ERROR : You do not even have the raw sequence for Database " + dbname + " to format!"
-        print "        in the folder "+ seqPath
-        print "        Please put the appropriate files in folder \"blastDB\""
-        sys.exit(0)
+        eprintf("ERROR : You do not even have the raw sequence for Database %s to format!\n", dbname)
+        eprintf("        in the folder %s\n", seqPath)
+        eprintf("        Please put the appropriate files in folder \"blastDB\"\n")
+        exit_process()
   
 
 #    fullRefDbMapName = config_settings['METAPATHWAYS_PATH'] + PATHDELIM + config_settings['REFDBS'] +PATHDELIM + dbname + '-names.txt'
 #    if not doFilesExist( [fullRefDbMapName ] ):
-#        print 'ssss' + fullRefDbMapName
-#        print 'no map file' 
 #        sys.exit(0)
 
 
@@ -271,11 +234,11 @@ def  make_sure_map_file_exists(config_settings, dbname):
     dbmapFile = config_settings['REFDBS'] + PATHDELIM + 'functional' + PATHDELIM + 'formatted' + PATHDELIM + dbname + "-names.txt"
     seqFilePath = config_settings['REFDBS'] + PATHDELIM + 'functional' + PATHDELIM + dbname
     if not doFilesExist( [dbmapFile ] ):
-         print 'WARNING: ' + 'Trying to create database map file for ' + dbname
+         eprintf("WARNING: Trying to create database map file for %s\n", dbname)
          if not doFilesExist( [seqFilePath] ):
-            print "ERROR : You do not even have the raw sequence for Database " + dbname + " to format!"
-            print "      : Make sure you have the file " + seqFilePath
-            sys.exit(0)
+            eprintf("ERROR : You do not even have the raw sequence for Database  %s to format!\n", dbname)
+            eprintf("      : Make sure you have the file %s\n", seqFilePath)
+            exit_process()
 
          mapfile = open(dbmapFile,'w')
          seqFile = open(seqFilePath,'r')
@@ -286,10 +249,6 @@ def  make_sure_map_file_exists(config_settings, dbname):
          mapfile.close()
 
     return dbmapFile
-
-#        print 'ssss' + fullRefDbMapName
-#        print 'no map file' 
-#        sys.exit(0)
 
 # creates the command to blast the sample orf sequences against the reference databases for the 
 # purpose of annotation
@@ -353,14 +312,6 @@ def create_parse_blast_cmd(input, refscorefile, dbname, dbmapfile,  config_setti
     if algorithm == 'BLAST':
        cmd = cmd + ' --algorithm BLAST'
 
-    
-    #if dbname=='refseq':
-    #   cmd = cmd + " --remove_tax"
-
-    #if not path.exists( dbmapfile ):
-    #    print "ERROR: You do not have the required  annotation map file "
-        #print "      " + dbmapfile
-    #    sys.exit(0)
     return cmd
 
 # this function creates the command that is required to make the annotated genbank file
@@ -399,7 +350,7 @@ def create_genbank_ptinput_sequin_cmd(input_annotated_gff, nucleotide_fasta, ami
 
     return cmd
 
-def  create_report_files_cmd(dbs, input_dir, input_annotated_gff,  sample_name, output_dir, config_settings, algorithm):
+def  create_report_files_cmd(dbs, input_dir, input_annotated_gff,  sample_name, output_dir, config_settings, algorithm, verbose):
     db_argument_string = ''
     for db in dbs:
         dbname = get_refdb_name(db)
@@ -418,6 +369,8 @@ def  create_report_files_cmd(dbs, input_dir, input_annotated_gff,  sample_name, 
               db_argument_string, input_annotated_gff,\
               basefun + 'KO_classification.txt', basefun + 'COG_categories.txt',  output_dir,\
                basencbi + 'ncbi_taxonomy_tree.txt')
+    if verbose:
+       cmd += " -v"
     return cmd
 
 
@@ -462,9 +415,6 @@ def create_scan_rRNA_seqs_cmd(input_fasta, output_blast, refdb, config_settings,
     else:
        sys.exit(0)
 
-#    if not check_if_db_exists(config_settings['METAPATHWAYS_PATH'] + PATHDELIM + config_settings['REFDBS'] +PATHDELIM + refdb) and run_command=="yes":
-#       print "Error : Reference Database " + refdb + " does not exist!"
-#       sys.exit(0)
 
     cmd="%s -outfmt 6 -num_threads 16  -query %s -out %s -db %s -max_target_seqs 5"%((config_settings['METAPATHWAYS_PATH'] + config_settings['BLASTN_EXECUTABLE']),input_fasta,output_blast, config_settings['REFDBS'] + PATHDELIM + db_type + PATHDELIM + 'formatted' + PATHDELIM + refdb)
     return cmd
@@ -533,16 +483,14 @@ def get_make_parameter(config_params,category, field, default = False):
     return default
 
 def get_pipeline_steps(steps_log_file):
-    #print steps_log_file
     try:
        logfile = open(steps_log_file, 'r')
     except IOError:
-       print "Did not find " + logfile + "!" 
-       print "Try running in \'complete\' run-type"
+       eprintf("Did not find %s!\n", logfile) 
+       eprintf("Try running in \'complete\' run-type\n")
     else:
        lines = logfile.readlines()
-#       for line in lines:
-#           print line
+
     pipeline_steps = None
     return pipeline_steps
 
@@ -551,7 +499,7 @@ def write_run_parameters_file(fileName, parameters):
     try:
        paramFile = open(fileName, 'w')
     except IOError:
-       print "Cannot write run parameters to file " + fileName + " !"
+       eprintf("Cannot write run parameters to file %s!\n", fileName)
 
 #       16s_rRNA      {'min_identity': '40', 'max_evalue': '0.000001', 'min_bitscore': '06', 'refdbs': 'silva_104_rep_set,greengenes_db_DW'}
     paramFile.write("\nRun Date : " + str(date.today()) + " \n")
@@ -590,8 +538,8 @@ def check_config_settings(config_settings, file):
       # make sure  MetaPathways directory is present
       if key in ['METAPATHWAYS_PATH' ]:
          if not path.isdir(config_settings[key]) :
-            print "ERROR: Path for \"%s\" is NOT set properly in configuration file \"%s\"" %(key, file)  
-            print "ERROR: Currently it is set to \"%s\"\n" %( config_settings[key] )  
+            eprintf("ERROR: Path for \"%s\" is NOT set properly in configuration file \"%s\"\n", key, file)  
+            eprintf("ERROR: Currently it is set to \"%s\"\n", config_settings[key] )  
             missingItems.append(key) 
          continue
 
@@ -599,32 +547,32 @@ def check_config_settings(config_settings, file):
       # make sure  REFDB directories are present
       if key in [ 'REFDBS' ]:
          if not path.isdir( config_settings[key]) :
-            print "ERROR: Path for \"%s\" is NOT set properly in configuration file \"%s\"" %(key, file)  
-            print "ERROR: Currently it is set to \"%s\"\n" %( config_settings[key] )  
+            eprintf("ERROR: Path for \"%s\" is NOT set properly in configuration file \"%s\"\n", key, file)  
+            eprintf("ERROR: Currently it is set to \"%s\"\n", config_settings[key] )  
             missingItems.append(key) 
          continue
 
       # make sure EXECUTABLES_DIR directories are present
       if key in [ 'EXECUTABLES_DIR']:
          if not path.isdir( config_settings['METAPATHWAYS_PATH'] + PATHDELIM + config_settings[key]) :
-            print "ERROR: Path for \"%s\" is NOT set properly in configuration file \"%s\"" %(key, file)  
-            print "ERROR: Currently it is set to \"%s\"\n" %( config_settings[key] )  
+            eprintf("ERROR: Path for \"%s\" is NOT set properly in configuration file \"%s\"\n", key, file)  
+            eprintf("ERROR: Currently it is set to \"%s\"\n", config_settings[key] )  
             missingItems.append(key) 
          continue
 
       # make sure RESOURCES_DIR directories are present
       if key in [ 'RESOURCES_DIR']:
          if not path.isdir( config_settings['METAPATHWAYS_PATH'] + PATHDELIM + config_settings[key]) :
-            print "ERROR: Path for \"%s\" is NOT set properly in configuration file \"%s\"" %(key, file)  
-            print "ERROR: Currently it is set to \"%s\"\n" %( config_settings[key] )  
+            eprintf("ERROR: Path for \"%s\" is NOT set properly in configuration file \"%s\"\n", key, file)  
+            eprintf("ERROR: Currently it is set to \"%s\"\n",  config_settings[key] )  
             missingItems.append(key) 
          continue
 
       # make sure  MetaPaths directory is present
       if key in ['PERL_EXECUTABLE',  'PYTHON_EXECUTABLE' , 'PATHOLOGIC_EXECUTABLE' ]:
          if not path.isfile( config_settings[key]) :
-            print "ERROR: Path for \"%s\" is NOT set properly in configuration file \"%s\"" %(key, file)  
-            print "ERROR: Currently it is set to \"%s\"\n" %( config_settings[key] )  
+            eprintf("ERROR: Path for \"%s\" is NOT set properly in configuration file \"%s\"\n", key, file)  
+            eprintf("ERROR: Currently it is set to \"%s\"\n", config_settings[key] )  
             missingItems.append(key) 
          continue
 
@@ -632,21 +580,20 @@ def check_config_settings(config_settings, file):
       # check if the desired file exists, if not, then print a message
       if not path.isfile( config_settings['METAPATHWAYS_PATH'] +  value ) :
           if not path.isfile( value ) :
-              print "ERROR: Path for \"%s\" is NOT set properly in configuration file \"%s\"" %(key, file)  
-              print "ERROR: Currently it is set to \"%s\"\n" %( config_settings['METAPATHWAYS_PATH'] + value ) 
+              eprintf("ERROR: Path for \"%s\" is NOT set properly in configuration file \"%s\"\n", key, file)  
+              eprintf("ERROR: Currently it is set to \"%s\"\n", config_settings['METAPATHWAYS_PATH'] + value ) 
               missingItems.append(key) 
           continue
      
    stop_execution = False
    for item in missingItems:
       if item in essentialItems:
-         print """ ERROR: Essential field in setting """ +  item + " is missing in configuration file!"
+         eprintf(" ERROR: Essential field in setting %s is missing in configuration file!\n", item)
          stop_execution = True
 
    if stop_execution ==True:
-      print """  """
-      print  """ Terminating execution due to missing essentiail  fields in configuration file!"""
-      sys.exit(0)
+      eprintf("\n Terminating execution due to missing essential  fields in configuration file!\n")
+      exit_process()
 
    
 
@@ -657,7 +604,7 @@ def read_pipeline_configuration( file ):
     try:
        configfile = open(file, 'r')
     except IOError:
-       print "Did not find pipeline config " + file + "!" 
+       eprintf("Did not find pipeline config %s!\n", file) 
     else:
        lines = configfile.readlines()
 
@@ -667,13 +614,19 @@ def read_pipeline_configuration( file ):
            line = line.strip()
            result = patternKEYVALUE.search(line)
            
-           if  len(result.groups()) == 2:
-              fields = result.groups()
-           else:
-              print """     The following line in your config settings files is set set up yet"""
-              print """     Please rerun the pipeline after setting up this line"""
-              print """ Error ine line :""" + line
-              sys.exit(-1);
+           try:
+              if len(result.groups()) == 2:
+                 fields = result.groups()
+              else:
+                 eprintf("     The following line in your config settings files is set set up yet\n")
+                 eprintf("     Please rerun the pipeline after setting up this line\n")
+                 eprintf("     Error in line : %s\n", line)
+                 exit_process()
+           except:
+                 eprintf("     The following line in your config settings files is set set up yet\n")
+                 eprintf("     Please rerun the pipeline after setting up this line\n")
+                 eprintf("     Error ine line : %s\n", line)
+                 exit_process()
               
            if PATHDELIM=='\\':
               config_settings[fields[0]] = re.sub(r'/',r'\\',fields[1])   
@@ -704,7 +657,6 @@ def shouldRunStep(run_type, expected_output):
         return False
     else:
         return True
-    #print enable_flag
 
 # has the results to use
 def hasResults(expected_output):
@@ -791,7 +743,7 @@ def  checkMissingParam_values(config_params, choices, logger):
        for parameter in choices[category]:
          if not config_params[category][parameter]:
             logger.write('ERROR: Empty parameter %s of type %s'  %(parameter, category))
-            print('ERROR: Empty parameter %s of type %s'  %(parameter, category))
+            eprintf('ERROR: Empty parameter %s of type %s\n'  %(parameter, category))
             success = False
 
      return success
@@ -803,13 +755,13 @@ def  checkParam_values(allcategorychoices, parameters, logger):
      for category in allcategorychoices:
         for choice in allcategorychoices[category]:
            if choice in parameters: 
-#             print choice + " " + parameters[choice]  
-#             print allcategorychoices[category][choice] 
 
              if not parameters[choice] in allcategorychoices[category][choice]:
                  logger.write('ERROR: Incorrect setting in your parameter file')
                  logger.write('       for step %s as %s' %(choice, parameters[choices]))
-                 sys.exit(0)
+                 eprintf("ERROR: Incorrect setting in your parameter file" +\
+                         "       for step %s as %s", choice, parameters[choices])
+                 exit_process()
 
 def checkMetapaths_Steps(config_params, logger):
      choices = { 'metapaths_steps':{}, 'annotation':{}, 'INPUT':{} }
@@ -846,16 +798,13 @@ def checkMetapaths_Steps(config_params, logger):
      checkparams['annotation'].append('dbs') 
 
      if not checkMissingParam_values(config_params, checkparams, logger):
-        sys.exit(0)
-
-
-
+        exit_process()
 
 
 def  copy_fna_faa_gff_orf_prediction( source_files, target_files, config_settings) :
 
      for source, target in zip(source_files, target_files):  
-         #print source + ' ' + target
+
          sourcefile = open(source, 'r')
          targetfile = open(target, 'w')
          sourcelines = sourcefile.readlines()
@@ -869,7 +818,7 @@ def  copy_fna_faa_gff_orf_prediction( source_files, target_files, config_setting
 #################################################################################
 ########################### BEFORE BLAST ########################################
 #################################################################################
-def run_metapathways_before_BLAST(input_fp, output_dir, command_handler, command_line_params, config_params, metapaths_config, status_update_callback, config_file, ncbi_sequin_params, ncbi_sequin_sbt, run_type):
+def run_metapathways_before_BLAST(input_fp, output_dir, command_handler, command_line_params, config_params, metapaths_config, status_update_callback, config_file, ncbi_sequin_params, ncbi_sequin_sbt, run_type, state_vars, compute_stats):
 
 #    latlon = get_parameter(ncbi_sequin_params, 'SequinHeader', 'Lat_Lon', default='_Lat_Lon_')
 #    isolation = get_parameter(ncbi_sequin_params, 'SequinHeader', 'isolation', default='_isolation_')
@@ -905,6 +854,12 @@ def run_metapathways_before_BLAST(input_fp, output_dir, command_handler, command
     sample_name = path.basename(sample_name)
     sample_name = re.sub('[.]','_',sample_name)
 
+    state_vars[sample_name] = {}
+    state_vars[sample_name]['gather_stats'] = compute_stats
+    run_stats_file  = sample_name + ".run.stats.txt"
+
+    if state_vars[sample_name]['gather_stats']=='auto' and not doFilesExist( [run_stats_file], output_run_statistics_dir ) :
+       state_vars[sample_name]['gather_stats'] = "on"
 
     checkOrCreateFolder( preprocessed_dir) 
     checkOrCreateFolder( orf_prediction_dir) 
@@ -950,6 +905,9 @@ def run_metapathways_before_BLAST(input_fp, output_dir, command_handler, command
 
        enable_flag = shouldRunStep(run_type, output_fna) or shouldRunStep(run_type, output_faa)  or shouldRunStep(run_type, output_gff)  
 
+       if enable_flag or command_Status=='redo':
+          if state_vars[sample_name]['gather_stats'] in ['auto'] :
+              state_vars[sample_name]['gather_stats'] = 'on'
        input_gff_to_fasta_faa_gff_cmd=convert_gff_to_fna_faa_gff([input_gff, input_fasta, input_faa], [ output_gff, output_fasta, output_faa], config_settings) 
        commands.append(["\n" + '*** ' + sample_name + ' ***\n' + "1. Converting gff file to fna, faa and gff files ....", input_gff_to_fasta_faa_gff_cmd,\
                        'PREPROCESS_FASTA', command_Status, enable_flag])
@@ -977,6 +935,9 @@ def run_metapathways_before_BLAST(input_fp, output_dir, command_handler, command
        removeFileOnRedo(command_Status, output_gff)
        enable_flag = shouldRunStep(run_type, output_fna) or shouldRunStep(run_type, output_faa)  or shouldRunStep(run_type, output_gff)  
 
+       if enable_flag:
+          if state_vars[sample_name]['gather_stats'] in ['auto'] :
+              state_vars[sample_name]['gather_stats'] = 'on'
        message = "\n" + '*** ' + sample_name + ' ***\n' +"\n1. Converting genbank file to fna, faa and gff files ...."
        commands.append([message, genbank_to_fna_faa_gff_cmd, 'PREPROCESS_FASTA', command_Status, enable_flag])
 
@@ -1002,6 +963,9 @@ def run_metapathways_before_BLAST(input_fp, output_dir, command_handler, command
          # Niels - changed from shouldRunStep1() to shouldRunStep()
          enable_flag = shouldRunStep(run_type, output_fas) or shouldRunStep(run_type, nuc_stats_file ) or shouldRunStep(run_type, contig_lengths_file)
 
+         if enable_flag:
+            if state_vars[sample_name]['gather_stats'] in ['auto'] :
+               state_vars[sample_name]['gather_stats'] = 'on'
          message = "\n" + '*** ' + sample_name + ' ***\n' +"\n1. Running Quality Check ...."
          commands.append( [message, quality_check_cmd, 'PREPROCESS_FASTA', command_Status, enable_flag])
      
@@ -1017,6 +981,9 @@ def run_metapathways_before_BLAST(input_fp, output_dir, command_handler, command
          command_Status=  get_parameter( config_params,'metapaths_steps','ORF_PREDICTION')
          removeFileOnRedo(command_Status, output_gff)
          enable_flag = shouldRunStep(run_type,  output_gff) 
+         if enable_flag:
+            if state_vars[sample_name]['gather_stats'] in ['auto'] :
+               state_vars[sample_name]['gather_stats'] = 'on'
         
          #add command
          message = "\n" + '*** ' + sample_name + ' ***\n' +"\n2. Running ORF Prediction ...."
@@ -1033,6 +1000,9 @@ def run_metapathways_before_BLAST(input_fp, output_dir, command_handler, command
          command_Status= get_parameter( config_params,'metapaths_steps','GFF_TO_AMINO')
          removeFileOnRedo(command_Status, output_faa)
          enable_flag=shouldRunStep1(run_type, orf_prediction_dir,  [ sample_name + '.unannot.gff',  sample_name + '.faa' , sample_name + '.fna'] )  
+         if enable_flag:
+            if state_vars[sample_name]['gather_stats'] in ['auto'] :
+               state_vars[sample_name]['gather_stats'] = 'on'
          create_aa_sequences_cmd = create_aa_orf_sequences_cmd(input_gff, input_fasta, output_fna, output_faa, output_gff, config_settings) 
 
          commands.append(["\n" + '*** ' + sample_name + ' ***\n' +"\n3. Creating the Amino Acid sequences ....", create_aa_sequences_cmd, 'GFF_TO_AMINO',command_Status, enable_flag])
@@ -1056,6 +1026,9 @@ def run_metapathways_before_BLAST(input_fp, output_dir, command_handler, command
     removeFileOnRedo(command_Status, amino_stats_file)
     removeFileOnRedo(command_Status, orf_lengths_file)
     enable_flag=shouldRunStep(run_type, output_filtered_faa)  or shouldRunStep(run_type, amino_stats_file)  or shouldRunStep(run_type, orf_lengths_file)
+    if enable_flag:
+       if state_vars[sample_name]['gather_stats'] in ['auto'] :
+          state_vars[sample_name]['gather_stats'] = 'on'
 
     #add command
 
@@ -1072,12 +1045,12 @@ def run_metapathways_before_BLAST(input_fp, output_dir, command_handler, command
        #algorithm=  get_parameter( config_params,'annotation','algorithm')
        refscores_compute_cmd = create_refscores_compute_cmd(input_faa, output_refscores, config_settings, algorithm) 
        command_Status=  get_parameter( config_params,'metapaths_steps','COMPUTE_REFSCORE')
-       # if not hasInput(input_faa):
-       #     command_Status = "missing"
-       #     print "Missing " + input_faa
 
        removeFileOnRedo(command_Status, output_refscores)
        enable_flag=shouldRunStep(run_type, output_refscores)  
+       if enable_flag:
+          if state_vars[sample_name]['gather_stats'] in ['auto'] :
+            state_vars[sample_name]['gather_stats'] = 'on'
        # add command
        commands.append( ["\n" + '*** ' + sample_name + ' ***\n' +"\n5. Computing refscores for the ORFs ....", refscores_compute_cmd,'COMPUTE_REFSCORE', command_Status, enable_flag])
     #################################
@@ -1088,7 +1061,7 @@ def run_metapathways_before_BLAST(input_fp, output_dir, command_handler, command
 #################################################################################
 ###########################  BLAST ##############################################
 #################################################################################
-def run_metapathways_at_BLAST(input_fp, output_dir, command_handler, command_line_params, config_params, metapaths_config, status_update_callback, config_file, ncbi_sequin_params, ncbi_sequin_sbt, run_type):
+def run_metapathways_at_BLAST(input_fp, output_dir, command_handler, command_line_params, config_params, metapaths_config, status_update_callback, config_file, ncbi_sequin_params, ncbi_sequin_sbt, run_type, state_vars):
 
     
     algorithm = get_parameter(config_params, 'annotation', 'algorithm', default='BLAST').upper()
@@ -1122,7 +1095,8 @@ def run_metapathways_at_BLAST(input_fp, output_dir, command_handler, command_lin
     commands = []
     dbstring = get_parameter(config_params, 'annotation', 'dbs', default=None)
     # all these dbs are under functional
-    dbs= dbstring.split(",")
+    dbs= [x.strip().lower() for x in dbstring.split(",") ]
+
     output_filtered_faa = orf_prediction_dir + PATHDELIM +  sample_name + ".qced.faa"   
     input_faa =  output_filtered_faa 
 
@@ -1139,6 +1113,10 @@ def run_metapathways_at_BLAST(input_fp, output_dir, command_handler, command_lin
 
              removeFileOnRedo(command_Status, blastoutput)
              enable_flag=shouldRunStep(run_type, blastoutput)  
+
+             if enable_flag:
+                if state_vars[sample_name]['gather_stats'] in ['auto'] :
+                   state_vars[sample_name]['gather_stats'] = 'on'
               
              blast_against_refdb_cmd=create_blastp_against_refdb_cmd(input_faa, blastoutput,\
                                        output_dir,  sample_name, db,\
@@ -1157,7 +1135,7 @@ def run_metapathways_at_BLAST(input_fp, output_dir, command_handler, command_lin
 ########################### AFTER BLAST #########################################
 #################################################################################
 #This is the part after BLAST PART3
-def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_line_params, config_params, metapaths_config, status_update_callback, config_file, ncbi_sequin_params, ncbi_sequin_sbt, run_type):
+def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_line_params, config_params, metapaths_config, status_update_callback, config_file, ncbi_sequin_params, ncbi_sequin_sbt, run_type, state_vars):
     
     algorithm = get_parameter(config_params, 'annotation', 'algorithm', default='BLAST').upper()
     logger = WorkflowLogger(generate_log_fp(output_dir), open_mode='a')
@@ -1189,7 +1167,7 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
 
     commands = []
     dbstring = get_parameter(config_params, 'annotation', 'dbs', default=None)
-    dbs= dbstring.split(",")
+    dbs= [x.strip().lower() for x in dbstring.split(",") ]
 
     output_filtered_faa = orf_prediction_dir + PATHDELIM +  sample_name + ".qced.faa"   
     # PARSE THE BLAST RESULTS 
@@ -1213,6 +1191,10 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
           command_Status=  get_parameter( config_params,'metapaths_steps','PARSE_BLAST')
           removeFileOnRedo(command_Status, output_db_blast_parsed)
           enable_flag=shouldRunStep(run_type, output_db_blast_parsed)  
+
+          if enable_flag and  command_Status!='skip':
+             if state_vars[sample_name]['gather_stats'] in ['auto'] :
+               state_vars[sample_name]['gather_stats'] = 'on'
    
           dbmapfile = make_sure_map_file_exists(config_settings, db)
    
@@ -1230,21 +1212,23 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
     input_fasta = preprocessed_dir +  PATHDELIM + sample_name + ".fasta" 
     db_type = 'taxonomic'
     refdbstring = get_parameter(config_params, 'rRNA', 'refdbs', default=None)
-    refdbnames= [ x.strip() for x in refdbstring.split(',') if len(x.strip()) ]
+    refdbnames= [ x.strip().lower() for x in refdbstring.split(',') if len(x.strip()) ]
 
 
     message = "\n" + '*** ' + sample_name + ' ***\n' +"\n8. Scan for rRNA sequences in reference database - "
     for refdbname in refdbnames:
-       # print '----------'
-       # print refdbname
+
        rRNA_blastout= blast_results_dir + PATHDELIM + sample_name + ".rRNA." + get_refdb_name(refdbname) + ".BLASTout"
 
        command_Status=  get_parameter( config_params,'metapaths_steps','SCAN_rRNA')
        scan_rRNA_seqs_cmd = create_scan_rRNA_seqs_cmd(input_fasta,rRNA_blastout, refdbname, config_settings, config_params, command_Status, db_type)
 
-       
        removeFileOnRedo(command_Status, rRNA_blastout)
        enable_flag=shouldRunStep(run_type, rRNA_blastout)  
+
+       if enable_flag and  command_Status!='skip':
+          if state_vars[sample_name]['gather_stats'] in ['auto'] :
+             state_vars[sample_name]['gather_stats'] = 'on'
 
        commands.append( [message + refdbname + "...." , scan_rRNA_seqs_cmd, 'SCAN_rRNA_' + refdbname, command_Status, enable_flag])
        message = "\n                                                   "
@@ -1257,7 +1241,7 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
     identity_cutoff = get_parameter(config_params, 'rRNA', 'min_identity', default=40)
 
     message = "\n" + '*** ' + sample_name + ' ***\n' +"\n9. Gathering rRNA stats .... "
-    #print refdbnames
+
     for refdbname in refdbnames:
         rRNA_stat_results= output_results_rRNA_dir + sample_name + "." + get_refdb_name(refdbname) + ".rRNA.stats.txt"
         rRNA_blastout= blast_results_dir + PATHDELIM + sample_name + ".rRNA." + get_refdb_name(refdbname) + ".BLASTout"
@@ -1267,6 +1251,10 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
         command_Status=  get_parameter( config_params,'metapaths_steps','STATS_rRNA')
         removeFileOnRedo(command_Status, rRNA_stat_results)
         enable_flag=shouldRunStep(run_type, rRNA_stat_results)  
+
+        if enable_flag and  command_Status!='skip':
+           if state_vars[sample_name]['gather_stats'] in ['auto'] :
+             state_vars[sample_name]['gather_stats'] = 'on'
 
         #add command
         commands.append( [message + get_refdb_name(refdbname), rRNA_stats_cmd, 'STATS_' + refdbname, command_Status, enable_flag])
@@ -1284,6 +1272,9 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
     removeFileOnRedo(command_Status, tRNA_stats_output)
     removeFileOnRedo(command_Status, tRNA_fasta_output)
     enable_flag=shouldRunStep1(run_type, output_results_tRNA_dir, [sample_name + ".tRNA.stats.txt", sample_name + ".tRNA.fasta"] )
+    if enable_flag and  command_Status!='skip':
+       if state_vars[sample_name]['gather_stats'] in ['auto'] :
+          state_vars[sample_name]['gather_stats'] = 'on'
 
     #add command
     commands.append( ["\n" + '*** ' + sample_name + ' ***\n' +"\n10. Scanning for tRNA using tRNAscan 1.4 ... ", scan_tRNA_seqs_cmd, 'SCAN_tRNA', command_Status, enable_flag])
@@ -1303,7 +1294,8 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
          
     
         rRNArefdbstring = get_parameter(config_params, 'rRNA', 'refdbs', default=None)
-        rRNArefdbs=rRNArefdbstring.split(',')
+        rRNArefdbs=[ x.strip().lower() for x in rRNArefdbstring.split(',') ]
+
         for rRNArefdb in rRNArefdbs:
             rRNA_stat_results= output_results_rRNA_dir + sample_name + '.' + get_refdb_name(rRNArefdb) + '.rRNA.stats.txt' 
             isrRNA_stat_available=  hasResults(rRNA_stat_results)  
@@ -1324,6 +1316,10 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
         command_Status=  get_parameter( config_params,'metapaths_steps','ANNOTATE')
         removeFileOnRedo(command_Status, output_annotated_gff)
         enable_flag=shouldRunStep(run_type, output_annotated_gff)  
+
+        if enable_flag and  command_Status!='skip':
+          if state_vars[sample_name]['gather_stats'] in ['auto'] :
+             state_vars[sample_name]['gather_stats'] = 'on'
     
         commands.append( ["\n" + '*** ' + sample_name + ' ***\n' +"\n11. Annotate gff files    ....", annotate_gbk_cmd,'ANNOTATE',command_Status, enable_flag])
     #################################
@@ -1368,13 +1364,6 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
     else:
        enable_flag = False
 
-    #print "enable gbk flag " + str(enable_gbk_flag)
-    #print "enable sequin flag " + str(enable_sequin_flag)
-    #print "enable ptinput flag " + str(enable_ptinput_flag)
-    #print "enable flag " + str(enable_flag)
-    #print "gbk " + gbk_command_Status
-    #print "ptinput " + ptinput_command_Status
-    #print "sequin " + sequin_command_Status
 
     if ptinput_command_Status in ['redo', 'yes' ] or gbk_command_Status in ['redo', 'yes'] or sequin_command_Status in ['redo', 'yes']:
        if 'redo' in [ptinput_command_Status, gbk_command_Status,  sequin_command_Status]:
@@ -1384,6 +1373,9 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
     else: 
        command_Status = 'skip'
     
+    if enable_flag and  command_Status!='skip':
+       if state_vars[sample_name]['gather_stats'] in ['auto'] :
+          state_vars[sample_name]['gather_stats'] = 'on'
 
     genbank_annotation_table_cmd = create_genbank_ptinput_sequin_cmd(input_annot_gff, input_nucleotide_fasta, input_amino_acid_fasta, outputs, config_settings, ncbi_sequin_params, ncbi_sequin_sbt)
     #add command
@@ -1399,11 +1391,17 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
        command_Status=  get_parameter(config_params,'metapaths_steps','CREATE_REPORT_FILES')
        removeFileOnRedo(command_Status, output_annot_table)
        enable_flag=shouldRunStep(run_type, output_annot_table)  
+
+       if enable_flag and  command_Status!='skip':
+         # eprintf('%s  %s %s %s\n', sample_name,'13', command_Status, run_type) 
+          if state_vars[sample_name]['gather_stats'] in ['auto'] :
+             state_vars[sample_name]['gather_stats'] = 'on'
+
        message = "\n" + '*** ' + sample_name + ' ***\n' +"\n13. Creating KEGG and COG hits table and LCA based taxonomy table...."
        input_dir = blast_results_dir + PATHDELIM # D+ sample_name + "." + dbname + ".blastout.parsed"
        create_report_cmd = create_report_files_cmd(dbs, input_dir, input_annotated_gff, sample_name, 
                                                    output_results_annotation_table_dir, config_settings, 
-                                                   algorithm)
+                                                   algorithm, command_line_params['verbose'] )
        commands.append( [message, create_report_cmd, 'CREATE_REPORT_FILES', command_Status, enable_flag])
 
     #################################
@@ -1416,8 +1414,8 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
     
     # if not  (path.exists(refseqblastoutput) :
     if not (re.search(".*refseq.*",blast_dbs, re.IGNORECASE)):
-        print "WARNING: Refseq annotation is not scheduled!"
-        print "         Taxonomic information will not be found in the annotation table."
+        eprintf("\nWARNING: Refseq annotation is not scheduled!\n")
+        eprintf("         Taxonomic information will not be found in the annotation table.\n")
 
 
     #MLTreeMap Calculations 
@@ -1431,9 +1429,14 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
     cleanDirOnRedo(command_Status, output_mltreemap_calculations_dir)
     enable_flag=shouldRunStepOnDirectory(run_type, output_mltreemap_calculations_dir)
 
+    if enable_flag and  command_Status!='skip':
+       if state_vars[sample_name]['gather_stats'] in ['auto'] :
+          state_vars[sample_name]['gather_stats'] = 'on'
+
 
     mltreemap_calculation_cmd = create_MLTreeMap_Calculations(mltreemap_input_file, output_mltreemap_calculations_dir, config_settings)
-    commands.append( ["\n" + '*** ' + sample_name + ' ***\n' +"\n16. MLTreeMap Calculations  ....", mltreemap_calculation_cmd, 'MLTREEMAP_CALCULATION', command_Status, enable_flag])
+    message = "\n" + '*** ' + sample_name + ' ***\n' +"\n16. MLTreeMap Calculations  ...."
+    commands.append( [message, mltreemap_calculation_cmd, 'MLTREEMAP_CALCULATION', command_Status, enable_flag])
 
 
     #MLTreeMap Image Creating 
@@ -1444,10 +1447,15 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
     removeDirOnRedo(command_Status, mltreemap_image_output)
     enable_flag=shouldRunStep(run_type, mltreemap_image_output)
 
+    if enable_flag and  command_Status!='skip':
+       if state_vars[sample_name]['gather_stats'] in ['auto'] :
+          state_vars[sample_name]['gather_stats'] = 'on'
+
    # mltreemap_gather_hits_cmd=create_MLTreeMap_Hits(output_mltreemap_calculations_dir+ PATHDELIM + 'various_outputs', mltreemap_image_output, config_settings)
 
     #add command
-    commands.append( ["\n" + '*** ' + sample_name + ' ***\n' +"\n17. Making MLTreeMap Images  ....", mltreemap_imagemaker_cmd, 'MLTREEMAP_IMAGEMAKER', command_Status, enable_flag])
+    message = "\n" + '*** ' + sample_name + ' ***\n' +"\n17. Making MLTreeMap Images  ...."
+    commands.append( [message, "", 'MLTREEMAP_IMAGEMAKER', command_Status, enable_flag])
    # commands.append( ["\n17a. Gather MLTreeMap Hits  ....", mltreemap_gather_hits_cmd, 'MLTREEMAP_CALCULATION', command_Status, enable_flag])
     #################################
 
@@ -1465,14 +1473,16 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
 
     taxonomic_pruning_flag = get_parameter(config_params,'ptools_settings', 'taxonomic_pruning')
     create_pgdb_cmd = create_pgdb_using_pathway_tools_cmd(output_fasta_pf_dir, taxonomic_pruning_flag, config_settings)
+    if enable_flag:
+       if state_vars[sample_name]['gather_stats'] in ['auto'] :
+          state_vars[sample_name]['gather_stats'] = 'on'
 
- #   print taxonomic_pruning_flag
+    message = "\n" + '*** ' + sample_name + ' ***\n' +"\n18. Create PGDB  ...."
     commands.append( ["\n" + '*** ' + sample_name + ' ***\n' +"\n18. Create PGDB  ....", create_pgdb_cmd, 'PATHOLOGIC', command_Status, enable_flag])
     #################################
 
     create_pgdb_table_cmd = create_pgdb_using_pathway_tools_cmd(output_fasta_pf_dir, taxonomic_pruning_flag, config_settings)
     #commands.append( ["\n18. Create PGDB (creating pathways table)  ....", create_pgdb_table_cmd, 'PATHOLOGIC', command_Status, enable_flag])
-
 
 #    print """  """
 #    print """  ********************************************************** """
@@ -1480,6 +1490,18 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
 #    print """  ********************************************************** """
 #    print """              """  +  input_fp + """                       """
 #    print """  ********************************************************** """
+
     command_handler(commands, status_update_callback, logger, stepslogger, command_line_params)
+
+    message = '\n' + '*** ' + sample_name + ' ***\n'
+    if state_vars[sample_name]['gather_stats'] in ['on']:
+       try:
+         eprintf(message + 'INFO : Gathering run stats for sample : ' + sample_name)
+         MetaPathways_gather_run_stats([ '-s', sample_name, '-f',  output_dir])
+       except:
+         pass
+    exit_process()
+
+
 
 

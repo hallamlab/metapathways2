@@ -16,7 +16,7 @@ try:
 
      from python_modules.LCAComputation import *
      from python_modules.MeganTree import *
-     from python_modules.metapaths_utils  import parse_command_line_parameters, fprintf, printf, GffFileParser
+     from python_modules.metapaths_utils  import parse_command_line_parameters, fprintf, printf, eprintf,  GffFileParser
      from python_modules.sysutil import getstatusoutput
 except:
      print """ Could not load some user defined  module functions"""
@@ -83,6 +83,11 @@ def createParser():
      
      output_options_group.add_option('--output-dir', dest='output_dir',
                      metavar='INPUT', help='Output directory [REQUIRED]')
+
+     output_options_group.add_option("-v", "--verbose",
+                     action="store_true", dest="verbose", default=False,
+                     help="print lots of information to the stdout [default Off]")
+
      parser.add_option_group(output_options_group)
      
      lca_options_group =  OptionGroup(parser, 'LCA algorithm Options')
@@ -96,6 +101,14 @@ def createParser():
                             'is a taxon that meets the requirement')
      parser.add_option_group(lca_options_group)
 
+
+def printlist(list, lim):
+    i = 0;
+    for item in list:
+       print item
+       i += 1
+       if i > lim:
+           break
 
 def check_arguments(opts, args):
     if len(opts.input_blastout) == 0:
@@ -175,7 +188,8 @@ def get_species(hit):
        return None
 
 
-def create_annotation(results_dictionary, dbnames,  annotated_gff,  output_dir, Taxons, orfsPicked, orfToContig):
+def create_annotation(results_dictionary, dbnames,  annotated_gff,  output_dir, Taxons, orfsPicked, orfToContig, lca):
+
     meganTree = None
     #lca.set_results_dictionary(results_dictionary)
     if not path.exists(output_dir):
@@ -198,14 +212,13 @@ def create_annotation(results_dictionary, dbnames,  annotated_gff,  output_dir, 
           # if count%10000==0 :
           #    pass 
 
-          #update the sequence name
-
-          #taxonomy=lca.getMeganTaxonomy(orf['id'])
-          #print orf['id']
-          if "refseq" in opts_global.database_name:
-              taxonomy=Taxons[orf['id']]
+          #_results = re.search(r'refseq', opts_global.database_name, re.I)
+          if orf['id'] in Taxons:
+              taxonomy1=Taxons[orf['id']]
+              taxonomy=lca.get_supported_taxon(taxonomy1)
           else:
-              taxonomy = ""
+              taxonomy = 'root'
+
           fprintf(output_table_file, "%s", orf['id'])
           fprintf(output_table_file, "\t%s", orf['orf_length'])
           fprintf(output_table_file, "\t%s", orf['start'])
@@ -397,6 +410,8 @@ class BlastOutputTsvParser(object):
     def next(self):
         if self.i % self.SIZE == 0:
            self.refillBuffer()
+           if len(self.lines)==0:
+              raise StopIteration()
 
         if self.i % self.SIZE < self.size:
            fields = [ x.strip()  for x in self.lines[self.i % self.SIZE].split('\t')]
@@ -426,6 +441,7 @@ class BlastOutputTsvParser(object):
               print 'index ' + str(self.i)
               print 'data ' + str(self.data)
               print 'fields ' + str(fields)
+              print ' while processing file ' + self.blastoutput
               print ">>>>>>-------"
               import traceback 
               print traceback.print_exc()
@@ -660,9 +676,9 @@ def Heapify(A, i, S):
        l = 2*i + 1
        r = l + 1
        max = i
-       if l < S and A[l][1] > A[max][1]:  # should be > 
+       if l < S and A[l][1] < A[max][1]:  # was > 
           max = l
-       if r < S and A[r][1] > A[max][1]:  # should be >
+       if r < S and A[r][1] < A[max][1]:  # was >
           max = r
 
        if max != i and i < S:
@@ -687,46 +703,61 @@ def writeParsedLines(fieldmapHeaderline, parsedLines, list, names, outputfilenam
       sys.exit(0)
 
     outputStr=fieldmapHeaderline + "\n"
+    fprintf(outputfile, "%s", outputStr)
+
+    outputStr=""
     i = 0
     for item in list:
        outputStr += parsedLines[item[0]]+'\n'
-       if i > 1000:
+       if i% 1000==0 and i > 0:
           fprintf(outputfile, "%s", outputStr)
-          i= 0
           outputStr=""
        i += 1
-    if i > 0:
+
+    if len(outputStr) > 0:
       fprintf(outputfile, "%s", outputStr)
+
     outputfile.close()
 
-def merge_sorted_parsed_files(dbname, filenames, outputfilename, orfRanks):
+def merge_sorted_parsed_files(dbname, filenames, outputfilename, orfRanks, verbose=False):
     linecount = 0
     readerhandles = []
 
+    if verbose:
+       eprintf("Processing for database  : %s\n", dbname)
+
+    if len(filenames)==0:
+       eprintf("WARNING : Cannot find any B/LAST output file for database : %\n", dbname)
+       exit_process()
+    
     try:
        for i in range(len(filenames)):
-         #print 'handles ' + str(len(readerhandles))
          #print filenames
          readerhandles.append(BlastOutputTsvParser(dbname, filenames[i]) )
     except OSError:
-      print "ERROR: Cannot read sequence file : " + filenames[i]
-      sys.exit(1)
+      eprintf("ERROR: Cannot read sequence file : %s\n", filenames[i])
+      exit_process()
 
+    
     try:
        outputfile = open(outputfilename, 'w')
        fieldmapHeaderLine = readerhandles[0].getHeaderLine()
        fprintf(outputfile, "%s\n",fieldmapHeaderLine) 
     except OSError: 
-       print "ERROR: Cannot create sequence file : " + outputfilename
-       sys.exit(1)
+       eprintf("ERROR: Cannot create sequence file : %s\n", outputfilename)
+       exit_process()
 
     values = []    
     for i in range(len(filenames)):
        iterate = iter(readerhandles[i])
-       next(iterate)
-       line = readerhandles[i].getProcessedLine()  
-       fields  = [ x.strip() for x in line.split('\t') ]
-       values.append( (i, orfRanks[fields[0]], line) )
+       try :
+          next(iterate)
+          line = readerhandles[i].getProcessedLine()  
+          fields  = [ x.strip() for x in line.split('\t') ]
+          values.append( (i, orfRanks[fields[0]], line) )
+       except:
+          outputfile.close()
+          return
 
     S = len(filenames) 
     BuildHeap(S, values)
@@ -736,6 +767,7 @@ def merge_sorted_parsed_files(dbname, filenames, outputfilename, orfRanks):
           iterate = iter(readerhandles[values[0][0]])
           line = readerhandles[values[0][0]].getProcessedLine()  
           fields  = [ x.strip() for x in line.split('\t') ]
+          #print fields[0], orfRanks[fields[0]] 
           fprintf(outputfile, "%s\n",line) 
           next(iterate)
 
@@ -756,7 +788,7 @@ def merge_sorted_parsed_files(dbname, filenames, outputfilename, orfRanks):
     outputfile.close()
 
 
-def  create_sorted_parse_blast_files(dbname, blastoutput, listOfOrfs, size = 100000):
+def  create_sorted_parse_blast_files(dbname, blastoutput, listOfOrfs, size = 100000, verbose=False):
     orfRanks = {}
     count = 0
     for orf in listOfOrfs:
@@ -764,13 +796,6 @@ def  create_sorted_parse_blast_files(dbname, blastoutput, listOfOrfs, size = 100
        count += 1
 
     sorted_parse_file =  blastoutput + ".tmp"
-
-    try:
-        inputfilehandle = open(blastoutput, 'r')
-    except OSError:
-      print "ERROR: Cannot read parsed b/last results : " + blastoutput
-      sys.exit(1)
-
 
     currSize = 0 
     parsedLines={}
@@ -780,7 +805,13 @@ def  create_sorted_parse_blast_files(dbname, blastoutput, listOfOrfs, size = 100
     batch = 0 
     filenames = []
 
+    if verbose:
+       eprintf("\n\n\n")
+       eprintf("dbname                   : %s\n", dbname)
+       eprintf("Parsed file              : %s\n",  blastoutput)
+
     blastparser =  BlastOutputTsvParser(dbname, blastoutput)
+    fieldmapHeaderLine = blastparser.getHeaderLine()
     
     for data in blastparser:
        names[seqid] = data['query']
@@ -789,27 +820,37 @@ def  create_sorted_parse_blast_files(dbname, blastoutput, listOfOrfs, size = 100
          
        seqid +=1 
        currSize += 1
-       if currSize > size: 
+       if currSize % size ==0: 
            list.sort(key=lambda tup: tup[1], reverse=False)
-           fieldmapHeaderLine = blastparser.getHeaderLine()
+           #print "Num of lines writing to file " + sorted_parse_file + "." + str(batch) + "  :  " + str(len(list))
            writeParsedLines(fieldmapHeaderLine, parsedLines, list, names, sorted_parse_file + "." + str(batch))
            filenames.append(sorted_parse_file + "." + str(batch))
            batch += 1
-           currSize = 0
-           sequences={}
            list = []
            names = {}
            seqid =0
+           parsedLines = {}
 
-    if currSize > 0:
+    
+    if currSize == 0:
         list.sort(key=lambda tup: tup[1], reverse=False)
-        fieldmapHeaderLine = blastparser.getHeaderLine()
         writeParsedLines(fieldmapHeaderLine, parsedLines, list, names, sorted_parse_file + "." + str(batch))
         filenames.append(sorted_parse_file + "." + str(batch))
+    else :
+       if currSize % size !=0 : 
+          list.sort(key=lambda tup: tup[1], reverse=False)
+          writeParsedLines(fieldmapHeaderLine, parsedLines, list, names, sorted_parse_file + "." + str(batch))
+          filenames.append(sorted_parse_file + "." + str(batch))
 
-    inputfilehandle.close()
-    merge_sorted_parsed_files(dbname, filenames, sorted_parse_file, orfRanks)
 
+    if verbose:
+       eprintf("Number of lines          : %s\n", str(currSize))
+       eprintf("Merge the files          : %s\n" , sorted_parse_file)
+       eprintf("Number of files to merge : %s\n", str(len(filenames)))
+
+    merge_sorted_parsed_files(dbname, filenames, sorted_parse_file, orfRanks, verbose = verbose)
+
+    #remove the split files
     for file in filenames:
        remove(file)
 
@@ -835,10 +876,13 @@ def main(argv):
 #    print "memory used  = %s" %(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss /1000000)
     listOfOrfs =  get_list_of_queries(opts.input_annotated_gff)       
     listOfOrfs.sort(key=lambda tup: tup, reverse=False)
+    
+    #printlist(listOfOrfs,5)
+    #sys.exit(0)
 
 ##### uncomment the following lines
     for dbname, blastoutput in zip(opts.database_name, opts.input_blastout):
-      create_sorted_parse_blast_files(dbname, blastoutput, listOfOrfs) 
+      create_sorted_parse_blast_files(dbname, blastoutput, listOfOrfs, verbose= opts.verbose) 
 #####
 
     # process in blocks of size _stride
@@ -867,16 +911,17 @@ def main(argv):
        for  i in range(start, last): 
           pickorfs[listOfOrfs[i]]= 'all'
        start = last
-       print 'min support ' + str(start)
+       print 'Num of Min support orfs ' + str(start)
 
        results_dictionary={}
        for dbname, blastoutput in zip( opts.database_name, opts.input_blastout):
-          if dbname=='refseq':
+          results = re.search(r'refseq', dbname, re.I)
+          if results:
             try:
                results_dictionary[dbname]={}
                process_parsed_blastoutput(dbname, blastParsers[dbname], opts, results_dictionary[dbname], pickorfs)
                lca.set_results_dictionary(results_dictionary)
-               lca.compute_min_support_tree(opts.input_annotated_gff, pickorfs )
+               lca.compute_min_support_tree(opts.input_annotated_gff, pickorfs, dbname = dbname )
                for key, taxon  in pickorfs.iteritems():
                    Taxons[key] = taxon
             except:
@@ -900,12 +945,12 @@ def main(argv):
           pickorfs[listOfOrfs[i]]= True
        start = last
        gc.collect()
-       printf("memory used  = %s MB", str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1000000))
+       printf("Memory used  = %s MB\n", str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1000000))
        results_dictionary={}
        for dbname, blastoutput in zip( opts.database_name, opts.input_blastout):
             try:
                results_dictionary[dbname]={}
-               printf("Processing database %s ", dbname)
+               printf("Processing database %s...", dbname)
                process_parsed_blastoutput(dbname, blastParsers[dbname], opts, results_dictionary[dbname], pickorfs)
                printf("done\n")
             except:
@@ -915,11 +960,11 @@ def main(argv):
                pass
             print dbname + ' ' + str(len(results_dictionary[dbname]))
 
-       print 'done = ' + str(start)
+       print 'Num orfs processed  : ' + str(start)
 
        # create the annotations now
        orfToContig = {}
-       create_annotation(results_dictionary, opts.database_name,  opts.input_annotated_gff, opts.output_dir, Taxons, pickorfs, orfToContig)
+       create_annotation(results_dictionary, opts.database_name,  opts.input_annotated_gff, opts.output_dir, Taxons, pickorfs, orfToContig, lca)
         
        for dbname in results_dictionary:
           if dbname in filePermTypes:
@@ -928,15 +973,12 @@ def main(argv):
               filePermType = 'w'
               filePermTypes[dbname] = True
 
-          if  dbname=='cog':
+          results = re.search(r'cog', dbname, re.I)
+          if results:
              create_table(results_dictionary[dbname], opts.input_cog_maps, 'cog', opts.output_dir, filePermType)
-          if  dbname=='kegg':
+          results = re.search(r'kegg', dbname, re.I)
+          if results:
              create_table(results_dictionary[dbname], opts.input_kegg_maps, 'kegg', opts.output_dir, filePermType)
-
-    #peg2subsystem = {} 
-    # this feature is useless with the new refseq
-    #if opts.subsystems2peg_file:
-    #   process_subsys2peg_file(peg2subsystem, opts.subsystems2peg_file)
 
        orfTableFilePermType = False
        if orfTableFilePermType:
@@ -984,45 +1026,71 @@ def print_orf_table(results, orfToContig,  output_dir, filePermType):
     outputfile = open( output_dir +'/ORF_annotation_table.txt', filePermType)
 
     orf_dict = {}
-    for dbname in results.iterkeys():
+    for dbname in results.keys():
       for orfname in results[dbname]:
          for orf in results[dbname][orfname]:
            if not orf['query'] in orf_dict:
                orf_dict[orf['query']] = {}
 
-           if dbname =='cog': 
-              cog =  cog_id(orf['product'])
-              orf_dict[orf['query']][dbname] = cog
+           _results = re.search(r'cog', dbname, re.I)
+           if _results:
+              orf_dict[orf['query']][dbname] = cog_id(orf['product'])
 
-           if dbname =='kegg': 
-              kegg =  kegg_id(orf['product'])
-              orf_dict[orf['query']][dbname] = kegg
+           _results = re.search(r'kegg', dbname, re.I)
+           if _results:
+              orf_dict[orf['query']][dbname] =  kegg_id(orf['product'])
 
-           if dbname=='seed':
-              seed =  orf['product']
-              orf_dict[orf['query']][dbname] = re.sub(r'\[.*\]','', seed).strip()
+           _results = re.search(r'seed', dbname, re.I)
+           if _results:
+              orf_dict[orf['query']][dbname] = re.sub(r'\[.*\]','', orf['product']).strip()
              
+           _results = re.search(r'metacyc', dbname, re.I)
+           if _results:
+              orf_dict[orf['query']][dbname] =  orf['product']
 
            orf_dict[orf['query']]['contig'] = orfToContig[orfname]
 
+    # compute the databases
+    database_maps = {}
+    for dbname in results.keys():
+       _results = re.search(r'cog', dbname, re.I)
+       if _results:
+         database_maps['cog'] = dbname
+
+       _results = re.search(r'kegg', dbname, re.I)
+       if _results:
+         database_maps['kegg'] = dbname
+
+       _results = re.search(r'seed', dbname, re.I)
+       if _results:
+         database_maps['seed'] = dbname
+
+       _results = re.search(r'metacyc', dbname, re.I)
+       if _results:
+         database_maps['metacyc'] = dbname
+
     for orfn in orf_dict:
-       if 'cog' in orf_dict[orfn]:
-          cogFn = orf_dict[orfn]['cog']
+#       print orfn, '<<',  orf_dict[orfn], ' >> xxxx'
+       #_keys =  orf_dict[orfn].keys()
+       #_results = re.search(r'cog', dbname, re.I)
+
+       if 'cog' in database_maps and  database_maps['cog'] in orf_dict[orfn]:
+          cogFn = orf_dict[orfn][database_maps['cog']]
        else:
           cogFn = ""
 
-       if 'kegg' in orf_dict[orfn]:
-          keggFn = orf_dict[orfn]['kegg']
+       if 'kegg' in database_maps and database_maps['kegg'] in orf_dict[orfn]:
+          keggFn = orf_dict[orfn][database_maps['kegg']]
        else:
           keggFn = ""
 
-       if 'metacyc' in orf_dict[orfn]:
-          metacycPwy = orf_dict[orfn]['metacyc']
+       if 'metacyc' in database_maps and database_maps['metacyc'] in orf_dict[orfn]:
+          metacycPwy = orf_dict[orfn][database_maps['metacyc']]
        else:
           metacycPwy = ""
 
-       if 'seed' in orf_dict[orfn]:
-          seedFn = orf_dict[orfn]['seed']
+       if 'seed' in database_maps and database_maps['seed'] in orf_dict[orfn]:
+          seedFn = orf_dict[orfn][database_maps['seed']]
        else:
           seedFn = ""
 

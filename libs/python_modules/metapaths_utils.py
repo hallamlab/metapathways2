@@ -22,7 +22,16 @@ import sys
 import os
 import math
 import re
+import time
 
+
+def exit_process( message = None):
+    time.sleep(4)
+    if message != None: 
+      eprintf(message+ "\n")
+
+    eprintf("INFO: Exiting the Python code\n")
+    sys.exit(1)
 
 class GffFileParser(object):
    def __init__(self, gff_filename):

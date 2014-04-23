@@ -57,47 +57,6 @@ def dry_run_status( commands ):
     printf("\n")
 
 
-def get_refdb_name( dbstring ):
-    dbstring = dbstring.rstrip()
-    dbstring = dbstring.lstrip()
-    dbstring = dbstring.lower() 
-    if re.search("kegg",dbstring):
-        dbname = "kegg"
-        return dbname
-    if re.search("cog",dbstring):
-        dbname = "cog"
-        return dbname
-    if re.search("metacyc",dbstring):
-        dbname = "metacyc"
-        return dbname
-    if re.search("refseq",dbstring):
-        dbname = "refseq"
-        return dbname
-
-    if re.search("InnateDB_human",dbstring, re.I):
-        dbname = "innatehuman"
-        return dbname
-     
-    if re.search("InnateDB_mus",dbstring, re.I):
-        dbname = "innatemus"
-        return dbname
-
-    if re.search("SSU",dbstring):
-        dbname = "silvaSSU"
-        return dbname
-   
-    if re.search("LSU",dbstring):
-        dbname = "silvaLSU"
-        return dbname
-
-    if re.search("greengenes",dbstring):
-        dbname="greengenes"
-        return dbname
-
-    dbname= re.sub("[^a-zA-Z].*","", dbstring)
-    return dbname
-
-
 def format_db(formatdb_executable, seqType, refdb_sequence_file, algorithm):
      if algorithm=='BLAST':
          cmd='%s -dbtype %s -in %s' %(formatdb_executable, seqType, refdb_sequence_file)

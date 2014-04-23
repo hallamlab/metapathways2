@@ -13,9 +13,9 @@ try:
      from os import makedirs, sys, remove, rename
      from sys import path
      import re
-     
+     import traceback
      from optparse import OptionParser, OptionGroup
-     from python_modules.metapaths_utils  import parse_command_line_parameters, fprintf, printf
+     from python_modules.metapaths_utils  import parse_command_line_parameters, fprintf, printf, eprintf
      from python_modules.sysutil import getstatusoutput
 except:
      print """ Could not load some user defined  module functions"""
@@ -91,31 +91,31 @@ def createParser():
 
 def check_arguments(opts, args):
     if len(opts.input_blastout) == 0:
-         print "There sould be at least one blastoutput file"  
+         eprintf("There sould be at least one blastoutput file\n")  
          return False
 
     if len(opts.database_name) == 0:
-         print "There sould be at least one database name"  
+         eprintf("There sould be at least one database name\n")  
          return False
 
     if len(opts.weight_db) == 0:
-         print "There sould be at least one weight"  
+         eprint("There sould be at least one weight\n")  
          return False
 
     if len(opts.input_blastout) != len(opts.database_name) or len(opts.input_blastout) !=  len(opts.weight_db) :
-         print "The number of database names, blastoutputs and database map file should be equal"
+         eprint("The number of database names, blastoutputs and database map file should be equal\n")
          return False
 
     if opts.output_gff == None:
-       print "Must specify the output gff file"
+       eprintf("Must specify the output gff file\n")
        return False
 
     if opts.output_comparative_annotation == None:
-       print "Must specify the output tables for comparative annotation"
+       eprintf("Must specify the output tables for comparative annotation\n")
        return False
 
     if opts.input_gff == None:
-       print "Must specify the input gff file"
+       eprintf("Must specify the input gff file\n")
        return False
 
     return True
@@ -176,8 +176,8 @@ class GffFileParser(object):
         try:
            self.gff_file = open( gff_filename,'r')
         except AttributeError:
-           print "Cannot read the map file for database :" + dbname
-           sys.exit(0)
+           eprintf("Cannot read the map file for database : %s\n", dbname)
+           exit_process()
   
     def __iter__(self):
         return self
@@ -217,7 +217,7 @@ def process_gff_file(gff_file_name, orf_dictionary):
      try:
         gfffile = open(gff_file_name, 'r')
      except IOError:
-        print "Cannot read file " + gff_file_name + " !"
+        eprintf("Cannot read file %s!\n", gff_file_name)
 
      gff_lines = gfffile.readlines()
      gff_beg_pattern = re.compile("^#")
@@ -251,6 +251,7 @@ def create_dictionary(databasemapfile, annot_map):
            
 
 def write_annotation_for_orf(outputgff_file, candidatedbname, dbname_weight, results_dictionary, orf_dictionary, contig, candidate_orf_pos,  orfid):
+   try:
       fields = [  'source', 'feature', 'start', 'end', 'score', 'strand', 'frame' ]
 
 
@@ -278,6 +279,11 @@ def write_annotation_for_orf(outputgff_file, candidatedbname, dbname_weight, res
 
       output_line += '\t' + attributes
       fprintf(outputgff_file, "%s\n", output_line);
+   except:
+      eprintf("ERROR : Failure to annotate in contig %s\n", contig)
+      #print orf_dictionary[contig]
+      print traceback.print_exc(10)
+      exit_process()
 
 
 def  write_16S_tRNA_gene_info(rRNA_dictionary, outputgff_file, tag):
@@ -301,7 +307,8 @@ def process_rRNA_16S_stats(rRNA_16S_file, rRNA_16S_dictionary):
      try:
         taxonomy_file = open(rRNA_16S_file, 'r')
      except IOError:
-        print "Cannot read file " + rRNA_16S_file + " !"
+        eprintf("Cannot read file %s!\n", rRNA_16S_file)
+        exit_process()
 
      tax_lines = taxonomy_file.readlines()
      similarity_pattern = re.compile("similarity")
@@ -329,7 +336,8 @@ def process_tRNA_stats(tRNA_stats_file, tRNA_dictionary):
      try:
         tRNA_file = open(tRNA_stats_file, 'r')
      except IOError:
-        print "Cannot read file " + tRNA_stats_file + " !"
+        eprintf("Cannot read file %s!\n", tRNA_stats_file)
+        exit_process()
      tRNA_lines = tRNA_file.readlines()
 
      sequence_name_pattern = re.compile("sequence name", re.I)
@@ -626,19 +634,18 @@ class BlastOutputTsvParser(object):
            self.blastoutputfile.close()
            self.size = len(self.lines)
            if not self.seq_beg_pattern.search(self.lines[0]) :
-              print "First line must have field header names and begin with \"#\""
-              sys.exit(0)
+              exit_process("First line must have field header names and begin with \"#\"")
            header = self.lines[0].replace('#','',1)
            fields = [ x.strip()  for x in header.rstrip().split('\t')]
            k = 0 
            for x in fields:
-            self.fieldmap[x] = k 
-            k+=1
-           print "Processing :" + dbname
+             self.fieldmap[x] = k 
+             k+=1
+           eprintf("\nProcessing : %s\n", dbname)
            
         except AttributeError:
-           print "Cannot read the map file for database :" + dbname
-           sys.exit(0)
+           eprintf("Cannot read the map file for database :%s\n", dbname)
+           exit_process()
   
     def __iter__(self):
         return self
@@ -646,20 +653,23 @@ class BlastOutputTsvParser(object):
     def next(self):
         if self.i < self.size:
            
-           fields = [ x.strip()  for x in self.lines[self.i].split('\t')]
-           #print self.fieldmap['ec'], fields, self.i,  self.blastoutput
-           self.data['query'] = fields[self.fieldmap['query']]
-           self.data['q_length'] = int(fields[self.fieldmap['q_length']])
-           self.data['bitscore'] = float(fields[self.fieldmap['bitscore']])
-           self.data['bsr'] = float(fields[self.fieldmap['bsr']])
-           self.data['expect'] = float(fields[self.fieldmap['expect']])
-           self.data['identity'] = float(fields[self.fieldmap['identity']])
-           self.data['ec'] = fields[self.fieldmap['ec']]
-           self.data['product'] = re.sub(r'=',' ',fields[self.fieldmap['product']])
-           self.i = self.i + 1
            try:
+              fields = [ x.strip()  for x in self.lines[self.i].split('\t')]
+              #print self.fieldmap['ec'], fields, self.i,  self.blastoutput
+              self.data['query'] = fields[self.fieldmap['query']]
+              self.data['q_length'] = int(fields[self.fieldmap['q_length']])
+              self.data['bitscore'] = float(fields[self.fieldmap['bitscore']])
+              self.data['bsr'] = float(fields[self.fieldmap['bsr']])
+              self.data['expect'] = float(fields[self.fieldmap['expect']])
+              self.data['identity'] = float(fields[self.fieldmap['identity']])
+              self.data['ec'] = fields[self.fieldmap['ec']]
+              self.data['product'] = re.sub(r'=',' ',fields[self.fieldmap['product']])
+              self.i = self.i + 1
               return self.data
            except:
+              print self.lines[self.i]
+              print data
+              sys.exit(0)
               return None
         else:
            raise StopIteration()
@@ -788,6 +798,8 @@ def main(argv):
         process_parsed_blastoutput( dbname, weight, blastoutput,opts, results_dictionary[dbname])
 
     #create the annotations from he results
+    
+    #print results_dictionary
     create_annotation(dbname_weight, results_dictionary, opts.input_gff, opts.rRNA_16S, opts.tRNA, opts.output_gff, opts.output_comparative_annotation, contig_lengths)
 
 

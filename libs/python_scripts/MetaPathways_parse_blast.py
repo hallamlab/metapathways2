@@ -120,7 +120,7 @@ def create_query_dictionary(blastoutputfile, query_dictionary, algorithm ):
        except:
           print ""
           print "ERROR : cannot open B/LAST output file " + blastoutputfile + " to parse "
-          pass
+          return
   
        try:
           for line in blastoutfh:
@@ -136,7 +136,7 @@ def create_query_dictionary(blastoutputfile, query_dictionary, algorithm ):
                     query_dictionary[words[1]]= 1
           blastoutfh.close()
        except:
-          print "ERROR : while reading  B/LAST output file " + blastoutputfile + " to partse "
+          print "\nERROR : while reading  B/LAST output file " + blastoutputfile + " to parse "
           print "      : make sure B/LAST ing was done for the particular database"
           pass 
 
@@ -418,14 +418,13 @@ def add_refscore_to_file(blast_table_out, refscore_file, allNames):
 # compute the refscores
 def process_blastoutput(dbname, blastoutput,  mapfile, refscore_file, opts):
     blastparser =  BlastOutputParser(dbname, blastoutput, mapfile, refscore_file, opts)
-
+    
     fields = ['target','q_length', 'bitscore', 'bsr', 'expect', 'aln_length', 'identity', 'ec' ]
     if opts.taxonomy:
        fields.append('taxonomy')
     fields.append('product')
 
     output_blastoutput_parsed = blastoutput + '.parsed.txt'
-    
     # temporary file is used to deal with incomplete processing of the file
     output_blastoutput_parsed_tmp =  output_blastoutput_parsed + ".tmp"
     outputfile = open(output_blastoutput_parsed_tmp, 'w') 
@@ -463,8 +462,6 @@ def main(argv):
        sys.exit(0)
     
 
-
-    
   # input file to blast with itself to commpute refscore
 #    infile = open(input_fasta,'r')
 

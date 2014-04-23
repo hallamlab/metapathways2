@@ -25,23 +25,23 @@ except:
      print """ Make sure your typed \"source MetaPathwaysrc\""""
      print """ """
      sys.exit(3)
-
-
-usage= """./MetapathWays_parse_genbank.py -g/--genbank  genbank --output-gff output_gff_file --output-fna output_fna_file --output-faa output_faa_file """
-parser = OptionParser(usage)
-parser.add_option("-g", "--genbank", dest="genbank", 
-                  help='the genbank file [ REQUIRED]')
-
-parser.add_option("--output-fna", dest="output_fna",
-                  help='the output nucleotide sequences [REQUIRED]')
-
-parser.add_option("--output-faa", dest="output_faa",
-                  help='the output amino acid sequences [REQUIRED]')
-
-parser.add_option("--output-gff", dest="output_gff",
-                  help='the output gff file for the orfs [REQUIRED]')
-
-
+usage= sys.argv[0] + """ -g/--genbank  genbank --output-gff output_gff_file --output-fna output_fna_file --output-faa output_faa_file """
+parser = None
+def createParser():
+    global parser
+    parser = OptionParser(usage)
+    parser.add_option("-g", "--genbank", dest="genbank", 
+                      help='the genbank file [ REQUIRED]')
+    
+    parser.add_option("--output-fna", dest="output_fna",
+                      help='the output nucleotide sequences [REQUIRED]')
+    
+    parser.add_option("--output-faa", dest="output_faa",
+                      help='the output amino acid sequences [REQUIRED]')
+    
+    parser.add_option("--output-gff", dest="output_gff",
+                      help='the output gff file for the orfs [REQUIRED]')
+    
 
 def check_arguments(opts, args):
 
@@ -81,6 +81,7 @@ def create_dictionary(databasemapfile, annot_map):
 
 # the main function
 def main(argv): 
+    global parser 
     (opts, args) = parser.parse_args()
     if not check_arguments(opts, args):
        print usage
@@ -88,8 +89,10 @@ def main(argv):
     process_file(opts.genbank, opts.output_fna, opts.output_faa, opts.output_gff)
 
 
-
-
+def MetaPathways_parse_genbank(argv):
+     createParser()
+     main(argv)
+     return (0,'')
 
 
 """This script converts GenBank entries to PathoLogic files, creating a .pf and
@@ -135,5 +138,6 @@ def process_file(genbank_filename, output_fna, output_faa, output_gff):
 
 # the main function of metapaths
 if __name__ == "__main__":
+    createParser()
     main(sys.argv[1:])
 
