@@ -428,13 +428,14 @@ def process_sequence_file(sequence_file_name,  seq_dictionary):
 
 
 
+help = """Usage:\n      MetaPathways_create_amino_sequences.py -g gff_files -n nucleotide_sequences\n 
+                            --output-nuc output_nuc --output_amino  output_amino  --output_gff output_gff_file \n"""
 
-def main(argv):
+parser = None
+def createParser():
     # Parse options (many!)
     # TODO: Create option groups
-
-    help = """Usage:\n      MetaPathways_create_amino_sequences.py -g gff_files -n nucleotide_sequences\n 
-                            --output-nuc output_nuc --output_amino  output_amino  --output_gff output_gff_file \n"""
+    global parser
     parser = optparse.OptionParser(usage=help)
     # Input options
 
@@ -460,7 +461,9 @@ def main(argv):
 
     parser.add_option_group(input_group)
 
+def main(argv, errorlogger = None):
     # filtering options
+    global parse
     options, args = parser.parse_args(argv)
 
     if not(options.gff_file or options.nucleotide_sequences or options.output_amino or  options.output_nuc  or options.output_gff):
@@ -498,8 +501,9 @@ def main(argv):
 
     #print params['bitscore']
 
-def MetaPathways_create_amino_sequences(argv):
-    main(argv)
+def MetaPathways_create_amino_sequences(argv, errorlogger = None):
+    createParser()
+    main(argv, errorlogger = errorlogger)
     return (0,'')
     
 if __name__ == '__main__':

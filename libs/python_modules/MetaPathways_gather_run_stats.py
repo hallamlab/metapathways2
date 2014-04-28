@@ -218,7 +218,7 @@ def get_functional_taxonomic_hits(sample_name, folder_path):
     eprintf("\nCounting number of functionally and taxonomically ORFs ...")
     count  =  get_number_of_uncommented_lines(file_name)
     eprintf("done\n")
-    results.append( ('Total functionally and taxonmically  annotated ORFs', count ) )
+    results.append( ('Total number of taxonomically and taxonmically annotated ORFs', count ) )
     return results
 
 #counts the number of ORFs in the table ORF_annotation_table

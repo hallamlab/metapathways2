@@ -32,19 +32,22 @@ PATHDELIM = pathDelim()
 usage= """ Usage: ./MetaPathway_filter_input.py  -i file.fna  --min_length N --log_file logfile.log """ +\
               """ -o outfasta  [ -M map file ]"""
 
-parser = OptionParser(usage)
-parser.add_option("-i", "--input_file", dest="input_fasta",
-                  help='the input fasta file [REQUIRED]')
-parser.add_option("-o", "--output_file", dest="output_fasta",
-                  help='the output fasta file [REQUIRED]')
-parser.add_option("-L", "--lengths_file", dest="lengths_file",
-                  help='the output file that the lengths [REQUIRED]')
-parser.add_option("-m", "--min_length", type='int', dest="min_length",
-                  help='minmum length of the sequence allowed')
-parser.add_option("-l", "--log_file", dest="log_file",  
-                  help='file name to write the statsitics and log into')
-parser.add_option("-M", "--map_file", dest="map_file", type='str',  
-                  help='file name to store the sequence  name maps')
+parser = None
+def createParser():
+    global parser
+    parser = OptionParser(usage)
+    parser.add_option("-i", "--input_file", dest="input_fasta",
+                      help='the input fasta file [REQUIRED]')
+    parser.add_option("-o", "--output_file", dest="output_fasta",
+                      help='the output fasta file [REQUIRED]')
+    parser.add_option("-L", "--lengths_file", dest="lengths_file",
+                      help='the output file that the lengths [REQUIRED]')
+    parser.add_option("-m", "--min_length", type='int', dest="min_length",
+                      help='minmum length of the sequence allowed')
+    parser.add_option("-l", "--log_file", dest="log_file",  
+                      help='file name to write the statsitics and log into')
+    parser.add_option("-M", "--map_file", dest="map_file", type='str',  
+                      help='file name to store the sequence  name maps')
 
 
 def valid_arguments(opts, args):
@@ -136,7 +139,8 @@ def read_fasta_records(input_file):
 # the main function
 SIZE = 1000
 
-def main(argv): 
+def main(argv, errorlogger = None): 
+    global parser
     (opts, args) = parser.parse_args(argv)
 
     if not valid_arguments(opts, args):
@@ -287,8 +291,9 @@ def main(argv):
 
     logfile.close()
 
-def MetaPathways_filter_input(argv):
-    main(argv) 
+def MetaPathways_filter_input(argv, errorlogger = None):
+    createParser()
+    main(argv, errorlogger = None) 
     return (0,'')
 
 # the main function of metapaths

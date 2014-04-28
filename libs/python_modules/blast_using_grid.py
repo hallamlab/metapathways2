@@ -16,10 +16,9 @@ try:
    from sysutil import getstatusoutput, pathDelim
    #from metapaths_utils  import parse_command_line_parameters
    from parse  import parse_metapaths_parameters
-   from metapaths_pipeline import print_commands, call_commands_serially, WorkflowLogger, generate_log_fp, generate_steps_log_fp
    import shutil
    import re
-   from metapaths_utils import fprintf, printf, remove_existing_pgdb
+   from metapaths_utils import fprintf, printf,  WorkflowLogger, generate_log_fp
    import  errno
    from glob import glob
    from datetime import date

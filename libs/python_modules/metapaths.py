@@ -17,11 +17,11 @@ try:
    from utils import hasInput, createFolderIfNotFound
    #from metapaths_utils  import parse_command_line_parameters
    from parse  import parse_metapaths_parameters
-   from metapaths_pipeline import print_commands, call_commands_serially, WorkflowLogger, generate_log_fp, generate_steps_log_fp
+   from metapaths_pipeline import print_commands, call_commands_serially
    from MetaPathways_gather_run_stats import MetaPathways_gather_run_stats
    import shutil
    import re
-   from metapaths_utils import fprintf, printf, eprintf, remove_existing_pgdb, exit_process
+   from metapaths_utils import fprintf, printf, eprintf, remove_existing_pgdb, exit_process, WorkflowLogger, generate_log_fp
    import  errno
    from glob import glob
    from datetime import date
@@ -364,10 +364,10 @@ def  create_report_files_cmd(dbs, input_dir, input_annotated_gff,  sample_name, 
     basencbi = config_settings['REFDBS'] + PATHDELIM + 'ncbi_tree' + PATHDELIM
     # construct command        
     #cmd="%s %s --input-annotated-gff %s  --input-kegg-maps  %s  --input-cog-maps %s --output-dir %s --ncbi-taxonomy-map %s --seed2ncbi-file %s"\
-    cmd="%s %s --input-annotated-gff %s  --input-kegg-maps  %s  --input-cog-maps %s --output-dir %s --ncbi-taxonomy-map %s "\
+    cmd="%s %s --input-annotated-gff %s  --input-kegg-maps  %s  --input-cog-maps %s --input-seed-maps %s --output-dir %s --ncbi-taxonomy-map %s "\
            %((config_settings['METAPATHWAYS_PATH'] + config_settings['CREATE_REPORT_FILES']),\
               db_argument_string, input_annotated_gff,\
-              basefun + 'KO_classification.txt', basefun + 'COG_categories.txt',  output_dir,\
+              basefun + 'KO_classification.txt', basefun + 'COG_categories.txt',  basefun + 'SEED_subsystems.txt',  output_dir,\
                basencbi + 'ncbi_taxonomy_tree.txt')
     if verbose:
        cmd += " -v"
@@ -824,11 +824,12 @@ def run_metapathways_before_BLAST(input_fp, output_dir, command_handler, command
 #    isolation = get_parameter(ncbi_sequin_params, 'SequinHeader', 'isolation', default='_isolation_')
     
     algorithm = get_parameter(config_params, 'annotation', 'algorithm', default='BLAST').upper()
-    logger = WorkflowLogger(generate_log_fp(output_dir))
-    stepslogger = WorkflowLogger(generate_steps_log_fp(output_dir),open_mode='w')
+    runlogger = WorkflowLogger(generate_log_fp(output_dir, basefile_name='metapathways_run_log'), open_mode='w')
+    stepslogger = WorkflowLogger(generate_log_fp(output_dir, basefile_name = 'metapathways_steps_log'),open_mode='w')
+    errorlogger = WorkflowLogger(generate_log_fp(output_dir, basefile_name='errors_warnings_log'),open_mode='w')
     
     ####################  IMPORTANT VARIABLES ########################
-    checkMetapaths_Steps(config_params, logger)
+    checkMetapaths_Steps(config_params, runlogger)
 
 #----------------------- path variables -----------------------------------------------
     config_settings = read_pipeline_configuration( config_file )
@@ -1056,7 +1057,7 @@ def run_metapathways_before_BLAST(input_fp, output_dir, command_handler, command
     #################################
 
 #   Now call the commands
-    command_handler(commands, status_update_callback, logger, stepslogger, command_line_params)
+    command_handler(commands, status_update_callback, runlogger, stepslogger, errorlogger, command_line_params)
 
 #################################################################################
 ###########################  BLAST ##############################################
@@ -1065,8 +1066,9 @@ def run_metapathways_at_BLAST(input_fp, output_dir, command_handler, command_lin
 
     
     algorithm = get_parameter(config_params, 'annotation', 'algorithm', default='BLAST').upper()
-    logger = WorkflowLogger(generate_log_fp(output_dir), open_mode='a')
-    stepslogger = WorkflowLogger(generate_steps_log_fp(output_dir),open_mode='c')
+    runlogger = WorkflowLogger(generate_log_fp(output_dir, basefile_name='metapathways_run_log'), open_mode='a')
+    stepslogger = WorkflowLogger(generate_log_fp(output_dir, basefile_name='metapathways_steps_log'),open_mode='a')
+    errorlogger = WorkflowLogger(generate_log_fp(output_dir, basefile_name='errors_warnings_log'),open_mode='a')
 
     config_settings = read_pipeline_configuration( config_file )
 
@@ -1127,7 +1129,7 @@ def run_metapathways_at_BLAST(input_fp, output_dir, command_handler, command_lin
              message = "\n                                               "
     #################################
 #   Now call the commands
-    command_handler(commands, status_update_callback, logger, stepslogger, command_line_params)
+    command_handler(commands, status_update_callback, runlogger, stepslogger, errorlogger, command_line_params)
 
 
 
@@ -1138,8 +1140,9 @@ def run_metapathways_at_BLAST(input_fp, output_dir, command_handler, command_lin
 def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_line_params, config_params, metapaths_config, status_update_callback, config_file, ncbi_sequin_params, ncbi_sequin_sbt, run_type, state_vars):
     
     algorithm = get_parameter(config_params, 'annotation', 'algorithm', default='BLAST').upper()
-    logger = WorkflowLogger(generate_log_fp(output_dir), open_mode='a')
-    stepslogger = WorkflowLogger(generate_steps_log_fp(output_dir),open_mode='c')
+    runlogger = WorkflowLogger(generate_log_fp(output_dir, basefile_name= 'metapathways_run_log'), open_mode='a')
+    stepslogger = WorkflowLogger(generate_log_fp(output_dir, basefile_name= 'metapathways_steps_log'),open_mode='a')
+    errorlogger = WorkflowLogger(generate_log_fp(output_dir, basefile_name='errors_warnings_log'),open_mode='a')
 
     config_settings = read_pipeline_configuration( config_file )
 
@@ -1491,7 +1494,7 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
 #    print """              """  +  input_fp + """                       """
 #    print """  ********************************************************** """
 
-    command_handler(commands, status_update_callback, logger, stepslogger, command_line_params)
+    command_handler(commands, status_update_callback, runlogger, stepslogger, errorlogger,  command_line_params)
 
     message = '\n' + '*** ' + sample_name + ' ***\n'
     if state_vars[sample_name]['gather_stats'] in ['on']:
@@ -1500,7 +1503,7 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
          MetaPathways_gather_run_stats([ '-s', sample_name, '-f',  output_dir])
        except:
          pass
-    exit_process()
+         exit_process()
 
 
 

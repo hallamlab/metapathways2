@@ -197,12 +197,12 @@ def process_blastout_file(blast_file, database, table):
 
      #print blast_file + ' ' + tax_maps + ' ' + database
 
-def main(argv):
-
-    help = """
+help = """
 rRNA_stats_table.py -i x.blastout [y.blastout] -d  xdatabase [ydatabase]  -m xtax_maps [ ytax_maps ] -o outputfile -b n -e 0.xxx -s N
   Collect the rRNA scan statistics from the Silva or Greenegene.
 """
+def createParser():
+    global parser
 
     parser = optparse.OptionParser(usage=help)
 
@@ -250,6 +250,8 @@ rRNA_stats_table.py -i x.blastout [y.blastout] -d  xdatabase [ydatabase]  -m xta
 
     parser.add_option_group(filtering_options)
 
+def main(argv, errorlogger = None):
+    global parser
 
     options, args = parser.parse_args(argv)
     if not len(options.blast_files):
@@ -332,9 +334,11 @@ rRNA_stats_table.py -i x.blastout [y.blastout] -d  xdatabase [ydatabase]  -m xta
       write_selected_sequences(selected_sequences, options.output +'.fasta')
 
 def MetaPathways_rRNA_stats_calculator(argv): 
+    createParser()
     main(argv)
     return (0,'')
 
 if __name__ == '__main__':
+    createParser()
     main(sys.argv[1:])
 

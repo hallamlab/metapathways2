@@ -15,15 +15,12 @@ from shutil import rmtree
 from StringIO import StringIO
 from os import getenv, makedirs
 from operator import itemgetter
-from os.path import abspath, exists, dirname, join, isdir
+from os.path import split, splitext, abspath, exists, dirname, join, isdir
 from collections import defaultdict
 from optparse import make_option
-import sys 
-import os
-import math
-import re
-import time
-
+import sys, os, traceback, math, re, time
+from datetime import datetime
+from optparse import OptionParser
 
 def exit_process( message = None):
     time.sleep(4)
@@ -653,6 +650,7 @@ def printf(fmt, *args):
 
 def eprintf(fmt, *args): 
     sys.stderr.write(fmt % args)
+    sys.stderr.flush()
 
 
 # remove the string "/pathway-tools" to infer the pathway tools dir
@@ -671,3 +669,101 @@ def remove_existing_pgdb( sample_name, pathway_tools_exec):
    if os.path.exists(sample_pgdb_dir):
       return rmtree(sample_pgdb_dir)
     
+def generate_log_fp(output_dir,
+                    basefile_name='',
+                    suffix='txt',
+                    timestamp_pattern=''):
+    filename = '%s.%s' % (basefile_name,suffix)
+    return join(output_dir,filename)
+
+class WorkflowError(Exception):
+    pass
+
+
+def contract_key_value_file(fileName):
+
+     file = open(fileName,'r')
+     lines = file.readlines()
+     if len(lines) < 20:
+        file.close()
+        return
+
+     keyValuePairs = {}
+     
+     for line in lines:
+       fields = [ x.strip() for x in line.split('\t') ] 
+       if len(fields) == 2:
+          keyValuePairs[fields[0]] = fields[1]
+     file.close()
+
+     file = open(fileName,'w')
+     for key, value in  keyValuePairs.iteritems():
+          fprintf(file, "%s\t%s\n",key, value)
+     file.close()
+
+     
+class WorkflowLogger(object):
+    
+    def __init__(self,log_fp=None,params=None,metapaths_config=None,open_mode='w'):
+        if log_fp:
+
+        #contract the file if we have to
+            if open_mode=='c':
+                try:
+                   contract_key_value_file(log_fp)
+                except:
+                   pass 
+                open_mode='a'
+            self._f = open(log_fp,open_mode)
+        else:
+            self._f = None
+        self._filename = log_fp
+        #start_time = datetime.now().strftime('%H:%M:%S on %d %b %Y')
+        self.writemetapathsConfig(metapaths_config)
+        self.writeParams(params)
+
+    def get_log_filename(self): 
+        return self._filename
+
+    def write(self,s):
+        if self._f:
+            self._f.write(s)
+            # Flush here so users can see what step they're
+            # on after each write, since some steps can take
+            # a long time, and a relatively small amount of 
+            # data is being written to the log files.
+            self._f.flush()
+        else:
+            pass
+    
+    def writemetapathsConfig(self,metapaths_config):
+        if metapaths_config == None:
+            #self.write('#No metapaths config provided.\n')
+            pass
+        else:
+            self.write('#metapaths_config values:\n')
+            for k,v in metapaths_config.items():
+                if v:
+                    self.write('%s\t%s\n' % (k,v))
+            self.write('\n')
+            
+    def writeParams(self,params):
+        if params == None:
+            #self.write('#No params provided.\n')
+            pass 
+        else:
+            self.write('#parameter file values:\n')
+            for k,v in params.items():
+                for inner_k,inner_v in v.items():
+                    val = inner_v or 'True'
+                    self.write('%s:%s\t%s\n' % (k,inner_k,val))
+            self.write('\n')
+    
+    def close(self):
+        end_time = datetime.now().strftime('%H:%M:%S on %d %b %Y')
+        self.write('\nLogging stopped at %s\n' % end_time)
+        if self._f:
+            self._f.close()
+        else:
+            pass
+

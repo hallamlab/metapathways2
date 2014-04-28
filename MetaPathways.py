@@ -25,7 +25,6 @@ try:
      from libs.python_modules.parse  import parse_metapaths_parameters, parse_parameter_file
      from libs.python_modules.metapaths_pipeline import print_commands, call_commands_serially, print_to_stdout, no_status_updates
      from libs.python_modules.sysutil import pathDelim
-     
      from libs.python_modules.metapaths import run_metapathways_before_BLAST, run_metapathways_at_BLAST, run_metapathways_after_BLAST, get_parameter
      from libs.python_modules.annotate import *
      from libs.python_modules.blast_using_grid import blast_in_grid

@@ -779,7 +779,7 @@ def read_contig_lengths(contig_map_file, contig_lengths):
         contig_lengths[fields[0] ] = int(fields[2])
      
 # the main function
-def main(argv): 
+def main(argv, errorlogger =None): 
     global parser
     (opts, args) = parser.parse_args(argv)
     if not check_arguments(opts, args):
@@ -803,9 +803,9 @@ def main(argv):
     create_annotation(dbname_weight, results_dictionary, opts.input_gff, opts.rRNA_16S, opts.tRNA, opts.output_gff, opts.output_comparative_annotation, contig_lengths)
 
 
-def MetaPathways_annotate_fast(argv):       
+def MetaPathways_annotate_fast(argv, errorlogger = None):       
     createParser()
-    main(argv)
+    main(argv, errorlogger = errorlogger)
     return (0,'')
 
 # the main function of metapaths

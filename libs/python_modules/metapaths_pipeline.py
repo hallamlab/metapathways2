@@ -37,113 +37,6 @@ This file contains the metapaths workflow functions which string together
 independent scripts. 
 """
 
-## Start utilities used by the pipeline functions
-def generate_log_fp(output_dir,
-                    basefile_name='metapathways_run_log',
-                    suffix='txt',
-                    timestamp_pattern=''):
-    timestamp = datetime.now().strftime(timestamp_pattern)
-    filename = '%s.%s' % (basefile_name,suffix)
-    return join(output_dir,filename)
-
-def generate_steps_log_fp(output_dir,
-                    basefile_name='metapathways_steps_log',
-                    suffix='txt'):
-    filename = '%s.%s' % (basefile_name,suffix)
-
-    return join(output_dir,filename)
-
-class WorkflowError(Exception):
-    pass
-
-
-def contract_key_value_file(fileName):
-
-     file = open(fileName,'r')
-     lines = file.readlines()
-     if len(lines) < 20:
-        file.close()
-        return
-
-     keyValuePairs = {}
-     
-     for line in lines:
-       fields = [ x.strip() for x in line.split('\t') ] 
-       if len(fields) == 2:
-          keyValuePairs[fields[0]] = fields[1]
-     file.close()
-
-     file = open(fileName,'w')
-     for key, value in  keyValuePairs.iteritems():
-          fprintf(file, "%s\t%s\n",key, value)
-     file.close()
-
-     
-class WorkflowLogger(object):
-    
-    def __init__(self,log_fp=None,params=None,metapaths_config=None,open_mode='w'):
-        if log_fp:
-
-        #contract the file if we have to
-            if open_mode=='c':
-                try:
-                   contract_key_value_file(log_fp)
-                except:
-                   pass 
-                open_mode='a'
-            self._f = open(log_fp,open_mode)
-        else:
-            self._f = None
-        self._filename = log_fp
-        #start_time = datetime.now().strftime('%H:%M:%S on %d %b %Y')
-        self.writemetapathsConfig(metapaths_config)
-        self.writeParams(params)
-
-    def get_log_filename(self): 
-        return self._filename
-
-    def write(self,s):
-        if self._f:
-            self._f.write(s)
-            # Flush here so users can see what step they're
-            # on after each write, since some steps can take
-            # a long time, and a relatively small amount of 
-            # data is being written to the log files.
-            self._f.flush()
-        else:
-            pass
-    
-    def writemetapathsConfig(self,metapaths_config):
-        if metapaths_config == None:
-            #self.write('#No metapaths config provided.\n')
-            pass
-        else:
-            self.write('#metapaths_config values:\n')
-            for k,v in metapaths_config.items():
-                if v:
-                    self.write('%s\t%s\n' % (k,v))
-            self.write('\n')
-            
-    def writeParams(self,params):
-        if params == None:
-            #self.write('#No params provided.\n')
-            pass 
-        else:
-            self.write('#parameter file values:\n')
-            for k,v in params.items():
-                for inner_k,inner_v in v.items():
-                    val = inner_v or 'True'
-                    self.write('%s:%s\t%s\n' % (k,inner_k,val))
-            self.write('\n')
-    
-    def close(self):
-        end_time = datetime.now().strftime('%H:%M:%S on %d %b %Y')
-        self.write('\nLogging stopped at %s\n' % end_time)
-        if self._f:
-            self._f.close()
-        else:
-            pass
-
 def print_commands(commands,
                    status_update_callback,
                    logger):
@@ -155,7 +48,7 @@ def print_commands(commands,
     #        print '%s' % e
     #        logger.write('# %s command\n%s\n\n' % e)
             
-def execute_pipeline_stage(pipeline_command):
+def execute_pipeline_stage(pipeline_command, errorlogger = None):
      argv = [ x.strip() for x in pipeline_command.split() ]
      funcname = re.sub(r'.py$','', argv[0])
      funcname = re.sub(r'^.*/','', funcname)
@@ -163,14 +56,14 @@ def execute_pipeline_stage(pipeline_command):
      
      if hasattr(python_scripts, funcname):
         methodtocall = getattr( getattr(python_scripts, funcname), funcname)
-        result = methodtocall(args)
+        result = methodtocall(args, errorlogger = errorlogger)
      else:
         result = getstatusoutput(pipeline_command)
      return result
 
 
 
-def call_commands_serially(commands, status_update_callback, logger, stepslogger, params ):
+def call_commands_serially(commands, status_update_callback, logger, stepslogger, errorlogger,  params):
     """Run list of commands, one after another """
     #logger.write("Executing commands.\n\n")
     from sys import exit
@@ -195,7 +88,7 @@ def call_commands_serially(commands, status_update_callback, logger, stepslogger
 
         if c[3] in ['yes', 'redo' ] and c[4]:
            #result = getstatusoutput(c[1])
-           result = execute_pipeline_stage(c[1])
+           result = execute_pipeline_stage(c[1], errorlogger= errorlogger)
            if result[0] == 0 :
              if c[3] in ['redo']:
                 eprintf('..... Redo Success!\n')

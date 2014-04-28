@@ -454,7 +454,7 @@ def process_blastoutput(dbname, blastoutput,  mapfile, refscore_file, opts):
     return None
 
 # the main function
-def main(argv): 
+def main(argv, errorlogger = None): 
     global parser
     (opts, args) = parser.parse_args(argv)
     if not check_arguments(opts, args):
@@ -474,9 +474,9 @@ def main(argv):
             temp_refscore = opts.refscore_file + ".BLAST"
         process_blastoutput( dbname, blastoutput,  mapfile, temp_refscore, opts)
 
-def MetaPathways_parse_blast(argv):       
+def MetaPathways_parse_blast(argv, errorlogger = None):       
     createParser()
-    main(argv)
+    main(argv, errorlogger = None)
     return (0,'')
 
 # the main function of metapaths

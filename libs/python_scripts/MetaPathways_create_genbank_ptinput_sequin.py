@@ -648,7 +648,7 @@ def process_sequence_file(sequence_file_name,  seq_dictionary):
 
 
 
-def main(argv):
+def main(argv, errorlogger = None):
     # Parse options (many!)
     # TODO: Create option groups
 
@@ -759,8 +759,8 @@ def main(argv):
     process_gff_file(options.gff_file, output_files, nucleotide_seq_dict, protein_seq_dict, input_files) 
     #print params['bitscore']
 
-def MetaPathways_create_genbank_ptinput_sequin(argv):
-    main(argv)
+def MetaPathways_create_genbank_ptinput_sequin(argv, errorlogger = None):
+    main(argv, errorlogger = errorlogger)
     return (0,'')
     
 if __name__ == '__main__':
