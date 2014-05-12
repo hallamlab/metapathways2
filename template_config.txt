@@ -4,14 +4,14 @@
 # Please run: source MetaPathwaysrc before continuing
 
 # Paths for the Python, Perl and Pathway Tools
-PYTHON_EXECUTABLE '/sw/bin/python'
+PYTHON_EXECUTABLE '/usr/bin/python'
 PERL_EXECUTABLE '/usr/bin/perl'
-METAPATHWAYS_PATH '/Users/kishori/PROJECTS/MetapathWays/MetaPathways_Python'
+METAPATHWAYS_PATH '/Users/sgeadmin/PROJECTS/MetaPathways/MetaPathways_Python'
 
 # Replace with your current
-PATHOLOGIC_EXECUTABLE '/usr/local/pathway-tools/pathway-tools'
+PATHOLOGIC_EXECUTABLE '/path/to/ptools'
 
-REFDBS '/Users/kishori/blastDB'
+REFDBS '/Users/sgeadmin/MetaPathways/databases'
 
 # Executables: replace 'mac' to your platform linux, mac, win
 # Bit type - bit32 or bit64 

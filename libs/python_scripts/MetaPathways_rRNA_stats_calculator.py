@@ -14,6 +14,7 @@ try:
    import logging.handlers
    import re
    from python_modules.sysutil import pathDelim
+   from python_modules.metapaths_utils  import fprintf, printf, eprintf,  exit_process
 except:
      print """ Could not load some user defined  module functions"""
      print """ Make sure your typed \"source MetaPathwaysrc\""""
@@ -170,11 +171,15 @@ def append_taxonomic_information(databaseSequences, table, params):
         
     
     
-def process_blastout_file(blast_file, database, table):
+def process_blastout_file(blast_file, database, table, errorlogger = None):
      try:
         blastfile = open(blast_file, 'r')
      except IOError:
-        print "Cannot write read file " + blast_file + " !"
+        eprintf("ERROR : Cannot write read file " + blast_file + " !" )
+        if errorlogger!=None:
+          errorlogger.write("STATS_rRNA\tERROR\tCannot write read blast output file " + blast_file + " for database " + database )
+        exit_process()
+
      blastLines = blastfile.readlines()
      blastfile.close()
 
@@ -201,6 +206,7 @@ help = """
 rRNA_stats_table.py -i x.blastout [y.blastout] -d  xdatabase [ydatabase]  -m xtax_maps [ ytax_maps ] -o outputfile -b n -e 0.xxx -s N
   Collect the rRNA scan statistics from the Silva or Greenegene.
 """
+parser = None
 def createParser():
     global parser
 
@@ -277,7 +283,7 @@ def main(argv, errorlogger = None):
     table={}
     for x in range(0, len(options.blast_files)):
         table[options.tax_databases[x]]={}
-        process_blastout_file( options.blast_files[x], options.tax_databases[x],table[options.tax_databases[x]])
+        process_blastout_file(options.blast_files[x], options.tax_databases[x],table[options.tax_databases[x]], errorlogger = errorlogger)
         
  
     reads = {}
@@ -333,9 +339,10 @@ def main(argv, errorlogger = None):
          selected_sequences[read] = selected_sequences[read][database_hits[read][0]:database_hits[read][1]] 
       write_selected_sequences(selected_sequences, options.output +'.fasta')
 
-def MetaPathways_rRNA_stats_calculator(argv): 
+def MetaPathways_rRNA_stats_calculator(argv, errorlogger = None): 
+    errorlogger.write("#STEP\tSTATS_rRNA\n")
     createParser()
-    main(argv)
+    main(argv, errorlogger = errorlogger)
     return (0,'')
 
 if __name__ == '__main__':

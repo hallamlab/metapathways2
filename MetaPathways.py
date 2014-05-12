@@ -1,3 +1,4 @@
+
 from __future__ import division
 
 __author__ = "Kishori M Konwar Niels W Hanson"
@@ -21,7 +22,7 @@ try:
      import shutil 
      
      from libs.python_modules import metapaths_utils
-     from libs.python_modules.metapaths_utils  import parse_command_line_parameters, eprintf, exit_process
+     from libs.python_modules.metapaths_utils  import parse_command_line_parameters, eprintf, exit_process,WorkflowLogger, generate_log_fp
      from libs.python_modules.parse  import parse_metapaths_parameters, parse_parameter_file
      from libs.python_modules.metapaths_pipeline import print_commands, call_commands_serially, print_to_stdout, no_status_updates
      from libs.python_modules.sysutil import pathDelim
@@ -114,13 +115,13 @@ def remove_unspecified_samples(input_output_list, sample_subset):
 
    shortened_names = {}
    for input_file in input_output_list.keys():
-      shortname = re.sub('[.](fasta|fas|fna|faa|gbk|gff|fa)$','',input_file, flags= re.IGNORECASE) 
+      shortname = re.sub('[.](fasta|fas|fna|faa|gbk|gff|fa)$','',input_file, re.IGNORECASE) 
       shortname = re.sub(r'[.]','_',shortname) 
       shortened_names[shortname] = input_file
 
    shortened_subset_names = [] 
    for sample_in_subset in sample_subset:
-      shortname = re.sub('[.](fasta|fas|fna|faa|gbk|gff|fa)$','',sample_in_subset,  flags=re.IGNORECASE) 
+      shortname = re.sub('[.](fasta|fas|fna|faa|gbk|gff|fa)$','',sample_in_subset,  re.IGNORECASE) 
       shortname = re.sub(r'[.]','_',shortname) 
       if len(shortname)!=0:
         shortened_subset_names.append(shortname)
@@ -145,11 +146,11 @@ def remove_unspecified_samples(input_output_list, sample_subset):
 #creates an input output pair if input is just an input file
 def create_an_input_output_pair(input_file, output_dir):
     input_output = {}
-    shortname = re.sub('[.](fasta|fas|fna|faa|gbk|gff|fa)$','',input_file, flags=re.IGNORECASE) 
+    shortname = re.sub('[.](fasta|fas|fna|faa|gbk|gff|fa)$','',input_file, re.IGNORECASE) 
     shortname = re.sub(r'.*' + PATHDELIM ,'',shortname) 
     shortname = re.sub(r'[.]','_',shortname) 
     
-    if re.search(r'.(fasta|fas|fna|faa|gbk|gff|fa)$',input_file, flags=re.IGNORECASE):
+    if re.search(r'.(fasta|fas|fna|faa|gbk|gff|fa)$',input_file, re.IGNORECASE):
        if len(shortname)>1:
            input_output[input_file] = path.abspath(output_dir) + PATHDELIM + shortname
        else:
@@ -313,93 +314,107 @@ def main(argv):
     # add check the config parameters 
     
     sorted_input_output_list = sorted(input_output_list.keys())
+
+    globalerrorlogger = WorkflowLogger(generate_log_fp(output_dir, basefile_name= 'global_errors_warnings'), open_mode='w') 
     # PART1 before the blast
-    if len(input_output_list): 
-      for input_file in sorted_input_output_list:
-        output_dir = input_output_list[input_file]
+    try:
+         if len(input_output_list): 
+           for input_file in sorted_input_output_list:
+             sample_output_dir = input_output_list[input_file]
+     
+             if run_type=='overwrite' and  path.exists(sample_output_dir):
+                shutil.rmtree(sampl_output_dir)
+                makedirs(sample_output_dir)
+             if not  path.exists(sample_output_dir):
+                makedirs(sample_output_dir)
+             eprintf("\n")
+             sample_name_banner = "PROCESSING INPUT " + input_file
+             eprintf('#'*len(sample_name_banner) + "\n")
+             eprintf(sample_name_banner + '\n')
+             run_metapathways_before_BLAST(
+                input_file, 
+                sample_output_dir,
+                output_dir,
+                globallogger = globalerrorlogger,
+                command_handler=command_handler,
+                command_line_params=command_line_params,
+                config_params=config_params,
+                metapaths_config=metapaths_config,
+                status_update_callback=status_update_callback,
+                config_file=config_file,
+                ncbi_sequin_params = ncbi_sequin_params,
+                ncbi_sequin_sbt = ncbi_sequin_sbt,
+                run_type = run_type, 
+                state_vars = state_vars,
+                compute_stats = opts.compute_stats
+             )
+         else: 
+             eprintf("ERROR :No input files to process!\n")
+             sys.exit(0)
+     
+         # blast the files
+     
+         blasting_system =    get_parameter(config_params,  'metapaths_steps', 'BLAST_REFDB', default='yes')
+     
+         if blasting_system =='grid':
+            #  blasting the files files on the grids
+             input_files = sorted_input_output_list
+             blast_in_grid(
+                   input_files, 
+                   path.abspath(opts.output_dir),   #important to use opts.
+                   config_params=config_params,
+                   metapaths_config=metapaths_config,
+                   config_file=config_file,
+                   run_type = run_type
+                )
+     
+         else:
+            #  blasting  the files files locally
+            for input_file in sorted_input_output_list:
+                sample_output_dir = input_output_list[input_file]
+     
+                run_metapathways_at_BLAST(
+                   input_file, 
+                   sample_output_dir,
+                   output_dir,
+                   globallogger = globalerrorlogger,
+                   command_handler=command_handler,
+                   command_line_params=command_line_params,
+                   config_params=config_params,
+                   metapaths_config=metapaths_config,
+                   status_update_callback=status_update_callback,
+                   config_file=config_file,
+                   ncbi_sequin_params = ncbi_sequin_params,
+                   ncbi_sequin_sbt = ncbi_sequin_sbt,
+                   run_type = run_type,
+                   state_vars = state_vars
+                )
+     
+         # after blasting  the files
+         for input_file in sorted_input_output_list:
+             sample_output_dir = input_output_list[input_file]
+     
+             run_metapathways_after_BLAST(
+                input_file, 
+                sample_output_dir,
+                output_dir,
+                globallogger = globalerrorlogger,
+                command_handler=command_handler,
+                command_line_params=command_line_params,
+                config_params=config_params,
+                metapaths_config=metapaths_config,
+                status_update_callback=status_update_callback,
+                config_file=config_file,
+                ncbi_sequin_params = ncbi_sequin_params,
+                ncbi_sequin_sbt = ncbi_sequin_sbt,
+                run_type = run_type,
+                state_vars = state_vars
+             )
+    except:
+       globalerrorlogger.write( "ERROR\t" + str(traceback.format_exc(10)))
+       exit_process("ERROR:" + str(traceback.format_exc(10)))
 
-        if run_type=='overwrite' and  path.exists(output_dir):
-           shutil.rmtree(output_dir)
-           makedirs(output_dir)
-        if not  path.exists(output_dir):
-           makedirs(output_dir)
-        eprintf("\n")
-        sample_name_banner = "PROCESSING INPUT " + input_file
-        eprintf('#'*len(sample_name_banner) + "\n")
-        eprintf(sample_name_banner + '\n')
-        run_metapathways_before_BLAST(
-           input_file, 
-           output_dir,
-           command_handler=command_handler,
-           command_line_params=command_line_params,
-           config_params=config_params,
-           metapaths_config=metapaths_config,
-           status_update_callback=status_update_callback,
-           config_file=config_file,
-           ncbi_sequin_params = ncbi_sequin_params,
-           ncbi_sequin_sbt = ncbi_sequin_sbt,
-           run_type = run_type, 
-           state_vars = state_vars,
-           compute_stats = opts.compute_stats
-        )
-    else: 
-        eprintf("ERROR :No input files to process!\n")
-        sys.exit(0)
 
-    # blast the files
-
-    blasting_system =    get_parameter(config_params,  'metapaths_steps', 'BLAST_REFDB', default='yes')
-
-    if blasting_system =='grid':
-       #  blasting the files files on the grids
-        input_files = sorted_input_output_list
-        blast_in_grid(
-              input_files, 
-              path.abspath(opts.output_dir),   #important to use opts.
-              config_params=config_params,
-              metapaths_config=metapaths_config,
-              config_file=config_file,
-              run_type = run_type
-           )
-
-    else:
-       #  blasting  the files files locally
-       for input_file in sorted_input_output_list:
-           output_dir = input_output_list[input_file]
-
-           run_metapathways_at_BLAST(
-              input_file, 
-              output_dir,
-              command_handler=command_handler,
-              command_line_params=command_line_params,
-              config_params=config_params,
-              metapaths_config=metapaths_config,
-              status_update_callback=status_update_callback,
-              config_file=config_file,
-              ncbi_sequin_params = ncbi_sequin_params,
-              ncbi_sequin_sbt = ncbi_sequin_sbt,
-              run_type = run_type,
-              state_vars = state_vars
-           )
-
-    # after blasting  the files
-    for input_file in sorted_input_output_list:
-        output_dir = input_output_list[input_file]
-
-        run_metapathways_after_BLAST(
-           input_file, 
-           output_dir,
-           command_handler=command_handler,
-           command_line_params=command_line_params,
-           config_params=config_params,
-           metapaths_config=metapaths_config,
-           status_update_callback=status_update_callback,
-           config_file=config_file,
-           ncbi_sequin_params = ncbi_sequin_params,
-           ncbi_sequin_sbt = ncbi_sequin_sbt,
-           run_type = run_type,
-           state_vars = state_vars
-        )
     eprintf("            ***********                \n")
     eprintf("INFO : FINISHED PROCESSING THE SAMPLES \n")
     eprintf("             THE END                   \n")

@@ -192,7 +192,7 @@ def remove_last_index_files(filename):
 # the main function
 SIZE = 1000
 
-def main(argv): 
+def main(argv, errorlogger = None): 
     global parser
     (opts, args) = parser.parse_args(argv)
     if check_arguments(opts, args):
@@ -255,9 +255,10 @@ def main(argv):
 
     outfile.close()
 
-def MetaPathways_refscore(argv):
-    createParser()
-    main(argv)
+def MetaPathways_refscore(argv, errorlogger = None):
+    createParser( )
+    errorlogger.write("#STEP\tCOMPUTE_REFSCORE\n")
+    main(argv, errorlogger = errorlogger)
     return (0,'')
 
 # the main function of metapaths

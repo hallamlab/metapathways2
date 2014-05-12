@@ -13,7 +13,7 @@ __status__ = "Release"
 
 from shutil import rmtree
 from StringIO import StringIO
-from os import getenv, makedirs
+from os import getenv, makedirs, _exit
 from operator import itemgetter
 from os.path import split, splitext, abspath, exists, dirname, join, isdir
 from collections import defaultdict
@@ -23,12 +23,13 @@ from datetime import datetime
 from optparse import OptionParser
 
 def exit_process( message = None):
-    time.sleep(4)
     if message != None: 
       eprintf(message+ "\n")
-
     eprintf("INFO: Exiting the Python code\n")
-    sys.exit(1)
+    eprintf("ERROR\t" + str(traceback.format_exc(10)) + "\n")
+#    _exit(0)
+    time.sleep(4)
+    sys.exit(0)
 
 class GffFileParser(object):
    def __init__(self, gff_filename):

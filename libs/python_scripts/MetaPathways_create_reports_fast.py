@@ -10,7 +10,7 @@ __maintainer__ = "Kishori M Konwar"
 __status__ = "Release"
 
 try:
-     from os import makedirs, sys, remove, path
+     from os import makedirs, sys, remove, path, _exit
      import re
      from optparse import OptionParser, OptionGroup
 
@@ -95,7 +95,7 @@ def createParser():
                        help='minimum BLAST/LAST score to consider as for LCA rule')
      lca_options_group.add_option("--lca-top-percent", dest="lca_top_percent",  type='float', default=10,
                        help='set of considered matches are within this percent of the highest score hit')
-     lca_options_group.add_option("--lca-min-support", dest="lca_min_support",  type='int', default=5,
+     lca_options_group.add_option("--lca-min-support", dest="lca_min_support",  type='int', default=2,
                        help='minimum number of reads that must be assigned to a taxon for ' +\
                             'that taxon to be present otherwise move up the tree until there ' + 
                             'is a taxon that meets the requirement')
@@ -188,7 +188,7 @@ def get_species(hit):
        return None
 
 
-def create_annotation(results_dictionary, dbnames,  annotated_gff,  output_dir, Taxons, orfsPicked, orfToContig, lca):
+def create_annotation(results_dictionary, dbname,  annotated_gff,  output_dir, Taxons, orfsPicked, orfToContig, lca):
 
     meganTree = None
     #lca.set_results_dictionary(results_dictionary)
@@ -248,93 +248,6 @@ def create_annotation(results_dictionary, dbnames,  annotated_gff,  output_dir, 
             #write_annotation_for_orf(outputgff_file, candidatedbname, dbname_weight, results_dictionary, orf_dictionary, contig, candidate_orf_pos,  orf['id']) 
 
 
-def process_product(product, database, similarity_threshold=0.9):
-    """Returns the best set of products from the list of (*database*,
-    *product*) tuples *products*.
-
-    Each product in the set is first trimmed down, removing database-specific
-    information.
-
-    The set is then determined by first sorting the products by length
-    (ascending), and then, for each product, sequentially applying the longest
-    common substring algorithm to determine the similarity between the product
-    and already determined products. If this similarity is greater than the
-    specified *similarity_threshold*, the longer of the two products is chosen
-    to be a determined product.
-    """
-
-    processed_product = ''
-
-    # COG
-    if database == 'cog':
-        results = re.search(r'Function: (.+?) #', product)
-        if results:
-           processed_product=results.group(1)
-
-    # KEGG: split and process
-
-    elif database == 'kegg':
-        kegg_products = re.split(r'\s*;\s+', product)
-        for kegg_product in kegg_products:
-            # Toss out organism:ID pairs, gene names, and KO IDs
-            kegg_product = re.sub(r'^lcl[|]', '', kegg_product)
-            kegg_product = re.sub(r'[a-z]{3}:\S+', '', kegg_product)
-            kegg_product = kegg_product.strip()
-            kegg_product = re.sub(r'(, \b[a-z]{3}[A-Z]?\b)+', '', kegg_product)
-            kegg_product = re.sub(r'^\b[a-z]{3}[A-Z]?\b', '', kegg_product)
-            kegg_product = re.sub(r'\bK\d{5}\b', '', kegg_product)
-            
-            # Also toss out anything between square brackets
-
-            kegg_product = re.sub(r'\[.+?\]', '', kegg_product)
-
-            if kegg_product.strip():
-                processed_product=kegg_product.strip()
-                
-
-    # RefSeq: split and process
-
-    elif database == 'refseq':
-        for subproduct in product.split('; '):
-            subproduct = re.sub(r'[a-z]{2,}\|(.+?)\|\S*', '', subproduct)
-            subproduct = re.sub(r'\[.+?\]', '', subproduct)
-            if subproduct.strip():
-                processed_product=subproduct.strip()
-
-    # MetaCyc: split and process
-
-    elif database == 'metacyc':
-        
-        # Pull out first name after the accession code:
-
-        product_name = product.split('#')[0].strip()
-        product_name = re.sub(r'^[^ ]* ', '', product_name)
-        product_name = re.sub(r' OS=.*', '', product_name)
-        if product_name:
-            processed_product=product_name
-    # Generic
-    else:
-        processed_product=product
-
-    words = [ x.strip() for x in processed_product.split() ]
-    filtered_words =[]
-    underscore_pattern = re.compile("_")
-    arrow_pattern = re.compile(">")
-    for word in words:
-       if not  underscore_pattern.search(word) and not arrow_pattern.search(word):
-           filtered_words.append(word)
-    
-    #processed_product = ' '.join(filtered_words)
-    # Chop out hypotheticals
-    processed_product = remove_repeats(filtered_words)
-    processed_product = re.sub(';','',processed_product)
-
-
-
-    processed_product = re.sub(r'hypothetical protein','', processed_product)
-
-    return processed_product
-
 def remove_repeats(filtered_words):
     word_dict = {}
     newlist = []
@@ -362,7 +275,7 @@ class BlastOutputTsvParser(object):
 
         self.MAX_READ_ERRORS_ALLOWED = 0
         self.ERROR_COUNT = 0
-        self.STEP_NAME = 'PARSE_BLAST'
+        self.STEP_NAME = 'CREATE_REPORT_FILES' #PARSE_BLAST'
         self.error_and_warning_logger = None
 
         try:
@@ -446,12 +359,12 @@ class BlastOutputTsvParser(object):
               if self.MAX_READ_ERRORS_ALLOWED > self.ERROR_COUNT:
                  eprintf("%s\tWARNING\till-formatted line \"%s\" \t %s\n", self.STEP_NAME,  self.lines[self.i % self.SIZE], self.blastoutput)
                  if self.error_and_warning_logger != None:
-                     self.error_and_warning_logger.write("%s\tWARNING\till-formatted line \"%s\" \t %s\n" %(self.STEP_NAME,  self.lines[self.i % self.SIZE], self.blastoutput))
+                     self.error_and_warning_logger.write("%s\tWARNING\till-formatted line :\"%s\" \t source : %s\n" %(self.STEP_NAME,  re.sub(r'\t', '<tab>', self.lines[self.i % self.SIZE]) , self.blastoutput))
                  self.i = self.i + 1
                  self.next()
               else:
                  if self.error_and_warning_logger != None:
-                     self.error_and_warning_logger.write("ERROR: The number of lines in file %s exceeded the max tolerance %d\n" %(self.blastoutput,  self.MAX_READ_ERRORS_ALLOWED) )
+                     self.error_and_warning_logger.write("%s\tERROR\tThe number of lines in file %s exceeded the max tolerance %d\n" %(self.blastoutput,  self.MAX_READ_ERRORS_ALLOWED) )
                  exit_process() 
 
 
@@ -926,6 +839,10 @@ def main(argv, errorlogger = None):
        print usage
        sys.exit(0)
 
+
+    db_to_map_Maps =  {'cog':opts.input_cog_maps, 'seed':opts.input_seed_maps, 'kegg':opts.input_kegg_maps}
+
+
     results_dictionary={}
     dbname_weight={}
 
@@ -967,7 +884,7 @@ def main(argv, errorlogger = None):
        pickorfs= {}
        last =  min(Length, start + _stride)
        for  i in range(start, last): 
-          pickorfs[listOfOrfs[i]]= 'all'
+          pickorfs[listOfOrfs[i]]= 'root'
        start = last
        print 'Num of Min support orfs ' + str(start)
 
@@ -1000,15 +917,15 @@ def main(argv, errorlogger = None):
     
     short_to_long_dbnames = {}
     for dbname in opts.database_name: 
-      results = re.search(r'^seed', dbname, flags = re.IGNORECASE)
+      results = re.search(r'^seed', dbname,  re.IGNORECASE)
       if results:
           short_to_long_dbnames['seed'] = dbname
 
-      results = re.search(r'^cog', dbname, flags = re.IGNORECASE)
+      results = re.search(r'^cog', dbname,  re.IGNORECASE)
       if results:
           short_to_long_dbnames['cog'] = dbname
 
-      results = re.search(r'^kegg', dbname, flags = re.IGNORECASE)
+      results = re.search(r'^kegg', dbname, re.IGNORECASE)
       if results:
           short_to_long_dbnames['kegg'] = dbname
 
@@ -1016,13 +933,19 @@ def main(argv, errorlogger = None):
     standard_db_maps = [opts.input_cog_maps, opts.input_seed_maps, opts.input_kegg_maps]
     field_to_description = {}
     hierarchical_map = {}
+
     for db in standard_dbs: 
       if db in short_to_long_dbnames:
         field_to_description[db] = {}
         hierarchical_map[db] = {}
 
-    for dbname, db_map_filename in zip(standard_dbs, standard_db_maps):
-       read_map_file(db_map_filename, field_to_description[dbname], hierarchical_map[dbname])
+    for dbname in standard_dbs:
+       if dbname in short_to_long_dbnames:
+          try:
+            read_map_file(db_to_map_Maps[dbname], field_to_description[dbname], hierarchical_map[dbname])
+          except:
+            raise 
+            pass
 
     while start < Length:
        pickorfs= {}

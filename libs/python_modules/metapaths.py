@@ -161,7 +161,7 @@ def check_if_raw_sequences_exist(filename):
 
 
 # Makes sure that the ref database is formatted for blasting 
-def check_an_format_refdb(dbname, seqType,  config_settings, config_params): 
+def check_an_format_refdb(dbname, seqType,  config_settings, config_params, globallogger = None): 
     algorithm=  get_parameter( config_params,'annotation','algorithm').upper()
     
     suffixes=[]
@@ -198,6 +198,8 @@ def check_an_format_refdb(dbname, seqType,  config_settings, config_params):
        formattedDBPath = functional_formatted + PATHDELIM +  dbname
     else:
        eprintf("ERROR : Undefined sequnce type for %s!\n", dbname) 
+       if globallogger!=None:
+          globallogger.write("ERROR \t Undefined sequnce type for %s!\n" %( dbname) )
        exit_process()
     
     # database formatting executables paths
@@ -208,20 +210,32 @@ def check_an_format_refdb(dbname, seqType,  config_settings, config_params):
 
     if not (formatted_db_exists(formattedDBPath, suffixes) ):
         eprintf("WARNING : You do not seem to have Database %s formatted!\n", dbname)
+        if globallogger!=None:
+          globallogger.write("WARNING\t You do not seem to have Database %s formatted!\n" %(dbname) )
         if check_if_raw_sequences_exist(seqPath):
             eprintf("          Found raw sequences for  Database %s in folder %s!\n", dbname, seqPath)
             eprintf("          Trying to format on the fly .... for %s!\n", algorithm )
+            if globallogger!=None:
+               globallogger.write("ERROR\t Found raw sequences for  Database %s in folder %s!\n" %(dbname, seqPath) )
+               globallogger.write("Trying to format on the fly .... for %s!\n" %(algorithm ) )
+
             result =format_db(executable, seqType, seqPath, formattedDBPath, algorithm)
             if result ==True:
                 eprintf("          Formatting successful!\n")
                 return 
             else:
                 eprintf("          Formatting failed! Please consider formatting manually or do not try to annotate with this database!\n")
+                if globallogger!=None:
+                  globallogger.write("ERROR\tFormatting failed! Please consider formatting manually or do not try to annotate with this database!\n")
                 exit_process()
 
         eprintf("ERROR : You do not even have the raw sequence for Database %s to format!\n", dbname)
         eprintf("        in the folder %s\n", seqPath)
         eprintf("        Please put the appropriate files in folder \"blastDB\"\n")
+        if globallogger!=None:
+            globallogger.write("ERROR \t You do not even have the raw sequence for Database %s to format!\n" %( dbname) )
+            globallogger.write("in the folder %s\n" %(seqPath))
+            globallogger.write("Please put the appropriate files in folder \"blastDB\"\n")
         exit_process()
   
 
@@ -230,14 +244,22 @@ def check_an_format_refdb(dbname, seqType,  config_settings, config_params):
 #        sys.exit(0)
 
 
-def  make_sure_map_file_exists(config_settings, dbname):
+def  make_sure_map_file_exists(config_settings, dbname, globallogger = None):
     dbmapFile = config_settings['REFDBS'] + PATHDELIM + 'functional' + PATHDELIM + 'formatted' + PATHDELIM + dbname + "-names.txt"
     seqFilePath = config_settings['REFDBS'] + PATHDELIM + 'functional' + PATHDELIM + dbname
     if not doFilesExist( [dbmapFile ] ):
          eprintf("WARNING: Trying to create database map file for %s\n", dbname)
+         if globallogger!= None:
+            globallogger.write("WARNING: Trying to create database map file for %s\n" %( dbname) )
+
          if not doFilesExist( [seqFilePath] ):
             eprintf("ERROR : You do not even have the raw sequence for Database  %s to format!\n", dbname)
             eprintf("      : Make sure you have the file %s\n", seqFilePath)
+
+            if globallogger!= None:
+               globallogger.write("ERROR \t You do not even have the raw sequence for Database  %s to format!\n" %( dbname))
+               globallogger.write("Make sure you have the file %s\n" %( seqFilePath))
+
             exit_process()
 
          mapfile = open(dbmapFile,'w')
@@ -253,7 +275,7 @@ def  make_sure_map_file_exists(config_settings, dbname):
 # creates the command to blast the sample orf sequences against the reference databases for the 
 # purpose of annotation
 def create_blastp_against_refdb_cmd(input, output, output_dir, sample_name,
-        dbfilename, config_settings, config_params,  run_command, algorithm,db_type): 
+        dbfilename, config_settings, config_params,  run_command, algorithm, db_type, globallogger = None): 
     max_evalue = float(get_parameter(config_params, 'annotation', 'max_evalue', default=0.000001))
     system =    get_parameter(config_params,  'metapaths_steps', 'BLAST_REFDB', default='yes')
     max_hits =    get_parameter(config_params,  'annotation', 'max_hits', default=5)
@@ -261,7 +283,7 @@ def create_blastp_against_refdb_cmd(input, output, output_dir, sample_name,
 
     dbname = get_refdb_name(dbfilename);
     if run_command:
-         check_an_format_refdb(dbfilename, 'prot',  config_settings, config_params)
+         check_an_format_refdb(dbfilename, 'prot',  config_settings, config_params, globallogger = globallogger)
 
     if system=='grid':
        batch_size = get_parameter(config_params,  'grid_engine', 'batch_size', default=500)
@@ -408,10 +430,10 @@ def create_pgdb_using_pathway_tools_cmd(output_fasta_pf_dir, taxonomic_pruning_f
     return cmd
  
 
-def create_scan_rRNA_seqs_cmd(input_fasta, output_blast, refdb, config_settings,config_params, command_Status, db_type):
+def create_scan_rRNA_seqs_cmd(input_fasta, output_blast, refdb, config_settings,config_params, command_Status, db_type, globallogger = None):
 
     if command_Status:
-       check_an_format_refdb(refdb, 'nucl',  config_settings, config_params)
+       check_an_format_refdb(refdb, 'nucl',  config_settings, config_params, globallogger = globallogger)
     else:
        sys.exit(0)
 
@@ -531,7 +553,7 @@ def write_run_parameters_file(fileName, parameters):
 
 
 # checks if the necessary files, directories  and executables really exists or not
-def check_config_settings(config_settings, file):
+def check_config_settings(config_settings, file, globalerrorlogger = None):
    essentialItems= ['METAPATHWAYS_PATH', 'EXECUTABLES_DIR', 'RESOURCES_DIR']
    missingItems = []
    for key, value in  config_settings.items():
@@ -540,6 +562,9 @@ def check_config_settings(config_settings, file):
          if not path.isdir(config_settings[key]) :
             eprintf("ERROR: Path for \"%s\" is NOT set properly in configuration file \"%s\"\n", key, file)  
             eprintf("ERROR: Currently it is set to \"%s\"\n", config_settings[key] )  
+            if globalerrorlogger!=None:
+               globalerrorlogger.write("ERROR\tPath for \"%s\" is NOT set properly in configuration file \"%s\"\n"  %(key, file))  
+               globalerrorlogger.write("       Currently it is set to \"%s\"\n" %(config_settings[key] )  )
             missingItems.append(key) 
          continue
 
@@ -549,6 +574,9 @@ def check_config_settings(config_settings, file):
          if not path.isdir( config_settings[key]) :
             eprintf("ERROR: Path for \"%s\" is NOT set properly in configuration file \"%s\"\n", key, file)  
             eprintf("ERROR: Currently it is set to \"%s\"\n", config_settings[key] )  
+            if globalerrorlogger!=None:
+                globalerrorlogger.write("ERROR\tPath for \"%s\" is NOT set properly in configuration file \"%s\"\n" %(key,file))
+                globalerrorlogger.write("Currently it is set to \"%s\"\n" %( config_settings[key]) )  
             missingItems.append(key) 
          continue
 
@@ -557,6 +585,9 @@ def check_config_settings(config_settings, file):
          if not path.isdir( config_settings['METAPATHWAYS_PATH'] + PATHDELIM + config_settings[key]) :
             eprintf("ERROR: Path for \"%s\" is NOT set properly in configuration file \"%s\"\n", key, file)  
             eprintf("ERROR: Currently it is set to \"%s\"\n", config_settings[key] )  
+            if globalerrorlogger!=None:
+               globalerrorlogger.write("ERROR\tPath for \"%s\" is NOT set properly in configuration file \"%s\"\n" %(key, file))  
+               globalerrorlogger.write("Currently it is set to \"%s\"\n" %( config_settings[key] )) 
             missingItems.append(key) 
          continue
 
@@ -565,6 +596,9 @@ def check_config_settings(config_settings, file):
          if not path.isdir( config_settings['METAPATHWAYS_PATH'] + PATHDELIM + config_settings[key]) :
             eprintf("ERROR: Path for \"%s\" is NOT set properly in configuration file \"%s\"\n", key, file)  
             eprintf("ERROR: Currently it is set to \"%s\"\n",  config_settings[key] )  
+            if globalerrorlogger!=None:
+               globalerrorlogger.write("ERROR\tPath for \"%s\" is NOT set properly in configuration file \"%s\"\n" %(key, file))
+               globalerrorlogger.write("Currently it is set to \"%s\"\n" %( config_settings[key]))  
             missingItems.append(key) 
          continue
 
@@ -573,6 +607,9 @@ def check_config_settings(config_settings, file):
          if not path.isfile( config_settings[key]) :
             eprintf("ERROR: Path for \"%s\" is NOT set properly in configuration file \"%s\"\n", key, file)  
             eprintf("ERROR: Currently it is set to \"%s\"\n", config_settings[key] )  
+            if globalerrorlogger!=None:
+               globalerrorlogger.write("ERROR\tPath for \"%s\" is NOT set properly in configuration file \"%s\"\n" %(key, file)) 
+               globalerrorlogger.write("Currently it is set to \"%s\"\n" %( config_settings[key] ) )
             missingItems.append(key) 
          continue
 
@@ -580,31 +617,39 @@ def check_config_settings(config_settings, file):
       # check if the desired file exists, if not, then print a message
       if not path.isfile( config_settings['METAPATHWAYS_PATH'] +  value ) :
           if not path.isfile( value ) :
-              eprintf("ERROR: Path for \"%s\" is NOT set properly in configuration file \"%s\"\n", key, file)  
-              eprintf("ERROR: Currently it is set to \"%s\"\n", config_settings['METAPATHWAYS_PATH'] + value ) 
+              eprintf("ERROR:Path for \"%s\" is NOT set properly in configuration file \"%s\"\n", key, file)  
+              eprintf("Currently it is set to \"%s\"\n", config_settings['METAPATHWAYS_PATH'] + value ) 
+              if globalerrorlogger!=None:
+                 globalerrorlogger.write("ERROR\tPath for \"%s\" is NOT set properly in configuration file \"%s\"\n" %(key, file) )
+                 globalerrorlogger.write("Currently it is set to \"%s\"\n" %(config_settings['METAPATHWAYS_PATH'] + value)) 
               missingItems.append(key) 
           continue
      
    stop_execution = False
    for item in missingItems:
       if item in essentialItems:
-         eprintf(" ERROR: Essential field in setting %s is missing in configuration file!\n", item)
+         eprintf("ERROR\t Essential field in setting %s is missing in configuration file!\n", item)
+         if globalerrorlogger!=None:
+            globalerrorlogger.write("ERROR\tEssential field in setting %s is missing in configuration file!\n" %(item))
          stop_execution = True
 
    if stop_execution ==True:
-      eprintf("\n Terminating execution due to missing essential  fields in configuration file!\n")
+      eprintf("ERROR: Terminating execution due to missing essential  fields in configuration file!\n")
+      if globalerrorlogger!=None:
+         globalerrorlogger.write("ERROR\tTerminating execution due to missing essential  fields in configuration file!\n")
       exit_process()
 
    
 
 # This function reads the pipeline configuration file and sets the 
 # paths to differenc scripts and executables the pipeline call
-def read_pipeline_configuration( file ):
+def read_pipeline_configuration( file, globallogger ):
     patternKEYVALUE = re.compile(r'^([^\t\s]+)[\t\s]+\'(.*)\'')
     try:
        configfile = open(file, 'r')
     except IOError:
-       eprintf("Did not find pipeline config %s!\n", file) 
+       eprintf("ERROR :Did not find pipeline config %s!\n", file) 
+       globalerrorlogger.write("ERROR\tDid not find pipeline config %s!\n" %(file)) 
     else:
        lines = configfile.readlines()
 
@@ -621,11 +666,22 @@ def read_pipeline_configuration( file ):
                  eprintf("     The following line in your config settings files is set set up yet\n")
                  eprintf("     Please rerun the pipeline after setting up this line\n")
                  eprintf("     Error in line : %s\n", line)
+                 globalerrorlogger(
+                      "WARNING\t\n"+\
+                      "     The following line in your config settings files is set set up yet\n"+\
+                      "     Please rerun the pipeline after setting up this line\n"+\
+                      "     Error in line : %s\n" %(line))
+
                  exit_process()
            except:
                  eprintf("     The following line in your config settings files is set set up yet\n")
                  eprintf("     Please rerun the pipeline after setting up this line\n")
                  eprintf("     Error ine line : %s\n", line)
+                 globalerrorlogger(
+                      "WARNING\t\n"+\
+                      "     The following line in your config settings files is set set up yet\n"+\
+                      "     Please rerun the pipeline after setting up this line\n"+\
+                      "     Error in line : %s\n" %(line))
                  exit_process()
               
            if PATHDELIM=='\\':
@@ -637,7 +693,7 @@ def read_pipeline_configuration( file ):
     config_settings['METAPATHWAYS_PATH'] = config_settings['METAPATHWAYS_PATH'] + PATHDELIM
     config_settings['REFDBS'] = config_settings['REFDBS'] + PATHDELIM
     
-    check_config_settings(config_settings, file);
+    check_config_settings(config_settings, file, globallogger);
 
     return config_settings
 
@@ -737,13 +793,16 @@ def doFilesExist( fileNames, dir="" ):
 
 
 #check for empty values in parameter settings 
-def  checkMissingParam_values(config_params, choices, logger):
+def  checkMissingParam_values(config_params, choices, logger = None):
      success  = True
      for category in choices:
        for parameter in choices[category]:
          if not config_params[category][parameter]:
-            logger.write('ERROR: Empty parameter %s of type %s'  %(parameter, category))
             eprintf('ERROR: Empty parameter %s of type %s\n'  %(parameter, category))
+            eprintf('Please select at least one database for %s\n'  %(category))
+            if logger!=None:
+               logger.write('ERROR\tEmpty parameter %s of type %s\n'  %(parameter, category))
+               logger.write('Please select at least one database for %s\n'  %(category))
             success = False
 
      return success
@@ -757,13 +816,13 @@ def  checkParam_values(allcategorychoices, parameters, logger):
            if choice in parameters: 
 
              if not parameters[choice] in allcategorychoices[category][choice]:
-                 logger.write('ERROR: Incorrect setting in your parameter file')
-                 logger.write('       for step %s as %s' %(choice, parameters[choices]))
+                 logger.write('ERROR\tIncorrect setting in your parameter file')
+                 logger.write('for step %s as %s' %(choice, parameters[choices]))
                  eprintf("ERROR: Incorrect setting in your parameter file" +\
                          "       for step %s as %s", choice, parameters[choices])
                  exit_process()
 
-def checkMetapaths_Steps(config_params, logger):
+def checkMetapaths_Steps(config_params, runlogger = None):
      choices = { 'metapaths_steps':{}, 'annotation':{}, 'INPUT':{} }
 
      choices['INPUT']['format']  = ['fasta', 'gbk_unannotated', 'gbk_annotated', 'gff_unannotated', 'gff_annotated']
@@ -791,14 +850,14 @@ def checkMetapaths_Steps(config_params, logger):
 
 
      if config_params['metapaths_steps']:
-        checkParam_values(choices, config_params['metapaths_steps'], logger)
+        checkParam_values(choices, config_params['metapaths_steps'], runlogger)
 
      checkparams = {}
      checkparams['annotation'] = []
      checkparams['annotation'].append('dbs') 
 
-     if not checkMissingParam_values(config_params, checkparams, logger):
-        exit_process()
+     if not checkMissingParam_values(config_params, checkparams, runlogger):
+        exit_process("Missing parameters")
 
 
 def  copy_fna_faa_gff_orf_prediction( source_files, target_files, config_settings) :
@@ -818,21 +877,22 @@ def  copy_fna_faa_gff_orf_prediction( source_files, target_files, config_setting
 #################################################################################
 ########################### BEFORE BLAST ########################################
 #################################################################################
-def run_metapathways_before_BLAST(input_fp, output_dir, command_handler, command_line_params, config_params, metapaths_config, status_update_callback, config_file, ncbi_sequin_params, ncbi_sequin_sbt, run_type, state_vars, compute_stats):
+def run_metapathways_before_BLAST(input_fp, output_dir, all_samples_output_dir, globallogger,  command_handler, command_line_params, config_params, metapaths_config, status_update_callback, config_file, ncbi_sequin_params, ncbi_sequin_sbt, run_type, state_vars, compute_stats):
 
 #    latlon = get_parameter(ncbi_sequin_params, 'SequinHeader', 'Lat_Lon', default='_Lat_Lon_')
 #    isolation = get_parameter(ncbi_sequin_params, 'SequinHeader', 'isolation', default='_isolation_')
     
     algorithm = get_parameter(config_params, 'annotation', 'algorithm', default='BLAST').upper()
+#    globallogger = WorkflowLogger(generate_log_fp(all_samples_output_dir, basefile_name= 'global_errors_warnings'), open_mode='a')
     runlogger = WorkflowLogger(generate_log_fp(output_dir, basefile_name='metapathways_run_log'), open_mode='w')
     stepslogger = WorkflowLogger(generate_log_fp(output_dir, basefile_name = 'metapathways_steps_log'),open_mode='w')
     errorlogger = WorkflowLogger(generate_log_fp(output_dir, basefile_name='errors_warnings_log'),open_mode='w')
     
     ####################  IMPORTANT VARIABLES ########################
-    checkMetapaths_Steps(config_params, runlogger)
+    checkMetapaths_Steps(config_params, globallogger)
 
 #----------------------- path variables -----------------------------------------------
-    config_settings = read_pipeline_configuration( config_file )
+    config_settings = read_pipeline_configuration( config_file, globallogger )
 
     preprocessed_dir = output_dir + PATHDELIM + "preprocessed" + PATHDELIM
     orf_prediction_dir =  output_dir + PATHDELIM + "orf_prediction"  + PATHDELIM
@@ -1062,15 +1122,16 @@ def run_metapathways_before_BLAST(input_fp, output_dir, command_handler, command
 #################################################################################
 ###########################  BLAST ##############################################
 #################################################################################
-def run_metapathways_at_BLAST(input_fp, output_dir, command_handler, command_line_params, config_params, metapaths_config, status_update_callback, config_file, ncbi_sequin_params, ncbi_sequin_sbt, run_type, state_vars):
+def run_metapathways_at_BLAST(input_fp, output_dir, all_samples_output_dir, globallogger, command_handler, command_line_params, config_params, metapaths_config, status_update_callback, config_file, ncbi_sequin_params, ncbi_sequin_sbt, run_type, state_vars):
 
     
     algorithm = get_parameter(config_params, 'annotation', 'algorithm', default='BLAST').upper()
+ #   globallogger = WorkflowLogger(generate_log_fp(all_samples_output_dir, basefile_name= 'global_errors_warnings'), open_mode='a')
     runlogger = WorkflowLogger(generate_log_fp(output_dir, basefile_name='metapathways_run_log'), open_mode='a')
     stepslogger = WorkflowLogger(generate_log_fp(output_dir, basefile_name='metapathways_steps_log'),open_mode='a')
     errorlogger = WorkflowLogger(generate_log_fp(output_dir, basefile_name='errors_warnings_log'),open_mode='a')
 
-    config_settings = read_pipeline_configuration( config_file )
+    config_settings = read_pipeline_configuration( config_file, globallogger )
 
     preprocessed_dir = output_dir + PATHDELIM + "preprocessed" + PATHDELIM
     orf_prediction_dir =  output_dir + PATHDELIM + "orf_prediction"  + PATHDELIM
@@ -1123,7 +1184,7 @@ def run_metapathways_at_BLAST(input_fp, output_dir, command_handler, command_lin
              blast_against_refdb_cmd=create_blastp_against_refdb_cmd(input_faa, blastoutput,\
                                        output_dir,  sample_name, db,\
                                       config_settings, config_params, \
-                                      enable_flag, algorithm, db_type)
+                                      enable_flag, algorithm, db_type, globallogger =globallogger)
    
              commands.append([message + db + " ....", blast_against_refdb_cmd, 'BLAST_REFDB_' + dbname, command_Status, enable_flag])
              message = "\n                                               "
@@ -1137,14 +1198,15 @@ def run_metapathways_at_BLAST(input_fp, output_dir, command_handler, command_lin
 ########################### AFTER BLAST #########################################
 #################################################################################
 #This is the part after BLAST PART3
-def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_line_params, config_params, metapaths_config, status_update_callback, config_file, ncbi_sequin_params, ncbi_sequin_sbt, run_type, state_vars):
+def run_metapathways_after_BLAST(input_fp, output_dir, all_samples_output_dir, globallogger,  command_handler, command_line_params, config_params, metapaths_config, status_update_callback, config_file, ncbi_sequin_params, ncbi_sequin_sbt, run_type, state_vars):
     
     algorithm = get_parameter(config_params, 'annotation', 'algorithm', default='BLAST').upper()
+    #globallogger = WorkflowLogger(generate_log_fp(all_samples_output_dir, basefile_name= 'global_errors_warnings'), open_mode='a')
     runlogger = WorkflowLogger(generate_log_fp(output_dir, basefile_name= 'metapathways_run_log'), open_mode='a')
     stepslogger = WorkflowLogger(generate_log_fp(output_dir, basefile_name= 'metapathways_steps_log'),open_mode='a')
     errorlogger = WorkflowLogger(generate_log_fp(output_dir, basefile_name='errors_warnings_log'),open_mode='a')
 
-    config_settings = read_pipeline_configuration( config_file )
+    config_settings = read_pipeline_configuration( config_file, globallogger )
 
     # the importatn variables
     preprocessed_dir = output_dir + PATHDELIM + "preprocessed" + PATHDELIM
@@ -1199,7 +1261,7 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
              if state_vars[sample_name]['gather_stats'] in ['auto'] :
                state_vars[sample_name]['gather_stats'] = 'on'
    
-          dbmapfile = make_sure_map_file_exists(config_settings, db)
+          dbmapfile = make_sure_map_file_exists(config_settings, db, globallogger = globallogger)
    
           parse_blast_cmd = create_parse_blast_cmd(input_db_blastout, refscorefile,  dbname, dbmapfile,  config_settings, config_params, algorithm)
           #add command
@@ -1224,7 +1286,7 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
        rRNA_blastout= blast_results_dir + PATHDELIM + sample_name + ".rRNA." + get_refdb_name(refdbname) + ".BLASTout"
 
        command_Status=  get_parameter( config_params,'metapaths_steps','SCAN_rRNA')
-       scan_rRNA_seqs_cmd = create_scan_rRNA_seqs_cmd(input_fasta,rRNA_blastout, refdbname, config_settings, config_params, command_Status, db_type)
+       scan_rRNA_seqs_cmd = create_scan_rRNA_seqs_cmd(input_fasta,rRNA_blastout, refdbname, config_settings, config_params, command_Status, db_type, globallogger = globallogger)
 
        removeFileOnRedo(command_Status, rRNA_blastout)
        enable_flag=shouldRunStep(run_type, rRNA_blastout)  
@@ -1500,9 +1562,8 @@ def run_metapathways_after_BLAST(input_fp, output_dir, command_handler, command_
     if state_vars[sample_name]['gather_stats'] in ['on']:
        try:
          eprintf(message + 'INFO : Gathering run stats for sample : ' + sample_name)
-         MetaPathways_gather_run_stats([ '-s', sample_name, '-f',  output_dir])
+         MetaPathways_gather_run_stats([ '-s', sample_name, '-f',  output_dir], errorlogger = errorlogger)
        except:
-         pass
          exit_process()
 
 

@@ -16,7 +16,7 @@ try:
      from copy import copy
      
      from optparse import OptionParser, OptionGroup
-     from python_modules.metapaths_utils  import parse_command_line_parameters, fprintf, printf
+     from python_modules.metapaths_utils  import parse_command_line_parameters, fprintf, printf, eprintf,  exit_process
      from python_modules.sysutil import getstatusoutput
 except:
      print """ Could not load some user defined  module functions"""
@@ -112,13 +112,12 @@ def check_arguments(opts, args):
 
 
 
-def create_query_dictionary(blastoutputfile, query_dictionary, algorithm ):
+def create_query_dictionary(blastoutputfile, query_dictionary, algorithm, errorlogger= None ):
        seq_beg_pattern = re.compile("^#")
 
        try:
           blastoutfh = open( blastoutputfile,'r')
        except:
-          print ""
           print "ERROR : cannot open B/LAST output file " + blastoutputfile + " to parse "
           return
   
@@ -130,29 +129,38 @@ def create_query_dictionary(blastoutputfile, query_dictionary, algorithm ):
                      continue
    
                  if algorithm =='BLAST': 
-                    query_dictionary[words[0]] = 1
+                    query_dictionary[words[1]] = 1
    
                  if algorithm =='LAST': 
                     query_dictionary[words[1]]= 1
           blastoutfh.close()
        except:
-          print "\nERROR : while reading  B/LAST output file " + blastoutputfile + " to parse "
-          print "      : make sure B/LAST ing was done for the particular database"
+          eprintf("\nERROR : while reading  B/LAST output file " + blastoutputfile + " to parse " +\
+                  "        : make sure B/LAST ing was done for the particular database")
+
+          if errorlogger:
+             errorlogger.write("\nERROR : while reading  B/LAST output file %s to parse\n" %(blastoutputfile))
+             errorlogger.write("      : make sure B/LAST ing was done for the particular database\n")
           pass 
 
-def create_dictionary(databasemapfile, annot_map, query_dictionary):
+def create_dictionary(databasemapfile, annot_map, query_dictionary, errorlogger= None):
        if not query_dictionary:
           print "WARNING : empty query dictionary in parse B/LAST"
+          errologger.write("WARNING : empty query dictionary in parse B/LAST\n")
+         
           return 
 
        seq_beg_pattern = re.compile(">")
-       dbmapfile = open( databasemapfile,'r')
+       try:
+            dbmapfile = open( databasemapfile,'r')
+       except:
+            errologger.write("PARSE_BLAST\tERROR\tCannot open database map file %s\t Please check the file manuallyT\n" %(databasemapfile) )
+            exit_process("ERROR: Cannot open database map file %s\n" %(databasemapfile))
 
        for line in dbmapfile:
           if seq_beg_pattern.search(line):
               words = line.rstrip().split()
               name = words[0].replace('>','',1)
-              
               if not name in query_dictionary: 
                  continue
               words.pop(0)
@@ -160,11 +168,14 @@ def create_dictionary(databasemapfile, annot_map, query_dictionary):
                  annotation = 'hypothetical protein'
               else:
                  annotation = ' '.join(words)
+
               annot_map[name] = annotation
        dbmapfile.close()
 
-       if len(annot_map) ==0:
-           sys.exit( "File " + databasemapfile + " seems to be empty!" ) 
+       if len(annot_map)==0:
+          errorlogger.write( "PARSE_BLAST\tERROR\tFile "+databasemapfile+ " seems to be empty!\tCreate datbasemap file\n") 
+          errorlogger.write( "Try re-running after deleting file : %s\n" %(databasemapfile)) 
+          exit_process( "no anntations in file :" + databasemapfile)
         
 def create_refscores(refscores_file, refscore_map):
 #       print 'in refscores ' + refscores_file
@@ -182,7 +193,7 @@ def create_refscores(refscores_file, refscore_map):
 class BlastOutputParser(object):
     commentPATTERN = re.compile(r'^#')
 
-    def __init__(self, dbname,  blastoutput, database_mapfile, refscore_file, opts):
+    def __init__(self, dbname,  blastoutput, database_mapfile, refscore_file, opts, errorlogger =None):
         self.Size = 10000
         self.dbname = dbname
         self.blastoutput = blastoutput
@@ -195,28 +206,58 @@ class BlastOutputParser(object):
         self.data = {}
         self.refscores = {}
 
+        self.MAX_READ_ERRORS_ALLOWED = 0
+        self.ERROR_COUNT = 0
+        self.STEP_NAME = 'PARSE_BLAST'
+        self.error_and_warning_logger = None 
+
+
         #print "trying to open blastoutput file " + blastoutput
+        query_dictionary = {}
+        create_query_dictionary(self.blastoutput, query_dictionary, self.opts.algorithm, errorlogger =  errorlogger) 
         try:
-           query_dictionary = {}
-           create_query_dictionary(self.blastoutput, query_dictionary, self.opts.algorithm) 
-           try:
-              self.blastoutputfile = open(self.blastoutput,'r')
-           except:
-              print ""
-              print "ERROR : cannot open B/LAST output file " + blastoutput + " to parse "
-              print "      : make sure \"B/LAST\"ing was done for the particular database"
-              sys.exit(0)
+            self.blastoutputfile = open(self.blastoutput,'r')
+        except:
+            eprintf("\nERROR : cannot open B/LAST output file " + blastoutput + " to parse "+\
+                      "      : make sure \"B/LAST\"ing was done for the particular database" )
 
-           create_refscores(refscore_file, self.refscores)
+            self.error_and_warning_logger.write("ERROR : cannot open B/LAST output file %s %s to parse \n" +\
+                                             "      : make sure \"B/LAST\"ing was done for "+\
+                                             "the particular database" %(blastoutput) )
+            exit_process( "Cannot open B/LAST output file " + blastoutput )
 
-#           print "Going to read the dictionary\n"
+        try:
+            create_refscores(refscore_file, self.refscores)
+        except:
+            exit_process( "Cannot open B/LAST refscore file " + refscore_file )
+
+        try:
            create_dictionary(database_mapfile, self.annot_map, query_dictionary)
            query_dictionary = {}
-#           print "Doing reading  dictionary\n"
         except AttributeError:
-           print "Cannot read the map file for database :" + dbname
-           sys.exit(0)
+           eprintf("Cannot read the map file for database : %s\n" % (dbname))
+           if errorlogger!= None:
+              errorlogger.write("PARSE_BLAST\tERROR\tCannot read the map file %s for database : %s\tDelete the formatted files for the database in the \"formatted\" folder\n" %(database_mapfile, dbname))
+
+           exit_process("Cannot read the map file for database  " + dbname)
+
+
   
+    def setMaxErrorsLimit(self, max):
+       self.MAX_READ_ERRORS_ALLOWED = max
+
+    def setErrorAndWarningLogger(self, logger):
+       self.error_and_warning_logger = logger
+
+    def setSTEP_NAME(self, step_name):
+        self.STEP_NAME  = step_name
+
+    def incErrorCount():
+        self.ERROR_COUNT += 1
+
+    def maxErrorsReached():
+          return (self.ERROR_COUNT > self.MAX_READ_ERRORS_ALLOWED)
+
     def __iter__(self):
         return self
  
@@ -232,8 +273,9 @@ class BlastOutputParser(object):
            words[10] = 0.0   # evalue
            words[11] = temp[0]
         except:
-           print "ERROR : Invalid B/LAST output file"
-           sys.exit(0) 
+           eprintf("ERROR : Invalid B/LAST output file %s \n" % (self.blastoutput))
+           self.error_and_warning_logger.write("ERROR : Invalid B/LAST output file" %(self.blastoutput))
+           exit_process( "ERROR : Invalid B/LAST output file %s " % (self.blastoutput))
 
     def refillBuffer(self):
         i = 0
@@ -328,7 +370,14 @@ def isWithinCutoffs(words, data, cutoffs, annot_map, refscores):
     try:
        data['product'] = annot_map[words[1]]
     except:
-       print("Sequence with name \"" + words[1] + "\" is not present in map file ")
+       eprint("Sequence with name \"" + words[1] + "\" is not present in map file ")
+       self.error_and_warning_logger.write("Sequence with name %s is not present in map file " %(words[1] ))
+       self.incErrorCount()
+       if maxErrorsReached():
+           self.error_and_warning_logger.write("Number of sequence absent in map file %s exceeds %d" %(self.blastoutput, self.ERROR_COUNT ))
+           exit_process("Number of sequence absent in map file %s exceeds %d" %(self.blastoutput, self.ERROR_COUNT ))
+         
+
        data['product'] = 'hypothetical protein'
 
     try:
@@ -405,8 +454,8 @@ def add_refscore_to_file(blast_table_out, refscore_file, allNames):
        line=line.rstrip()
        fields = line.split('\t')
        if len(fields) != 12:
-          print 'Error in the blastout file'
-          sys.exit(1)
+          eprintf("ERROR: Error in line \n%s\n of the blastout file %s" %(line, blast_table_out))
+          exit_process("ERROR: Error in line \n%s\n of the blastout file %s" %(line, blast_table_out))
 
     for key, value in refscores.iteritems():
        allNames[key] = True
@@ -416,8 +465,12 @@ def add_refscore_to_file(blast_table_out, refscore_file, allNames):
         
 
 # compute the refscores
-def process_blastoutput(dbname, blastoutput,  mapfile, refscore_file, opts):
-    blastparser =  BlastOutputParser(dbname, blastoutput, mapfile, refscore_file, opts)
+def process_blastoutput(dbname, blastoutput,  mapfile, refscore_file, opts, errorlogger = None):
+    blastparser =  BlastOutputParser(dbname, blastoutput, mapfile, refscore_file, opts, errorlogger = errorlogger)
+    blastparser.setMaxErrorsLimit(5)
+    blastparser.setErrorAndWarningLogger(errorlogger)
+    blastparser.setSTEP_NAME('PARSE BLAST')
+
     
     fields = ['target','q_length', 'bitscore', 'bsr', 'expect', 'aln_length', 'identity', 'ec' ]
     if opts.taxonomy:
@@ -427,7 +480,11 @@ def process_blastoutput(dbname, blastoutput,  mapfile, refscore_file, opts):
     output_blastoutput_parsed = blastoutput + '.parsed.txt'
     # temporary file is used to deal with incomplete processing of the file
     output_blastoutput_parsed_tmp =  output_blastoutput_parsed + ".tmp"
-    outputfile = open(output_blastoutput_parsed_tmp, 'w') 
+    try:
+        outputfile = open(output_blastoutput_parsed_tmp, 'w') 
+    except:
+        errorlogger.write("PARSE_BLAST\tERROR\tCannot open temp file %s to sort\tfor reference db\n" %(soutput_blastoutput_parsed_tmp, dbname))
+        exit_process("PARSE_BLAST\tERROR\tCannot open temp file %s to sort\tfor reference db\n" %(soutput_blastoutput_parsed_tmp, dbname))
 
     # write the headers out
     fprintf(outputfile, "#%s",'query')
@@ -461,6 +518,7 @@ def main(argv, errorlogger = None):
        print usage
        sys.exit(0)
     
+    errorlogger.write("#STEP\tPARSE_BLAST\n")
 
   # input file to blast with itself to commpute refscore
 #    infile = open(input_fasta,'r')
@@ -472,11 +530,11 @@ def main(argv, errorlogger = None):
             temp_refscore = opts.refscore_file + ".LAST"
         if opts.algorithm == "BLAST":
             temp_refscore = opts.refscore_file + ".BLAST"
-        process_blastoutput( dbname, blastoutput,  mapfile, temp_refscore, opts)
+        process_blastoutput(dbname, blastoutput,  mapfile, temp_refscore, opts, errorlogger = errorlogger)
 
 def MetaPathways_parse_blast(argv, errorlogger = None):       
     createParser()
-    main(argv, errorlogger = None)
+    main(argv, errorlogger = errorlogger)
     return (0,'')
 
 # the main function of metapaths
