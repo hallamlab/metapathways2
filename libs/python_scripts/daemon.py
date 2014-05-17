@@ -94,9 +94,14 @@ parser.add_option("--cpu-type", dest="cpu_type",  default='',
 parser.add_option("--algorithm", dest="algorithm", choices = ['BLAST', 'LAST'], default = "BLAST",
                   help='the algorithm used for computing homology [DEFAULT: BLAST]')
 
-
 parser.add_option("--submit-job", dest="submit_job",  default='',   
                   help='submit job')
+
+parser.add_option("--submission-type", dest="submission_type",  choices=['0', '1'],  default='0',   
+                  help='submission type qsub = 0, userscritpt  = 1')
+
+parser.add_option("--submit-string", dest="sub_string",  default='',   
+                  help='system dependent header, such as #PBS -l')
 
 parser.add_option("--memory", dest="memory",  default='10gb',   
                   help='memory size request')
@@ -526,7 +531,7 @@ def is_complete(sample_name, dbname, algorithm):
          return False
 
 
-def submit_job(sample_name, split_file, dbname,  algorithm, working_dir = '~'):
+def submit_job(sample_name, split_file, dbname,  algorithm, working_dir = '~', sub_string=None, submission_type = '0'):
 
    #working_dir = '/home/sgeadmin'
    try:
@@ -558,7 +563,11 @@ def submit_job(sample_name, split_file, dbname,  algorithm, working_dir = '~'):
 
 
      #fprintf(commandfile, "%s\n","#$ -wd " + working_dir)
-     fprintf(commandfile, "%s\n","#PBS -l mem=10gb")
+    
+     
+     if sub_string!=None:
+         fprintf(commandfile, "#%s\n",re.sub(',', ' ',sub_string))
+
      fprintf(commandfile, "%s\n",command)
      fprintf(commandfile, "%s\n","echo \"   \" >> " + outputfile)
      fprintf(commandfile, "%s\n","echo \"#EOF\" >> " + outputfile)
@@ -575,11 +584,17 @@ def submit_job(sample_name, split_file, dbname,  algorithm, working_dir = '~'):
              ]
 
      #print ' '.join(args) 
-     p = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-     result = p.communicate()
-     returncode = p.returncode
+     if submission_type=='0':
+        p = subprocess.Popen(args, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        result = p.communicate()
+        returncode = p.returncode
+        sendResultBack(result, returncode)
 
-     sendResultBack(result, returncode)
+     if submission_type=='1':
+        new_job_file = open("MetaPathways/new_job.txt", 'w+')
+        new_job_file.close()
+        sendResultBack( ['',''], 0)
+
    except:
       pass
 
@@ -822,7 +837,7 @@ def main(argv):
 
     if len(opts.submit_job) > 0 and len(opts.dbname) and len(opts.sample_name) and  len(opts.algorithm):
        try:
-          submit_job(opts.sample_name, opts.submit_job, opts.dbname, opts.algorithm, working_dir = '~')
+          submit_job(opts.sample_name, opts.submit_job, opts.dbname, opts.algorithm, working_dir = '~', sub_string = opts.sub_string, submission_type = opts.submission_type)
        except:
           return 0
 

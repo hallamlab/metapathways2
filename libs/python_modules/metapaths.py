@@ -10,7 +10,7 @@ __status__ = "Release"
 
 try:
    from optparse import make_option
-   from os import makedirs, path, listdir, remove
+   from os import makedirs, path, listdir, remove, rename
    import os
    import sys
    from sysutil import getstatusoutput, pathDelim
@@ -67,14 +67,25 @@ def get_refdb_name( dbstring ):
 
 
 def format_db(formatdb_executable, seqType, raw_sequence_file, formatted_db,  algorithm):
+     _temp_formatted_db  =  formatted_db+ "__temp__"
+
      if algorithm=='BLAST':
-         cmd='%s -dbtype %s -in %s -out %s' %(formatdb_executable, seqType, raw_sequence_file, formatted_db)
+         cmd='%s -dbtype %s -in %s -out %s' %(formatdb_executable, seqType, raw_sequence_file, _temp_formatted_db)
 
      if algorithm=='LAST':
          # dirname = os.path.dirname(raw_sequence_file)    
-         cmd='%s -s 4G -p -c %s  %s' %(formatdb_executable, formatted_db, raw_sequence_file)
+         cmd='%s -s 4G -p -c %s  %s' %(formatdb_executable, _temp_formatted_db, raw_sequence_file)
 
      result= getstatusoutput(cmd)
+     temp_fileList = glob(_temp_formatted_db + '*') 
+     try:
+        for tempFile in temp_fileList:
+           file = re.sub('__temp__','', tempFile)
+           rename( tempFile, file);
+
+     except:
+        return False
+
      if result[0]==0:
         return True
      else:
@@ -150,10 +161,19 @@ def create_refscores_compute_cmd(input, output, config_settings, algorithm):
 
 def formatted_db_exists(dbname, suffixes):
     for suffix in suffixes:
-       fileList = glob(dbname + suffix) 
+       allfileList = glob(dbname + '*.' + suffix) 
+       fileList = []
+       tempFilePattern = re.compile(r''+ dbname + '\d*.' + suffix +'$');
+
+       for aFile in allfileList:
+           searchResult =  tempFilePattern.search(aFile)
+           if searchResult:
+             fileList.append(aFile)
+
        if len(fileList)==0 :
           eprintf("ERROR :  if formatted correctely then expected the files with pattern %s\n", dbname + suffix)
           return False
+
     return True
 
 def check_if_raw_sequences_exist(filename):
@@ -172,14 +192,14 @@ def check_an_format_refdb(dbname, seqType,  config_settings, config_params, glob
        algorithm = 'BLAST'
     
     if algorithm == 'LAST' and seqType == 'prot':
-        suffixes = [ '*.des', '*.sds', '*.suf', '*.bck', '*.prj', '*.ssp', '*.tis' ]
+        suffixes = [ 'des', 'sds', 'suf', 'bck', 'prj', 'ssp', 'tis' ]
     
     if algorithm == 'BLAST':
       if seqType=='prot':
-        suffixes = ['*.phr', '*.psq', '*.pin']
+        suffixes = ['phr', 'psq', 'pin']
     
       if seqType=='nucl':
-        suffixes = ['*.nhr', '*.nsq', '*.nin']
+        suffixes = ['nhr', 'nsq', 'nin']
         
     # formatted DB directories
     taxonomic_formatted = config_settings['REFDBS'] + PATHDELIM + 'taxonomic' + PATHDELIM + 'formatted'
@@ -208,7 +228,7 @@ def check_an_format_refdb(dbname, seqType,  config_settings, config_params, glob
     else: # algorithm == 'BLAST':
       executable  = config_settings['METAPATHWAYS_PATH'] + PATHDELIM + config_settings['FORMATDB_EXECUTABLE']
 
-    if not (formatted_db_exists(formattedDBPath, suffixes) ):
+    if not (formatted_db_exists(formattedDBPath,  suffixes) ):
         eprintf("WARNING : You do not seem to have Database %s formatted!\n", dbname)
         if globallogger!=None:
           globallogger.write("WARNING\t You do not seem to have Database %s formatted!\n" %(dbname) )
@@ -877,7 +897,7 @@ def  copy_fna_faa_gff_orf_prediction( source_files, target_files, config_setting
 #################################################################################
 ########################### BEFORE BLAST ########################################
 #################################################################################
-def run_metapathways_before_BLAST(input_fp, output_dir, all_samples_output_dir, globallogger,  command_handler, command_line_params, config_params, metapaths_config, status_update_callback, config_file, ncbi_sequin_params, ncbi_sequin_sbt, run_type, state_vars, compute_stats):
+def run_metapathways_before_BLAST(input_fp, output_dir, all_samples_output_dir, globallogger,  command_handler, command_line_params, config_params, metapaths_config, status_update_callback, config_file, ncbi_sequin_params, ncbi_sequin_sbt, run_type, state_vars, compute_stats, config_settings = None):
 
 #    latlon = get_parameter(ncbi_sequin_params, 'SequinHeader', 'Lat_Lon', default='_Lat_Lon_')
 #    isolation = get_parameter(ncbi_sequin_params, 'SequinHeader', 'isolation', default='_isolation_')
@@ -892,7 +912,6 @@ def run_metapathways_before_BLAST(input_fp, output_dir, all_samples_output_dir, 
     checkMetapaths_Steps(config_params, globallogger)
 
 #----------------------- path variables -----------------------------------------------
-    config_settings = read_pipeline_configuration( config_file, globallogger )
 
     preprocessed_dir = output_dir + PATHDELIM + "preprocessed" + PATHDELIM
     orf_prediction_dir =  output_dir + PATHDELIM + "orf_prediction"  + PATHDELIM
@@ -1122,7 +1141,7 @@ def run_metapathways_before_BLAST(input_fp, output_dir, all_samples_output_dir, 
 #################################################################################
 ###########################  BLAST ##############################################
 #################################################################################
-def run_metapathways_at_BLAST(input_fp, output_dir, all_samples_output_dir, globallogger, command_handler, command_line_params, config_params, metapaths_config, status_update_callback, config_file, ncbi_sequin_params, ncbi_sequin_sbt, run_type, state_vars):
+def run_metapathways_at_BLAST(input_fp, output_dir, all_samples_output_dir, globallogger, command_handler, command_line_params, config_params, metapaths_config, status_update_callback, config_file, ncbi_sequin_params, ncbi_sequin_sbt, run_type, state_vars, config_settings = None):
 
     
     algorithm = get_parameter(config_params, 'annotation', 'algorithm', default='BLAST').upper()
@@ -1130,8 +1149,6 @@ def run_metapathways_at_BLAST(input_fp, output_dir, all_samples_output_dir, glob
     runlogger = WorkflowLogger(generate_log_fp(output_dir, basefile_name='metapathways_run_log'), open_mode='a')
     stepslogger = WorkflowLogger(generate_log_fp(output_dir, basefile_name='metapathways_steps_log'),open_mode='a')
     errorlogger = WorkflowLogger(generate_log_fp(output_dir, basefile_name='errors_warnings_log'),open_mode='a')
-
-    config_settings = read_pipeline_configuration( config_file, globallogger )
 
     preprocessed_dir = output_dir + PATHDELIM + "preprocessed" + PATHDELIM
     orf_prediction_dir =  output_dir + PATHDELIM + "orf_prediction"  + PATHDELIM
@@ -1172,7 +1189,6 @@ def run_metapathways_at_BLAST(input_fp, output_dir, all_samples_output_dir, glob
              dbname = get_refdb_name(db);
              blastoutput = blast_results_dir + PATHDELIM + sample_name + "." + dbname    # append "algorithout"
              blastoutput += "."+algorithm + "out"
-             blastoutputtmp = blastoutput+ ".tmp"
 
              removeFileOnRedo(command_Status, blastoutput)
              enable_flag=shouldRunStep(run_type, blastoutput)  
@@ -1198,7 +1214,7 @@ def run_metapathways_at_BLAST(input_fp, output_dir, all_samples_output_dir, glob
 ########################### AFTER BLAST #########################################
 #################################################################################
 #This is the part after BLAST PART3
-def run_metapathways_after_BLAST(input_fp, output_dir, all_samples_output_dir, globallogger,  command_handler, command_line_params, config_params, metapaths_config, status_update_callback, config_file, ncbi_sequin_params, ncbi_sequin_sbt, run_type, state_vars):
+def run_metapathways_after_BLAST(input_fp, output_dir, all_samples_output_dir, globallogger,  command_handler, command_line_params, config_params, metapaths_config, status_update_callback, config_file, ncbi_sequin_params, ncbi_sequin_sbt, run_type, state_vars, config_settings = None):
     
     algorithm = get_parameter(config_params, 'annotation', 'algorithm', default='BLAST').upper()
     #globallogger = WorkflowLogger(generate_log_fp(all_samples_output_dir, basefile_name= 'global_errors_warnings'), open_mode='a')
@@ -1206,7 +1222,6 @@ def run_metapathways_after_BLAST(input_fp, output_dir, all_samples_output_dir, g
     stepslogger = WorkflowLogger(generate_log_fp(output_dir, basefile_name= 'metapathways_steps_log'),open_mode='a')
     errorlogger = WorkflowLogger(generate_log_fp(output_dir, basefile_name='errors_warnings_log'),open_mode='a')
 
-    config_settings = read_pipeline_configuration( config_file, globallogger )
 
     # the importatn variables
     preprocessed_dir = output_dir + PATHDELIM + "preprocessed" + PATHDELIM

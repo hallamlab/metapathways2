@@ -26,7 +26,8 @@ try:
      from libs.python_modules.parse  import parse_metapaths_parameters, parse_parameter_file
      from libs.python_modules.metapaths_pipeline import print_commands, call_commands_serially, print_to_stdout, no_status_updates
      from libs.python_modules.sysutil import pathDelim
-     from libs.python_modules.metapaths import run_metapathways_before_BLAST, run_metapathways_at_BLAST, run_metapathways_after_BLAST, get_parameter
+     from libs.python_modules.metapaths import run_metapathways_before_BLAST, run_metapathways_at_BLAST,\
+                                               run_metapathways_after_BLAST, get_parameter, read_pipeline_configuration
      from libs.python_modules.annotate import *
      from libs.python_modules.blast_using_grid import blast_in_grid
 except:
@@ -316,6 +317,7 @@ def main(argv):
     sorted_input_output_list = sorted(input_output_list.keys())
 
     globalerrorlogger = WorkflowLogger(generate_log_fp(output_dir, basefile_name= 'global_errors_warnings'), open_mode='w') 
+    config_settings = read_pipeline_configuration(config_file, globalerrorlogger)
     # PART1 before the blast
     try:
          if len(input_output_list): 
@@ -346,7 +348,8 @@ def main(argv):
                 ncbi_sequin_sbt = ncbi_sequin_sbt,
                 run_type = run_type, 
                 state_vars = state_vars,
-                compute_stats = opts.compute_stats
+                compute_stats = opts.compute_stats,
+                config_settings = config_settings
              )
          else: 
              eprintf("ERROR :No input files to process!\n")
@@ -387,7 +390,8 @@ def main(argv):
                    ncbi_sequin_params = ncbi_sequin_params,
                    ncbi_sequin_sbt = ncbi_sequin_sbt,
                    run_type = run_type,
-                   state_vars = state_vars
+                   state_vars = state_vars,
+                   config_settings = config_settings
                 )
      
          # after blasting  the files
@@ -408,11 +412,12 @@ def main(argv):
                 ncbi_sequin_params = ncbi_sequin_params,
                 ncbi_sequin_sbt = ncbi_sequin_sbt,
                 run_type = run_type,
-                state_vars = state_vars
+                state_vars = state_vars,
+                config_settings = config_settings
              )
     except:
        globalerrorlogger.write( "ERROR\t" + str(traceback.format_exc(10)))
-       exit_process("ERROR:" + str(traceback.format_exc(10)))
+#       exit_process("ERROR:" + str(traceback.format_exc(10)))
 
 
     eprintf("            ***********                \n")

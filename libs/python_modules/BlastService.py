@@ -36,6 +36,24 @@ class BlastService:
      PATHDELIM = pathDelim()
      WIN_RSA_KEY_ARGS = ["-i", 'executables' + PATHDELIM + 'win' + PATHDELIM + 'bit64' + PATHDELIM + 'win_rsa.ppk', '-batch']
      
+
+     sub_string = ""
+     submission_type = '0'
+
+
+     def buildSSHLogin(self, connType='ssh'):  
+         user, server = self.getUserServer()
+         args = [ connType]
+
+         if hasattr(self, 'keyfile'):
+             args += ['-i', self.keyfile ]
+
+         if connType=='ssh':
+             args += [user+'@'+server]  
+
+         return args
+
+
      def  isValid(self, opts):
          
          if not hasattr(opts,'sample_name'):
@@ -58,11 +76,15 @@ class BlastService:
         return p
 
      def _submit_remote_location(basicargs):
-        user, server = self.getUserServer()
-        REMOTEARGS = ['ssh', user+'@'+server, 'python' ]
-        args = REMOTEARGS
+
+        args = self.buildSSHLogin()  
+        args += ['python' ]
         args.extend(basicargs)
+    
+        print ' '.join(args)
+
         p = create_a_process(args)
+
         result = p.communicate()
         return result
 
@@ -82,13 +104,15 @@ class BlastService:
                array.append(x.strip())
           return array
 
+    
      def  __remote_check_if_server_is_up(self, user, server):
      #    user, server = self.getUserServer()
-         args = [self.SSH, user+'@'+server]  
+
+         args = self.buildSSHLogin()  
+
          if PATHDELIM =='\\':
              args = args + WIN_RSA_KEY_ARGS
-         if self.type=='AWS':
-             args += ['-i', self.keyfile ]
+
          args += ['echo','hello']
          p = self.create_a_process(args)  
          result = p.communicate()
@@ -96,10 +120,7 @@ class BlastService:
          return boolean 
      
      def  __remote_Remove_Sample_Folders(self, samples,  home_dir ='~', working_dir = '~'):
-         user, server = self.getUserServer()
-         args = [self.SSH, user+'@'+server]
-         if self.type=='AWS':
-             args += ['-i', self.keyfile ]
+         args = self.buildSSHLogin()  
          fullFolderNames = []
          for s in samples:
             fullFolderNames.append('--remove-sample-dirs')
@@ -118,10 +139,7 @@ class BlastService:
          return number_of_lines_in_file(filename)
 
      def __remote_No_of_Lines(self, filename, home_dir='~', working_dir = '~' ):
-         user, server = self.getUserServer()
-         args = [self.SSH, user+'@'+server]
-         if self.type=='AWS':
-             args += ['-i', self.keyfile ]
+         args = self.buildSSHLogin()  
          if PATHDELIM =='\\':
              args = args + WIN_RSA_KEY_ARGS
          args = args + ['python',  'daemon.py','--home-dir', home_dir, '--number-of-lines-in-file', working_dir + '/' + filename]
@@ -135,10 +153,7 @@ class BlastService:
             return -1
 
      def __remote_deleteRemoteFile(self, filename, home_dir = '~',  working_dir='~'):
-         user, server = self.getUserServer()
-         args = [self.SSH, user+'@'+server]
-         if self.type=='AWS':
-             args += ['-i', self.keyfile ]
+         args = self.buildSSHLogin()  
          if PATHDELIM =='\\':
              args = args + WIN_RSA_KEY_ARGS
          args = args + ['python',  'daemon.py','--home-dir', home_dir, '--remove-file', working_dir + '/' + filename]
@@ -151,20 +166,18 @@ class BlastService:
 
      def __remote_copy_file(self, source, target):
           user, server = self.getUserServer()
-          args = ['scp'] 
-          if self.type=='AWS':
-             args += ['-i', self.keyfile ]
+          args  = self.buildSSHLogin( 'scp')  
           args += [ source , user+'@'+server+':'+ target]
+
           p = self.create_a_process(args)
           result = p.communicate()
           return result[0]==''
 
      def __remote_copy_file_back(self, source, target):
           user, server = self.getUserServer()
-          args = ['scp'] 
-          if self.type=='AWS':
-             args += ['-i', self.keyfile ]
+          args  = self.buildSSHLogin( 'scp')  
           args += [user+'@'+server+':'+ source, target]
+
           p = self.create_a_process(args)
           result = p.communicate()
           (boolean, message)  = self._interpret_results(result, '')
@@ -185,10 +198,7 @@ class BlastService:
             return False
 
      def __remote_createFolder(self, folder_name, home_dir='~', working_dir = '~'):
-         user, server = self.getUserServer()
-         args = [self.SSH, user+'@'+server]
-         if self.type=='AWS':
-             args += ['-i', self.keyfile ]
+         args  = self.buildSSHLogin()  
          if PATHDELIM =='\\':
              args = args + WIN_RSA_KEY_ARGS
          args = args + ['python', 'daemon.py','--home-dir', home_dir, '--create-sample-dir', working_dir + '/' + folder_name]
@@ -199,10 +209,7 @@ class BlastService:
      
      
      def __remote_doesFolderExist(self, folder_name, home_dir='~', working_dir = '~'):
-         user, server = self.getUserServer()
-         args = [self.SSH, user+'@'+server]  
-         if self.type=='AWS':
-             args += ['-i', self.keyfile ]
+         args  = self.buildSSHLogin()  
          if PATHDELIM =='\\':
              args = args + WIN_RSA_KEY_ARGS
          args += ['python', 'daemon.py','--home-dir', home_dir, '--does-sample-dir-exist', working_dir + '/' + folder_name]
@@ -214,10 +221,7 @@ class BlastService:
          return boolean
 
      def __remote_doesFileExist(self, file_name, home_dir='~', working_dir = '~'):
-         user, server = self.getUserServer()
-         args = [self.SSH, user+'@'+server]  
-         if self.type=='AWS':
-             args += ['-i', self.keyfile ]
+         args  = self.buildSSHLogin()  
          if PATHDELIM =='\\':
              args = args + WIN_RSA_KEY_ARGS
          args += ['python', 'daemon.py','--home-dir', home_dir, '--does-file-exist', working_dir + '/' + file_name]
@@ -227,10 +231,7 @@ class BlastService:
          return boolean
 
      def __remote_doesFilePatternExist(self, file_pattern, home_dir='~', working_dir = '~'):
-         user, server = self.getUserServer()
-         args = [self.SSH, user+'@'+server]  
-         if self.type=='AWS':
-             args += ['-i', self.keyfile ]
+         args  = self.buildSSHLogin()  
          if PATHDELIM =='\\':
              args = args + WIN_RSA_KEY_ARGS
          args += ['python', 'daemon.py','--home-dir', home_dir, '--does-file-pattern-exist', working_dir + '/' + file_pattern]
@@ -242,10 +243,7 @@ class BlastService:
      def safeDoubleQuotes(self, string) :
          return ('\"' + string + '\"')
      def __remote_getFileNamesWithPattern(self, file_pattern, home_dir='~', working_dir = '~'):
-         user, server = self.getUserServer()
-         args = [self.SSH, user+'@'+server]  
-         if self.type=='AWS':
-             args += ['-i', self.keyfile ]
+         args  = self.buildSSHLogin()  
          if PATHDELIM =='\\':
              args = args + WIN_RSA_KEY_ARGS
          args += ['python', 'daemon.py','--home-dir', home_dir, '--get-files-with-pattern',  self.safeDoubleQuotes(working_dir + '/' + file_pattern)]
@@ -275,11 +273,7 @@ class BlastService:
             
      #format the remote db
      def __remote_formatDB(self, dbname, algorithm, home_dir='~', working_dir= '~'):
-         user, server = self.getUserServer()
-
-         args = [self.SSH, user+'@'+server]  
-         if self.type=='AWS':
-             args += ['-i', self.keyfile ]
+         args  = self.buildSSHLogin()  
          if PATHDELIM =='\\':
              args = args + WIN_RSA_KEY_ARGS
          args += ['python', 'daemon.py','--home-dir', working_dir, '--format-database', dbname, '--algorithm', algorithm]
@@ -313,7 +307,8 @@ class BlastService:
          if PATHDELIM=='\\':
              args = [self.SCP] + WIN_RSA_KEY_ARGS + [source, user+'@'+server+':'+ target]
          else:
-             args = [self.SCP, source , user+'@'+server+':'+ target]
+             args  = self.buildSSHLogin('scp')  
+             args += [source , user+'@'+server+':'+ target]
              
          p = self.create_a_process(args)  
          result = p.communicate()[0].strip()
@@ -327,7 +322,8 @@ class BlastService:
          if PATHDELIM=='\\':
             args = [self.SCP] + WIN_RSA_KEY_ARGS + [user+'@'+server+':'+ source, target]
          else: 
-            args = [self.SCP, user+'@'+server+':~/'+ source, target]
+            args  = self.buildSSHLogin('scp')  
+            args += [user+'@'+server+':~/'+ source, target]
      
          #print ' '.join(args)
          p = self.create_a_process(args)  
@@ -338,27 +334,29 @@ class BlastService:
             return False
      
      def __remote_Submit(self, J, working_dir='~'):
-         
-         user, server = self.getUserServer()
-         args = [self.SSH, user+'@'+server]
-         if self.type=='AWS':
-             args += ['-i', self.keyfile ]
+         args  = self.buildSSHLogin()  
          if PATHDELIM =='\\':
              args = args + WIN_RSA_KEY_ARGS
+
          args += ['python', 'daemon.py','--home-dir', working_dir, '--submit-job',\
-                J.a, '--sample-name' , J.S,  '--algorithm', J.m, '--dbname', J.d ]
+                J.a, '--sample-name' , J.S,  '--algorithm', J.m, '--dbname', J.d,\
+                '--submit-string', "\""+self.sub_string +"\"", '--submission-type', self.submission_type]
          command = ' '.join(args)
 
-         #print command
          p = self.create_a_process(args)  
          result = p.communicate()
          (boolean, message)  = self._interpret_results(result, '<<Success!>>')
+         print 'status ', boolean
+
+         if boolean == False and self.submission_type=='0':
+            self.submission_type='1' 
+
          return boolean, str(result), command
 
      
      def get_number_of_running_jobs(self, sample_name, algorithm):
-         user, server = self.getUserServer()
-         args = [self.SSH, user+'@'+server, 'python', 'MetaPathways/' + sample_name + '/daemon.py','--home-dir', '\'\'', '--get-number-of-running-jobs', user]
+         args  = self.buildSSHLogin()  
+         args += ['python', 'MetaPathways/' + sample_name + '/daemon.py','--home-dir', '\'\'', '--get-number-of-running-jobs', user]
          p = self.create_a_process(args)  
          result = p.communicate()
          if result[1].strip()=='':
@@ -424,6 +422,7 @@ class BlastService:
          self.os = 'mac'
          self.bits = 'bit64'
          self.type ='ordinary'
+         self.sub_string = ""
 
          self.performance = Performance()
          self.A =1
@@ -431,13 +430,13 @@ class BlastService:
          self.C =1
          self.D =1
 
-
          try:
            for key, value in gridParams.iteritems():
               setattr(self, key, value) 
          except:
             print "ERROR : in  creating BlastService"
             pass
+
             
          if not self.user:
               self.messagelogger.write("ERROR: User for Grid service not specified\n")
@@ -700,12 +699,13 @@ class BlastService:
          for  f in self.Files:   
            if not f in self.remoteActiveFiles: 
              if not self.__remote_doesFileExist(self.Files[f][1] + '/' + f, working_dir = self.working_directory):
-                  print self.working_directory + '/' +   self.Files[f][1] + '/' + f
+                  #print self.working_directory + '/' +   self.Files[f][1] + '/' + f
+                  self.messagelogger.write("STATUS: Creating/Uploading remote file \"%s\" in Server \"%s\"!\n" %(f, self.server))
                   if self.__remote_createFile(f, working_dir = self.working_directory ):
                      self.remoteActiveFiles[f] = True
-                     self.messagelogger.write("SUCCESS: Successfully created remote file \"%s\" in Server \"%s\"!\n" %(f, self.server))
+                     self.messagelogger.write("SUCCESS: Successfully created/uploaded remote file \"%s\" in Server \"%s\"!\n" %(f, self.server))
                   else:
-                     self.messagelogger.write("ERROR: Cannot create remote file \"%s\" in Server \"%s\"!\n" %(f, self.server))
+                     self.messagelogger.write("ERROR: Cannot create/upload remote file \"%s\" in Server \"%s\"!\n" %(f, self.server))
                      return False
              else:
                 self.remoteActiveFiles[f] = True

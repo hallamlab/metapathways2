@@ -24,6 +24,7 @@ try:
     from glob import glob
     from BlastService import BlastService
     from utils import *
+    #import curses
 except:
     print """ Could not load some user defined  module functions"""
     print """ Make sure your typed \"source MetaPathwaysrc\""""
@@ -42,6 +43,8 @@ class BlastBroker:
       batchSize =None
       working_directory =None
       gridParams=None
+      x = 0
+      y = 0
 
 #      base_output_folder = None
 #      BlastServices=[]
@@ -153,11 +156,14 @@ class BlastBroker:
               return None
            return self.samples_and_algorithms[sample]
 
+      #compute the loads of the active servers 
       def compute_server_loads(self):
           for sample in self.list_jobs_submitted:
              for db in self.list_jobs_submitted[sample]:
                for split in self.list_jobs_submitted[sample][db]:
                    for server in self.list_jobs_submitted[sample][db][split][self.algorithm]:
+                       if not server in self.BlastServers: 
+                          continue
                        self.serverLoads[server] += 1
                        if not sample in self.list_jobs_completed:
                           continue
@@ -296,7 +302,6 @@ class BlastBroker:
           for S in self.getSamples():
              if redo:
                 self.removeJobListIfExists(S)
-
              self.load_job_list_file(S)
              jobListStatus = self.isValidJobList(S)
 
@@ -304,9 +309,9 @@ class BlastBroker:
                 self.messagelogger.write("OK: Previously created job list is correct for sample \"%s\"!\n" %(S))
                 continue
              else:
+                # job list not found or corrupt
                 if jobListStatus == 2:
                     self.messagelogger.write("WARNING: Previously created job list is incorrect for sample \"%s\"!\n" %(S))
-
                 if self.createJobList(S, fromScratch=False):
                    self.messagelogger.write("SUCCESS: Created the job list for sample \"%s\"!\n" %(S))
 
@@ -319,7 +324,7 @@ class BlastBroker:
           if fromScratch:
              removeIfFileExists( job_list_file)
           try:
-             if not doesFileExist( job_list_file):
+             if not doesFileExist(job_list_file):
                  listfile  = open(job_list_file, 'w')
                  listfile.close()
           except:
@@ -350,11 +355,17 @@ class BlastBroker:
            
            parentDir =  self.base_output_folder + PATHDELIM + S + PATHDELIM + 'blast_results' + PATHDELIM + 'grid'
            list_jobs_file=parentDir + PATHDELIM + 'list_jobs.txt'
+            
+
+           # return if the list_jobs.txt file does not exist
+           if not path.exists(list_jobs_file):
+               return
 
            if enforce_number_of_fields_per_row(list_jobs_file, 4):
                self.messagelogger.write('WARNING: Corrupt list file for sample %s' %(S))
                self.messagelogger.write('STATUS: Successfully recovered corrupt list file for sample %s' %(S))
 
+           # list_jobs splitname, 
            if path.exists(list_jobs_file):
                  listfile = open(list_jobs_file, 'r')
                  lines = listfile.readlines()
@@ -427,7 +438,6 @@ class BlastBroker:
 
          for S in self.getSamples():
             for d in self.getDBs( samples = [S] ):
-               print 'dbs ' + d
                if not d in self.samples_and_databases[S]:
                   try: 
                      del self.list_jobs[S][d]
@@ -448,14 +458,14 @@ class BlastBroker:
             splits= {}
            
             read_one_column(parentDir + PATHDELIM + 'split_list.txt', splits, col=0)
-            status = 0
+            status = 0 # flag for no databases
             for d in self.getDBs( samples = [ S ] ):
                for a in  self.list_splits[S]:
-                  status = 1
+                  status = 1 # found algorithm
                   J = Job(S,d,a, self.getAlgorithm(S))
 
                   if not self.isJobInList(J):
-                     status = 2
+                     status = 2 # not in job list
                      return status
             return status
 
@@ -505,6 +515,7 @@ class BlastBroker:
          if force:  
               clearFolderIfExists(parentDir)
          
+         self.messagelogger.write("STATUS: Creating splits for file \"%s\" for sample \"%s\"!\n" % (self.samples_and_inputs[sample], sample))
          if create_splits(parentDir2, parentDir1 + PATHDELIM + 'split_list.txt', self.samples_and_inputs[sample], self.getBatchSize(),  self.batchSize, splitPrefix='split', splitSuffix=''):
             self.messagelogger.write("SUCCESS: Created splits for file \"%s\" for sample \"%s\"!\n" % (self.samples_and_inputs[sample], sample))
          else:
@@ -512,7 +523,6 @@ class BlastBroker:
            
          return True
          sys.exit(0)
-
 
 
          checkOrCreateFolder(working_directory + PATHDELIM + 'grid')
@@ -527,7 +537,6 @@ class BlastBroker:
          # if it deos not exist then potentially it has not been split and vice versa
          if not path.exists(self.list_blocks_filename):
             self.create_blast_splits(batch_split_folder, self.list_blocks_filename, maxSize = batchSize )
-         print self.base_output_folder
 
          for gridparam in self.gridParams:
             try:
@@ -590,7 +599,6 @@ class BlastBroker:
 
           fastareader = FastaReader(self.fastaFile)
           # Read sequences from sorted sequence file and write them to block files
-          print self.fastaFile
           try:
              blocklistfile = open(blocks_list_filename, 'w')
           except:
@@ -707,13 +715,13 @@ class BlastBroker:
          return _completed_samples
 
 
-
       def incomplete_Samples(self): 
           incompleteSamples = {}
           for S in self.getSamples():
              parentDir =  self.base_output_folder + PATHDELIM + S + PATHDELIM + 'blast_results'
              for d in self.getDBs( samples = [S]):
-                blastoutfile = parentDir + PATHDELIM + S + '.' + d + '.' + self.algorithm
+                blastoutfile = parentDir + PATHDELIM + S + '.' + d + '.' + self.algorithm +"out"
+
                 if path.exists(blastoutfile):
                     count = countNoOfSequencesInFile( blastoutfile)
                     if count ==0: 
@@ -756,14 +764,18 @@ class BlastBroker:
 
       def submittedSuccessfully(self, J):
           serverRanks = []
+
+          # rank the blast services C is a service as potential candidates to submit
           for C in self.BlastServices:
               delay = self.avgWait(C.server)
               serverRanks.append( (C, delay) )
           serverRanks.sort(key = lambda tup: tup[1])
-         
-         # for T in serverRanks:
-         #     print T[0].server + ' ' + str(T[1])
 
+          #for T in serverRanks:
+          #    print T[0].server + ' ' + str(T[1])
+
+          
+          # try to submit the job in hand to an available service
           for T in serverRanks:
              if J.server!= None and  (T[0].server==J.server or T[1] > self.avgWait(J.server) ) : 
                 continue
@@ -848,7 +860,6 @@ class BlastBroker:
           targetParentDir =  self.base_output_folder + PATHDELIM + P[0] + PATHDELIM + 'blast_results' 
           targetFileName =  targetParentDir + PATHDELIM + P[0] + '.' + P[1] + '.' + self.algorithm
 
-          print targetFileName
           try:
              targetfile = open( targetFileName, 'w')
           except:
@@ -881,8 +892,6 @@ class BlastBroker:
               else: 
                  self.messagelogger.write("WARNING: Not split results to Consolidate %s and %s search results!\n"  %(P[0], P[1]))
 
-           print "consolidate the results"
-           print S_DB_pairs
 
       def isJobCompleted(self, J):
           if not J.S in self.list_jobs_completed:
@@ -1041,10 +1050,12 @@ class BlastBroker:
 
           #self.displayStr = 'Total  all' 
           #sys.stdout.write("\x1b[2J\x1b[H")
+          #curses.move(self.y, self.x); 
           #sys.stdout.write("\b"*self.displaylen)
           sys.stdout.write(self.displayStr)
           sys.stdout.flush()
           self.displaylen = len(self.displayStr)
+          #curses.getyx(stdscr, self.y, self.x); 
            
       def getMigrationMatrix(self):
           serverList = self.migrationMatrix.keys()
@@ -1083,32 +1094,36 @@ class BlastBroker:
             self.migrationMatrix[server][server] += 1
 
       def Do_Work(self):
+
           _A = self.incomplete_Samples()
-          print "incomplete samples"
-          print _A
+
           A = {}
           for a in _A:
              A[a] = True
 
           while A:
             for S in A:         
-                print S
                 while not self.isCompletelySubmitted(S):
                    J = self.get_A_Job(S)
                    if J==None:
-                       print 'empty job'
+                       pass
                    self.display_stats()
+                   self.harvest() # harvest here before you risk getting stuck in the while loop
+
+                   #try to submit a job
                    while not self.submittedSuccessfully(J):
                       self.display_stats()
-                      self.harvest()
+                      self.harvest()  # now harvest
                       time.sleep(1)
                    self.incrementTransitionMatrix(self.getLastSubmittedServerTo())
                    self.updateMigrationCount(J.server, self.getLastSubmittedServerTo() )
  
             while self.isSomeJobPending():         
-                J = self.get_pending_and_slow_job()
+                J = self.get_pending_and_slow_job()  # get a slow job to migrate
                 self.display_stats()
-                while not self.submittedSuccessfully(J):
+
+                self.harvest() # harvest here before you risk getting stuck in the while loop
+                while not self.submittedSuccessfully(J): # try to submit a job
                    self.display_stats()
                    self.harvest()
                    time.sleep(1)

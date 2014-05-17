@@ -522,12 +522,12 @@ def parse_metapaths_parameters(lines):
             except IndexError:
                 continue
                 
-            if value.upper() == 'FALSE' or value.upper() == 'NONE':
-                continue
-            elif value.upper() == 'TRUE':
-                value = None
-            else:
-                pass
+            #if value.upper() == 'FALSE' or value.upper() == 'NONE':
+            #    continue
+            #elif value.upper() == 'TRUE':
+            #    value = None
+            #else:
+            #    pass
             
             try:
                 result[script_id][parameter_id] = value

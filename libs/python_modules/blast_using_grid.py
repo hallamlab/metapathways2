@@ -48,7 +48,7 @@ def copyFile(src, dst):
 
 def dry_run_status( commands ):
     for command in commands:
-        printf("%s", command[0])
+        #printf("%s", command[0])
         if command[4] == True:
            printf("%s", " Required")
         else:
@@ -348,7 +348,6 @@ def isValidInput(output_dir, samples_and_input, dbs, gridSettings, config_settin
                  messagelogger.write("ERROR: User in grid servers \"%s\" not specified!\n" %(gridsetting['server'])) 
                  return False
          else:
-                 print gridsetting
                  messagelogger.write("OK: Specification for Grid\"%s\" with user \"%s\" found!\n" %(gridsetting['server'], gridsetting['user'])) 
     return True
 
@@ -387,15 +386,24 @@ def blast_in_grid(input_files, output_dir, config_params, metapaths_config, conf
     dbstring = get_parameter(config_params, 'annotation', 'dbs', default=None)
     dbs= dbstring.split(",")
 
+    #parse the grid settings from the param file
     gridEnginePATTERN = re.compile(r'(grid_engine\d+)')
+    trueOrYesPATTERN = re.compile(r'^[yYTt]')
+
     gridSettings = []
     for key in config_params:
        match = gridEnginePATTERN.match(key)
-       if match:
-         gridSettings.append(config_params[key])
+       if match ==None:
+           continue
+       if 'active' in config_params[key]:
+           trueOrYes =  trueOrYesPATTERN.match(config_params[key]['active'])
+           if trueOrYes:  # this grid is inactive
+               # proceed with adding the grid
+               match = gridEnginePATTERN.match(key)
+               if match:
+                  gridSettings.append(config_params[key])
 
-#    print gridSettings
-
+    
     if not isValidInput(output_dir, samples_and_input, dbs, gridSettings, config_settings = config_settings,\
          messagelogger = messagelogger): 
        sys.exit(0)
@@ -410,13 +418,19 @@ def blast_in_grid(input_files, output_dir, config_params, metapaths_config, conf
           blastbroker.addDatabase(sample, db)
        blastbroker.addAlgorithm(sample, algorithm)   # add the algorithms
        
+    print gridSettings
     # setup services and add them to the Broker 
     for gridsetting in gridSettings:
         gridsetting['messagelogger']=messagelogger
         gridsetting['MetaPathwaysDir']=config_settings['METAPATHWAYS_PATH']
         gridsetting['base_output_folder']=blastbroker.base_output_folder
         gridsetting['blast_db_folder']=config_settings['REFDBS'] + PATHDELIM + 'functional'
-        blastservice = BlastService(gridsetting)
+
+        try:
+          blastservice = BlastService(gridsetting)
+        except:
+          print traceback.format_exc(10)
+
         blastbroker.addService(blastservice)
 
     # create the work space folders
@@ -454,6 +468,7 @@ def blast_in_grid(input_files, output_dir, config_params, metapaths_config, conf
        if not blastbroker.doesValidSplitExist(s):
           messagelogger.write("STATUS: Did not find any previously split files for sample \"%s\"!\n" %(s))
           if not blastbroker.splitInput(s): #if not then split
+             print ("ERROR: Cannot split the files for some or all of the samples!\n")
              messagelogger.write("ERROR: Cannot split the files for some or all of the samples!\n")
              sys.exit(0)
           else:
@@ -464,7 +479,7 @@ def blast_in_grid(input_files, output_dir, config_params, metapaths_config, conf
     # load the list of splits
     blastbroker.load_list_splits()
     messagelogger.write("SUCCESS: Successfully loaded the list of file splits!\n")
-
+    
     # create the databse and split combinations as jobs for each sample
     blastbroker.createJobs(redo=False)
     messagelogger.write("SUCCESS: Successfully created the (split, database) pairs!\n")
@@ -480,7 +495,10 @@ def blast_in_grid(input_files, output_dir, config_params, metapaths_config, conf
 
     blastbroker.compute_performance()
 
-    blastbroker.compute_server_loads()
+    try:
+       blastbroker.compute_server_loads()
+    except:
+       print traceback.format_exc(10)
 
     #print blastbroker.list_jobs_submitted
     #print blastbroker.list_jobs_completed
