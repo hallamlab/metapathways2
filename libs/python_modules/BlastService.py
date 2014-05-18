@@ -346,7 +346,6 @@ class BlastService:
          p = self.create_a_process(args)  
          result = p.communicate()
          (boolean, message)  = self._interpret_results(result, '<<Success!>>')
-         print 'status ', boolean
 
          if boolean == False and self.submission_type=='0':
             self.submission_type='1' 

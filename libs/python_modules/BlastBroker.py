@@ -13,7 +13,7 @@ __status__ = "Release"
 try:
     import subprocess
     import sys
-    from os import makedirs, sys, listdir, environ, path
+    from os import makedirs, sys, listdir, environ, path, remove
     import re 
     import inspect
     import time
@@ -734,6 +734,8 @@ class BlastBroker:
          if not S in self.list_jobs: 
             return False
          for d in self.list_jobs[S]:
+            if not d in  self.samples_and_databases[S]:
+               continue
             for a in self.list_jobs[S][d]:
               if not S in self.list_jobs_submitted:
                   return False
@@ -743,11 +745,17 @@ class BlastBroker:
                   return False
          return True
 
+
+
       def get_A_Job(self, S):
+
+         "get a job from sample S"
          if not S in self.list_jobs: 
             return None
 
          for d in self.list_jobs[S]:
+            if not d in  self.samples_and_databases[S]:
+               continue
             for a in self.list_jobs[S][d]:
                if not S in self.list_jobs_submitted:
                   job = Job(S,d,a, self.getAlgorithm(S))
@@ -769,6 +777,7 @@ class BlastBroker:
           for C in self.BlastServices:
               delay = self.avgWait(C.server)
               serverRanks.append( (C, delay) )
+
           serverRanks.sort(key = lambda tup: tup[1])
 
           #for T in serverRanks:
@@ -776,6 +785,7 @@ class BlastBroker:
 
           
           # try to submit the job in hand to an available service
+
           for T in serverRanks:
              if J.server!= None and  (T[0].server==J.server or T[1] > self.avgWait(J.server) ) : 
                 continue
@@ -858,7 +868,7 @@ class BlastBroker:
       def consolidateSplitResults(self, P, split_results):
           sourceParentDir =  self.base_output_folder + PATHDELIM + P[0] + PATHDELIM + 'blast_results' + PATHDELIM + 'grid' + PATHDELIM + 'split_results'
           targetParentDir =  self.base_output_folder + PATHDELIM + P[0] + PATHDELIM + 'blast_results' 
-          targetFileName =  targetParentDir + PATHDELIM + P[0] + '.' + P[1] + '.' + self.algorithm
+          targetFileName =  targetParentDir + PATHDELIM + P[0] + '.' + P[1] + '.' + self.algorithm +"out"
 
           try:
              targetfile = open( targetFileName, 'w')
@@ -868,24 +878,34 @@ class BlastBroker:
           for filename in  split_results:
              sourceFileName = sourceParentDir + PATHDELIM + filename
              try:
-                sourcefile = open( sourceFileName, 'r')
+                sourcefile = open(sourceFileName, 'r')
                 resultLines = sourcefile.readlines()
                 sourcefile.close()
              except:
                 self.messagelogger.write("ERROR: Cannot create consolidated search results file %s!\n" %(sourceFileName ))
                 sys.exit(0)
 
-             for line in resultLines:
-                fprintf(targetfile, "%s", line)
+             try:
+                for line in resultLines:
+                    fprintf(targetfile, "%s", line)
+             except:
+                self.messagelogger.write("ERROR: Cannot write result from file %s to the consolidated file!\n" %(sourceFileName ))
+                sys.exit(0)
 
           self.messagelogger.write("SUCCESS: Successfully consolidated search results into file %s!\n" %(targetFileName ))
           targetfile.close()
+
+          """ Now delete the consolidates split_files files """ 
+          for filename in  split_results:
+             sourceFileName = sourceParentDir + PATHDELIM + filename
+             os.remove(sourceFileName)
 
 
       def consolidateHarvest(self): 
            S_DB_pairs = self.completed_Sample_DB_pairs()
            for P in S_DB_pairs:  
               split_results = self.getSplitResults( P)
+              print split_results
               if split_results:
                  self.consolidateSplitResults(P, split_results) 
                  self.messagelogger.write("SUCCESS: Consolidated %s and %s search results!\n"  %(P[0], P[1]))
@@ -910,12 +930,15 @@ class BlastBroker:
 
 
       def isSomeJobPending(self):         
+          "Checks if any job is pending"
           now = time.time()
           J = Job(None, None, None, None)
           time_limit = self.getAverageDelay() + 0.5*self.getStdDeviationDelay()
           time_limit = 40
           for sample in self.list_jobs_submitted:
              for db in self.list_jobs_submitted[sample]:
+               if not db in  self.samples_and_databases[sample]:
+                   continue
                for split in self.list_jobs_submitted[sample][db]:
                   if self.algorithm  in self.list_jobs_submitted[sample][db][split]:
                      min_submission_time = 0
@@ -945,6 +968,7 @@ class BlastBroker:
                J =  self.pending_job 
                self.pending_job = None
                return J
+
           return None
               
 
@@ -1022,14 +1046,15 @@ class BlastBroker:
                  sampComp += numComp
                  sampRun += numRun
 
-                 dbwisedisplayStr +=   ' %29s | %6s | %6s | %6s' %(d, str(numSub), str(numRun), str(numComp)) + '\n'
-             samplewisedisplayStr +=  '  %28s | %6s | %6s | %6s' %(S, str(sampSub), str(sampRun), str(sampComp)) + '\n' + dbwisedisplayStr
+                 dbwisedisplayStr +=   ' %29s | %8s | %8s | %8s' %(d, str(numSub), str(numRun), str(numComp)) + '\n'
+             samplewisedisplayStr +=  '  %28s | %8s | %8s | %8s' %(S, str(sampSub), str(sampRun), str(sampComp)) + '\n' + dbwisedisplayStr
              allTot += sampTot
              allSub += sampSub
              allComp += sampComp
              allRun += allSub - allComp
           self.displayStr = '%30s %s' %('Total jobs:', str(allTot)) + '\n'
-          self.displayStr += '%30s | %6s | %6s | %6s' %('All Samples', str(allSub), str(allRun), str(allComp)) + '\n' + samplewisedisplayStr
+          self.displayStr += '%30s | %8s | %8s | %8s' %('Stats', '#submted', '#running', '#comptd') + '\n' + samplewisedisplayStr
+          self.displayStr += '%30s | %8s | %8s | %8s' %('All Samples', str(allSub), str(allRun), str(allComp)) + '\n' + samplewisedisplayStr
 
           Services = self.getServices()
           self.displayStr += '\n'
@@ -1039,7 +1064,7 @@ class BlastBroker:
               numRun= numSub - numComp
           #    print ' '.join( [server, str(numSub), str(numComp)] )
               avgwait = self.avgWait(server)
-              self.displayStr += '%30s | %6s | %6s | %6s  Delay: %s' %(server, str(numSub), str(numRun), str(numComp), str(avgwait)) + '\n'
+              self.displayStr += '%30s | %8s | %8s | %8s  Delay: %s' %(server[0:8], str(numSub), str(numRun), str(numComp), str(avgwait)) + '\n'
          
           self.displayStr += '\n'
        #   self.displayStr += "  %20s" %('Migration')  + ' ' +  str(self.migration) +  '\n'
@@ -1061,11 +1086,11 @@ class BlastBroker:
           serverList = self.migrationMatrix.keys()
           outstr = '%30s' %(' ')
           for server in serverList:
-             outstr+= '%30s' %(server)
+             outstr+= '%30s' %(server[0:8])
           outstr += '\n'
 
           for server1 in serverList:
-             outstr += '%30s' %(server1)
+             outstr += '%30s' %(server1[0:8])
              for server2 in serverList:
                 outstr += '%30s' %(str(self.migrationMatrix[server1][server2]))
              outstr += '\n'
@@ -1096,7 +1121,6 @@ class BlastBroker:
       def Do_Work(self):
 
           _A = self.incomplete_Samples()
-
           A = {}
           for a in _A:
              A[a] = True
@@ -1105,11 +1129,11 @@ class BlastBroker:
             for S in A:         
                 while not self.isCompletelySubmitted(S):
                    J = self.get_A_Job(S)
-                   if J==None:
-                       pass
+                   if J == None:
+                       continue
+
                    self.display_stats()
                    self.harvest() # harvest here before you risk getting stuck in the while loop
-
                    #try to submit a job
                    while not self.submittedSuccessfully(J):
                       self.display_stats()
@@ -1120,8 +1144,10 @@ class BlastBroker:
  
             while self.isSomeJobPending():         
                 J = self.get_pending_and_slow_job()  # get a slow job to migrate
-                self.display_stats()
+                if J == None:
+                    continue
 
+                self.display_stats()
                 self.harvest() # harvest here before you risk getting stuck in the while loop
                 while not self.submittedSuccessfully(J): # try to submit a job
                    self.display_stats()

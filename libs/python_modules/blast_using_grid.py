@@ -418,7 +418,6 @@ def blast_in_grid(input_files, output_dir, config_params, metapaths_config, conf
           blastbroker.addDatabase(sample, db)
        blastbroker.addAlgorithm(sample, algorithm)   # add the algorithms
        
-    print gridSettings
     # setup services and add them to the Broker 
     for gridsetting in gridSettings:
         gridsetting['messagelogger']=messagelogger
@@ -459,7 +458,7 @@ def blast_in_grid(input_files, output_dir, config_params, metapaths_config, conf
 #           
     messagelogger.write("STATUS: Competed checks for file splits!\n")
 
-    batch_size = int(get_parameter(config_params, 'grid_submission', 'batch_size', default=4))
+    batch_size = int(get_parameter(config_params, 'grid_submission', 'batch_size', default=1000))
     blastbroker.setBatchSize(batch_size)
     
     
