@@ -13,11 +13,11 @@ try:
      from os import makedirs, sys, remove
      from sys import path
      import re
-     
      from optparse import OptionParser, OptionGroup
-     from python_modules.metapaths_utils  import parse_command_line_parameters, fprintf, printf
-     from python_modules.sysutil import getstatusoutput
-     from python_modules.annotate.sequence import genbank, fasta
+
+     from libs.python_modules.utils.metapathways_utils  import parse_command_line_parameters, fprintf, printf
+     from libs.python_modules.utils.sysutil import getstatusoutput
+     from libs.python_modules.annotate.sequence import genbank, fasta
 except:
      print """ Could not load some user defined  module functions"""
      print """ Make sure your typed \"source MetaPathwaysrc\""""

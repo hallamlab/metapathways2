@@ -10,15 +10,14 @@ __maintainer__ = "Kishori M Konwar"
 __status__ = "Release"
 
 try:
-     import os
-     import re
+     import os, re
      from os import makedirs, sys, remove
      from sys import path
-     
      from optparse import OptionParser
-     from python_modules.metapaths_utils  import parse_command_line_parameters, fprintf
-     from python_modules.sysutil import getstatusoutput, pathDelim
-     from python_modules.parsers.fastareader  import FastaReader
+
+     from libs.python_modules.utils.metapathways_utils  import parse_command_line_parameters, fprintf
+     from libs.python_modules.utils.sysutil import getstatusoutput, pathDelim
+     from libs.python_modules.parsers.fastareader  import FastaReader
 except:
      print """ Could not load some user defined  module functions"""
      print """ Make sure your typed \"source MetaPathwaysrc\""""
@@ -48,24 +47,26 @@ def createParser():
                       help='file name to write the statsitics and log into')
     parser.add_option("-M", "--map_file", dest="map_file", type='str',  
                       help='file name to store the sequence  name maps')
+    parser.add_option("-t", "--type", dest="seqtype", type='str', default ='nucleotide', 
+                      help='the type of sequences, such as, nucleotide/amino')
 
 
 def valid_arguments(opts, args):
     state = True
     if opts.input_fasta == None :
-        print 'Must have an input fasta file'
+        print 'ERROR: Missing input fasta file'
         state = False
 
     if opts.output_fasta == None :
-        print 'Must have an output fasta file'
+        print 'ERROR: Missing output fasta file'
         state = False
 
     if opts.min_length == None :
-        print 'Must have a minimum sequence length'
+        print 'ERROR: Missing minimum sequence length'
         state = False
 
     if opts.log_file == None :
-        print 'must have a log filename'
+        print 'ERROR: Missing a log filename'
         state = False
 
     return state
@@ -139,7 +140,7 @@ def read_fasta_records(input_file):
 # the main function
 SIZE = 1000
 
-def main(argv, errorlogger = None): 
+def main(argv, errorlogger = None, runstatslogger = None): 
     global parser
     (opts, args) = parser.parse_args(argv)
 
@@ -172,16 +173,17 @@ def main(argv, errorlogger = None):
     AFTER = 'AFTER'
     NUMSEQ = "#INFO\tNumber of sequences :"   
     NUMSEQ_SHORTER = "@INFO\tNumber of sequences shorter than minimum length of sequences"
-    AV_LENGTH= "@INFO\tAverage length of sequences:"
+    AVG_LENGTH= "@INFO\tAverage length of sequences:"
     MIN_LENGTH= "@INFO\tMinimum length of sequences:"
     MAX_LENGTH= "@INFO\tMaximum length of sequences:" 
 
+    _MAX = 1000000000000
     stats = { 
-              MIN_LENGTH: { 'BEFORE':10000000, 'AFTER':1000000 },  
+              MIN_LENGTH: { 'BEFORE':_MAX, 'AFTER':_MAX },  
               MAX_LENGTH: { 'BEFORE': 0, 'AFTER':0 },  
               NUMSEQ : { 'BEFORE' :0, 'AFTER':0},   
               NUMSEQ_SHORTER : { 'BEFORE':0, 'AFTER':0 },
-              AV_LENGTH : { 'BEFORE':0, 'AFTER':0 },
+              AVG_LENGTH : { 'BEFORE':0, 'AFTER':0 },
             }  
 
     length_distribution = {}
@@ -197,6 +199,7 @@ def main(argv, errorlogger = None):
     outputLines = []
     fastareader= FastaReader(opts.input_fasta)
 
+    """ process one fasta sequence at a time """
     lengths_str=""
     for record in fastareader:
         seqname = record.name
@@ -217,7 +220,7 @@ def main(argv, errorlogger = None):
         if length < MIN_LENGTH:
             stats[NUMSEQ_SHORTER][BEFORE] += 1
 
-        stats[AV_LENGTH][BEFORE]  =  stats[AV_LENGTH][BEFORE] + length
+        stats[AVG_LENGTH][BEFORE]  =  stats[AVG_LENGTH][BEFORE] + length
 
         seqvalue = filter_sequence(seq)
     
@@ -233,7 +236,7 @@ def main(argv, errorlogger = None):
               lengths_str += '\t' + str(seqlen)
 
            stats[NUMSEQ][AFTER] += 1
-           stats[AV_LENGTH][AFTER]  =  stats[AV_LENGTH][AFTER] + seqlen
+           stats[AVG_LENGTH][AFTER]  =  stats[AVG_LENGTH][AFTER] + seqlen
            if mapfile==None:
               fprintf(outfile, "%s\n", seqname)
            else:
@@ -253,13 +256,13 @@ def main(argv, errorlogger = None):
     fprintf(lengthsfile,"%s\n",lengths_str);
 
     if stats[NUMSEQ][BEFORE] > 0 :
-      stats[AV_LENGTH][BEFORE]  = stats[AV_LENGTH][BEFORE]/stats[NUMSEQ][BEFORE]
+      stats[AVG_LENGTH][BEFORE]  = stats[AVG_LENGTH][BEFORE]/stats[NUMSEQ][BEFORE]
     else:
-      stats[AV_LENGTH][BEFORE]  = 0
+      stats[AVG_LENGTH][BEFORE]  = 0
     if stats[NUMSEQ][AFTER] > 0 :
-       stats[AV_LENGTH][AFTER]  = stats[AV_LENGTH][AFTER]/stats[NUMSEQ][AFTER]
+       stats[AVG_LENGTH][AFTER]  = stats[AVG_LENGTH][AFTER]/stats[NUMSEQ][AFTER]
     else :
-       stats[AV_LENGTH][AFTER]  = 0
+       stats[AVG_LENGTH][AFTER]  = 0
 
     lengthsfile.close()
     outfile.close()
@@ -268,11 +271,16 @@ def main(argv, errorlogger = None):
     if mapfile != None:
        mapfile.close()
 
+    """ min length """
+    if stats[MIN_LENGTH][BEFORE] == _MAX:
+       stats[MIN_LENGTH][BEFORE] = 0
+    if stats[MIN_LENGTH][AFTER] == _MAX:
+       stats[MIN_LENGTH][AFTER] = 0
 
     fprintf(logfile, "@INFO\tBEFORE\tAFTER\n");
     fprintf(logfile, "%s\n", NUMSEQ +'\t' + str(stats[NUMSEQ][BEFORE]) + '\t' + str(stats[NUMSEQ][AFTER]));
     fprintf(logfile, "%s\n", NUMSEQ_SHORTER   + '\t'+ str(stats[NUMSEQ_SHORTER][BEFORE]) + '\t' + str(stats[NUMSEQ_SHORTER][AFTER]))
-    fprintf(logfile, "%s\n", AV_LENGTH +'\t' + str(stats[AV_LENGTH][BEFORE]) + '\t'+ str(stats[AV_LENGTH][AFTER] ))
+    fprintf(logfile, "%s\n", AVG_LENGTH +'\t' + str(stats[AVG_LENGTH][BEFORE]) + '\t'+ str(stats[AVG_LENGTH][AFTER]))
     fprintf(logfile, "%s\n", MIN_LENGTH + '\t' + str(stats[MIN_LENGTH][BEFORE]) +'\t'+ str(stats[MIN_LENGTH][AFTER]))
     fprintf(logfile, "%s\n", MAX_LENGTH +'\t'+ str(stats[MAX_LENGTH][BEFORE]) + '\t' +  str(stats[MAX_LENGTH][AFTER]))
     fprintf(logfile, "@INFO\tLOW\tHIGH\tFREQUENCY\tCUMULATIVE_FREQUENCY\n");
@@ -291,12 +299,30 @@ def main(argv, errorlogger = None):
 
     logfile.close()
 
-def MetaPathways_filter_input(argv, errorlogger = None):
+
+    if opts.seqtype=='nucleotide':
+       priority = 1000
+    else:
+       priority = 2000
+
+    runstatslogger.write("%s\tSequences BEFORE Filtering (%s)\t%s\n" %(str(priority), opts.seqtype,  str(stats[NUMSEQ][BEFORE])) )
+    runstatslogger.write("%s\tmin length\t%s\n" %(str(priority + 1), str(stats[MIN_LENGTH][BEFORE])) )
+    runstatslogger.write("%s\tavg length\t%s\n" %( str(priority + 2), str(int(stats[AVG_LENGTH][BEFORE]))))
+    runstatslogger.write("%s\tmax length\t%s\n" %(str(priority + 3), str(stats[MAX_LENGTH][BEFORE])) )
+    runstatslogger.write("%s\ttot length\t%s\n" %(str(priority + 4), str(int(stats[AVG_LENGTH][BEFORE]* stats[NUMSEQ][BEFORE]))))
+    runstatslogger.write("%s\tSequences AFTER Filtering (%s)\t%s\n" %(str(priority + 5), opts.seqtype, str(stats[NUMSEQ][AFTER])))
+    runstatslogger.write("%s\tmin length\t%s\n" %(str(priority + 6), str(stats[MIN_LENGTH][AFTER])) )
+    runstatslogger.write("%s\tavg length\t%s\n" %( str(priority + 7), str(int(stats[AVG_LENGTH][AFTER]))))
+    runstatslogger.write("%s\tmax length\t%s\n" %( str(priority + 8), str(stats[MAX_LENGTH][AFTER])) )
+    runstatslogger.write("%s\ttot length\t%s\n" %( str(priority + 9), str(int(stats[AVG_LENGTH][AFTER]* stats[NUMSEQ][AFTER])) ))
+
+def MetaPathways_filter_input(argv, errorlogger = None, runstatslogger = None):
     createParser()
-    main(argv, errorlogger = None) 
+    main(argv, errorlogger = errorlogger, runstatslogger = runstatslogger) 
     return (0,'')
 
 # the main function of metapaths
 if __name__ == "__main__":
+    createParser()
     main(sys.argv[1:])
 

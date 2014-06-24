@@ -12,11 +12,11 @@ __status__ = "Release"
 try:
      from os import makedirs, sys, remove, rename
      from sys import path
-     import re
-     import traceback
+     import re, traceback
      from optparse import OptionParser, OptionGroup
-     from python_modules.metapaths_utils  import parse_command_line_parameters, fprintf, printf, eprintf
-     from python_modules.sysutil import getstatusoutput
+
+     from libs.python_modules.utils.metapathways_utils  import parse_command_line_parameters, fprintf, printf, eprintf
+     from libs.python_modules.utils.sysutil import getstatusoutput
 except:
      print """ Could not load some user defined  module functions"""
      print """ Make sure your typed \"source MetaPathwaysrc\""""
@@ -731,9 +731,7 @@ def process_parsed_blastoutput(dbname, weight,  blastoutput, cutoffs, annotation
     fields.append('product')
 
     annotation = {}
-    count = 0
     for data in blastparser:
-        count+=1
         #if count%10000==0:
         #   print count
 
@@ -758,8 +756,8 @@ def process_parsed_blastoutput(dbname, weight,  blastoutput, cutoffs, annotation
                  annotation_results[data['query']] = annotation.copy()
 
 #    add_refscore_to_file(blastoutput,refscore_file, allNames)
- 
-    return None
+    count =  len(annotation_results.keys())
+    return count
 
 def read_contig_lengths(contig_map_file, contig_lengths):
      try:
@@ -779,7 +777,7 @@ def read_contig_lengths(contig_map_file, contig_lengths):
         contig_lengths[fields[0] ] = int(fields[2])
      
 # the main function
-def main(argv, errorlogger =None): 
+def main(argv, errorlogger =None, runstatslogger = None): 
     global parser
     (opts, args) = parser.parse_args(argv)
     if not check_arguments(opts, args):
@@ -792,10 +790,22 @@ def main(argv, errorlogger =None):
     contig_lengths = {}     
     read_contig_lengths(opts.contig_map_file, contig_lengths) 
 
+    priority = 6000
+    count_annotations = {}
     for dbname, blastoutput, weight in zip( opts.database_name, opts.input_blastout, opts.weight_db): 
         results_dictionary[dbname]={}
         dbname_weight[dbname] = weight
-        process_parsed_blastoutput( dbname, weight, blastoutput,opts, results_dictionary[dbname])
+        count = process_parsed_blastoutput( dbname, weight, blastoutput, opts, results_dictionary[dbname])
+        runstatslogger.write("%s\tProtein Annotations from %s\t%s\n" %( str(priority), dbname, str(count)))
+        count_annotations 
+        priority += 1
+
+    for dbname in results_dictionary: 
+      for seqname in results_dictionary[dbname]: 
+         count_annotations[seqname] = True      
+    count = len(count_annotations)
+    runstatslogger.write("%s\tTotal Protein Annotations\t%s\n" %( str(priority),  str(count)))
+        
 
     #create the annotations from he results
     
@@ -803,9 +813,9 @@ def main(argv, errorlogger =None):
     create_annotation(dbname_weight, results_dictionary, opts.input_gff, opts.rRNA_16S, opts.tRNA, opts.output_gff, opts.output_comparative_annotation, contig_lengths)
 
 
-def MetaPathways_annotate_fast(argv, errorlogger = None):       
+def MetaPathways_annotate_fast(argv, errorlogger = None, runstatslogger = None):       
     createParser()
-    main(argv, errorlogger = errorlogger)
+    main(argv, errorlogger = errorlogger, runstatslogger = runstatslogger)
     return (0,'')
 
 # the main function of metapaths

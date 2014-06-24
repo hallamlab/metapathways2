@@ -14,7 +14,6 @@ $VERSION="1.21";
 use Socket;
 use strict;
 use Carp;
-sub get_reaction_type;
 
 
 sub new {
@@ -1019,51 +1018,36 @@ use Data::Dumper;
    
    my %replace=(gt => '>', lt => '<', quot => '"', amp => '&', alpha => 'alpha', beta => 'beta', gamma => 'gamma', delta => 'delta', epsilon => 'epsilon');
    
+   # parameters and defaults
    my $DB_NAME;
    my $HELP;
    my $LIST;
    my $OUTFILE;
-   my $TYPE;
-   my $DIR;
-   my $VERBOSE;
+   my $TYPE = "lookup";
+   my $ORFS;
+   my $COVERAGE = 0.0;
+   my @FILES;
+   my $SUPPORT = 0;
+   my $WIDE_TABLE;
+   my $RXN;
    
    my $result = GetOptions(
        'help+' => \$HELP,
        'list' => \$LIST,
-       'type' => \$TYPE,
-       'verbose' => \$VERBOSE,
-       'dir=s' => \$DIR,
+       'type=s' => \$TYPE,
+       'orfs' => \$ORFS,
+       'coverage=s' => \$COVERAGE,
+       'support=s' => \$SUPPORT,
+       'rxn' => \$RXN,
+       'files=s{1,}' => \@FILES,
        'output=s' => \$OUTFILE,
    );
    
-
-   if (defined($DIR) ) {
-      $DIR = $DIR . "/";
-   }
-   else {
-      $DIR = "";
-
-   }
-
-   $DB_NAME = shift || "null";
-
-   if( defined($OUTFILE) ) {
-      $OUTFILE = $DIR . lc($OUTFILE);
-   }
-   else {
-      $OUTFILE = $DIR . lc($DB_NAME).'.metacyc.orf.annots.txt';
-   }
-
-
-   if (!defined $HELP and  !defined $LIST  and !defined $DB_NAME) {
+   if (defined $HELP or !(defined $LIST or defined $OUTFILE)) {
        die "
-   Usage: $0 [options] -d OutputFolder [Deafult .]  -o output.txt PGDB
-     Extracts information from a PGDB, producing a tsv (tab delimited) file describing 
-     the base pathways of the database.
-
-     This file should named 'samplename.metacyc.orf.annots.txt' be dropped to the folder  
-          'samplename/results/annotation_table/'
-     where samplename is the name of the sample.
+     Usage: $0 [options] -o output.txt 
+     Extracts information from a PGDB, producing a tsv (tab delimited) file describing the base pathways
+     of the database.
    
      Pathway Tools must be opened with the -api argument:
        /path/to/pathway-tools -api
@@ -1071,151 +1055,204 @@ use Data::Dumper;
      Options:
       -h, --help            show this help and exit
       -l, --list            list all PGDBs that can be extracted
-      -d, --dir             folder to drop the output file
-      -v, --verbose         prints out the list of pathways and orfs expoted to the table
+      -f, --files           space separated list of PGDBs to extract pathways from
+      -t, --type            output type: 'lookup', 'long', 'wide'
+      --orfs                option for 'lookup' outpyt type to print all found ORFs
+      -r, --rxn             extract reaction counts
+      -c, --coverage        decimal number [0.0-1.0] for minimum coverage ratio for pathways
+      -s, --support         integer number >=0 minimum number of ORFs associated with pathway
      \n";
    }
    
+   
+    # testing connection to Pathway Tools
+    # Open the database
+    # 1. Is the socket there?
+    if (!-e "/tmp/ptools-socket") {die("Pathway-tools is not running in -api mode (/tmp/ptools-socket not found)\n");}
+    # $DB_NAME = "";
+    # 2. Connect... hopefully.
+    # my $cyc = perlcyc->new($DB_NAME);
+    my $cyc = perlcyc->new("ECOLI");
+    # 3a. Check basic functionality:
+    my @test1;
+    while (! @test1) {
+      eval {@test1 = $cyc->send_query("(* 222 3)")};
+      if (! @test1 and $!=~m/Connection refused/) {
+        warn("/tmp/ptools-socket: $!\nTrying again in 5 seconds.\n");
+        sleep(5);
+        next;
+      }
+      if (! @test1 and $!=~m/Socket operation on non-socket/) {
+        die("/tmp/ptools-socket exists, but is not a socket.\n");}
+      if (! @test1) {die("/tmp/ptools-socket: $!\n");}
+    }
 
-   # run pathway tools in api mode
-   #my $thr = threads->create('run_ptools_api_mode', 'argument');
-   
-   # Open the database
-   
-   # 1. Is the socket there?
-   if (!-e "/tmp/ptools-socket") {die("Pathway-tools is not running in -api mode (/tmp/ptools-socket not found)\n");}
-   
-   # 2. Connect... hopefully.
-   my $cyc = perlcyc->new($DB_NAME);
-   
-   # 3a. Check basic functionality:
-   my @test1;
-   while (! @test1) {
-     eval {@test1 = $cyc->send_query("(* 222 3)")};
-     if (! @test1 and $!=~m/Connection refused/) {
-       warn("/tmp/ptools-socket: $!\nTrying again in 5 seconds.\n");
-       sleep(5);
-       next;
-     }
-     if (! @test1 and $!=~m/Socket operation on non-socket/) {
-       die("/tmp/ptools-socket exists, but is not a socket.\n");}
-     if (! @test1) {die("/tmp/ptools-socket: $!\n");}
-   }
-   
-   # 3b. Get results of test query:
-   my @test2;
-   eval {@test2 = $cyc->retrieve_results();};
-   if (! @test2) {die("Fail test2\n");}
-   if ($test2[0] ne 666) {die("Pathway-tools is not running correctly (expected 222 * 3 = 666, but got $test2[0]\n");}
-   
-   # 4a. Get list of organisums in pathway-tools:
-   my @test3;
-   eval {@test3=$cyc->send_query("(mapcar #'object-name (all-orgs :all))");};
-   if (! @test3) {die("Fail test3\n");}
-   if ($test3[0] eq ":error") {die("test3 failed\n");}
-   
-   # 4b. Get reults of list query:
-   my @test4;
-   eval {@test4 = $cyc->retrieve_results();};
-   if (! @test4) {die("Fail test4\n");}
-   if ($test4[0] eq ":error") {die("test4 failed\n");}
-   
-   # 5. Fix up output to something listing just organisms:
-   my @dblist=grep {!/^ECOBASE$/ && !/^[#@]/ && /BASE$/} @test4;
-   map {s/BASE$//} @dblist;
-   push @dblist,"ECOLI";  # Stupid exceptions to every rule
-   
-   # 6. Show all databases:
-   if (defined $LIST) {print "Databases available:\n",map {lc($_)." \n"} sort @dblist;exit 0;}
-   if (!grep {/^$DB_NAME$/i} @dblist) {die("There is no $DB_NAME in the list of databases.  Try '$0 -l' to list all available PGDB databases.\n");}
-   
-   ###############################################
-   
-   # Main loop:
-   my $metacyc = perlcyc->new('meta');
+    # 3b. Get results of test query:
+    my @test2;
+    eval {@test2 = $cyc->retrieve_results();};
+    if (! @test2) {die("Fail test2\n");}
+    if ($test2[0] ne 666) {die("Pathway-tools is not running correctly (expected 222 * 3 = 666, but got $test2[0]\n");}
 
-   #my $reaction_types = get_reaction_type($metacyc);
+    # 4a. Get list of organisums in pathway-tools:
+    my @test3;
+    eval {@test3=$cyc->send_query("(mapcar #'object-name (all-orgs :all))");};
+    if (! @test3) {die("Fail test3\n");}
+    if ($test3[0] eq ":error") {die("test3 failed\n");}
 
+    # 4b. Get reults of list query:
+    my @test4;
+    eval {@test4 = $cyc->retrieve_results();};
+    if (! @test4) {die("Fail test4\n");}
+    if ($test4[0] eq ":error") {die("test4 failed\n");}
 
+    # 5. Fix up output to something listing just organisms:
+    my @dblist=grep {!/^ECOBASE$/ && !/^[#@]/ && /BASE$/} @test4;
+    map {s/BASE$//} @dblist;
+    push @dblist,"meta";  # Stupid exceptions to every rule
+
+    # 6. Show all databases:
+    if (defined $LIST) {print "Databases available:\n",map {lc($_)." \n"} sort @dblist;exit 0;}
+
+   # Main Function:
+   # open output file defined by user
    open(OUT,">$OUTFILE") or die("$OUTFILE: $!\n");
-   my @my_base_pathways = $cyc->call_func("all-pathways :all T");
-
-   my %unique_rxns=();
    
-   #print OUT "#TYPE\tPWY_RXN\tPWY_RXN_NAME\tNUM_PWY_RXN\tNUM_COV_PWY_RXNS\tORF_COUNT\n";
-   #print  "#TYPE\tPWY_RXN\tPWY_RXN_NAME\tNUM_PWY_RXN\tNUM_COV_PWY_RXNS\tORF_COUNT\n";
-   my $pwy_count=0;
-   foreach my $pathway (@my_base_pathways) {
-       $pwy_count++;
-       my @mygenes = $cyc->genes_of_pathway($pathway,"T");
-       my @totalrxns = $cyc->get_slot_values($pathway, "REACTION-LIST");
-
-       map { $unique_rxns{$_}=1; } @totalrxns;
-     
-       my $pathway_common_name = $cyc->get_slot_value($pathway,"common-name") || "?";
-       my $num_reactions = scalar(@totalrxns);
-       my $num_predicted_orfs = scalar(@mygenes);
-     
-       my $num_covered_rxns =0;
-       my $num_genes =0;
-       my %orf_strings = ();
-       foreach my $reaction (@totalrxns) {
-          my @rngenes = $cyc->genes_of_reaction($reaction,"T");
-          my @rxngenes = ();
-          map { push(@rxngenes, $cyc->get_slot_value($_,"common-name")) } @rngenes;
-
-          if(scalar(@rxngenes) > 0) {  #this reaction is covered
-              $num_covered_rxns++;
-          }
-
-          my $rxn_name = $cyc->get_slot_value($reaction,"common-name") || "???";
-          if( defined( $unique_rxns{$reaction}) ) {
-             $unique_rxns{$reaction}= ();
-             $unique_rxns{$reaction}{'name'} = $rxn_name;
-             @{$unique_rxns{$reaction}{'ORFs'}} = @rxngenes;
+   # print out headers for the 'long' and 'lookup' output formats
+   if ($TYPE eq "long" ) {
+      print OUT "SAMPLE\tPWY_NAME\tPWY_COMMON_NAME\tNUM_REACTIONS\tNUM_COVERED_REACTIONS\tORF_COUNT\tORF\n";
       
-             if( scalar(@rxngenes) > 0 ) {
-                $unique_rxns{$reaction}{'covered'}= 1;
-             }
-             else {
-               $unique_rxns{$reaction}{'covered'}= 0;
-             }
-             $unique_rxns{$reaction}{'num_pwys'}= 1;
-          }
-          else {
-               $unique_rxns{$reaction}{'covered'}= 1;
-               $unique_rxns{$reaction}{'num_pwys'}++;
-
-          }
-
-          $num_genes += scalar(@rxngenes);
-          map { $orf_strings{$_} =1 } @rxngenes;
-       }
-       my $outputstr =  "PWY:"."\t".$pathway."\t".$pathway_common_name
-                        ."\t".$num_reactions."\t".$num_covered_rxns."\t".$num_predicted_orfs;
-
-       map { $outputstr .= "\t".$_} keys %orf_strings;
-       $outputstr.="\n";
+   } elsif ($TYPE eq "lookup") {
+      print OUT "SAMPLE\tPWY_NAME\tPWY_COMMON_NAME\tNUM_REACTIONS\tNUM_COVERED_REACTIONS\tORF_COUNT\n";
    }
-   # printing the reactions  MOST important paert of the calculation
-   my $rxnOutputStr="";
-   foreach my $reaction (keys %unique_rxns) {
-       #$rxnOutputStr = "RXN:"."\t".$reaction."\t".$unique_rxns{$reaction}{'name'}
-       #                ."\t".$unique_rxns{$reaction}{'num_pwys'}."\t".$unique_rxns{$reaction}{'covered'}
-       #                ."\t".scalar(@{$unique_rxns{$reaction}{'ORFs'}});
-
-       $rxnOutputStr = $reaction."\t".$unique_rxns{$reaction}{'name'};
-       map { $rxnOutputStr .= "\t".$_} @{$unique_rxns{$reaction}{'ORFs'}};
-       $rxnOutputStr.="\n";
-       if( defined $VERBOSE ) {
-          print $rxnOutputStr;
+   
+   my %pathway_to_sample; # create a hash for pathways-to-samples
+   my %rxn_to_sample; # create a has for reactions-to-samples
+   my %short_to_long; # record of all the short to long_names
+   
+   # main loop to connect to Pathway Tools
+   foreach my $sample_name (@FILES) {
+       if (!grep {/^$sample_name$/i} @dblist) {
+         die("There is no $sample_name in the list of databases.  Try '$0 -l' to list all available PGDB databases.\n");
        }
-       print OUT $rxnOutputStr;
-   }
-   print "Exported ". scalar(@my_base_pathways) . " pathways!\n";
+       
+       $cyc = perlcyc->new($sample_name); # connect to Pathway Tools as sample
+       print "Extracting Pathways From: " . $sample_name . "\n";
+       my @my_base_pathways = $cyc->call_func("all-pathways :all T"); # extract pathways
+       
+       # for each pathway look up related information in Pathway Tools
+       foreach my $pathway (@my_base_pathways) {
+           my @mygenes = $cyc->genes_of_pathway($pathway,"T");
+           my @totalrxns = $cyc->get_slot_values($pathway, "REACTION-LIST");
+           my $pathway_common_name = $cyc->get_slot_value($pathway,"common-name") || "?";
+           my $num_reactions = scalar(@totalrxns);
+           my $num_predicted_orfs = scalar(@mygenes);
+           my $num_covered_rxns =0;
+           my $num_genes =0;
+           my %orf_strings = ();
+           
+           # calculate the number of genes and the number of covered reactions
+           foreach my $reaction (@totalrxns) {
+             my @rxngenes = $cyc->genes_of_reaction($reaction,"T");
+             if(scalar(@rxngenes) > 0) {
+                 $num_covered_rxns++;
+                 $num_genes += scalar(@rxngenes);
+                 $rxn_to_sample { $reaction }{ $sample_name } = scalar(@rxngenes); # hash each short_name to the pathway count
+             }
+             
+             map { $orf_strings{$_} =1 } @rxngenes;
+           }
+           
+           my $pwy_coverage = ($num_covered_rxns / $num_reactions); # calculate current pathway coverage
+           my $pwy_support = $num_predicted_orfs; # calculate the number of predicted ORFs
+           if ($pwy_coverage >= ($COVERAGE*1) && $pwy_support >= ($SUPPORT*1)) {
+             # only print if more than minimum support
+              if ($TYPE eq "long") {
+                # print the long_table output
+                for (keys %orf_strings) {
+                     my $gene_common = $cyc->get_slot_value($_,"common-name");
+                     my $outputstr = "";
+                     $outputstr = $sample_name . "\t" . $pathway . "\t" . cleanup($pathway_common_name) . "\t" . $num_reactions . "\t" . $num_covered_rxns . "\t" . $num_predicted_orfs . "\t" . $gene_common ;
+                     $outputstr .= "\n";
+                     # print $outputstr;
+                     print OUT $outputstr;
+                 }
+              } elsif ($TYPE eq "lookup") {
+                # print the 'classic' lookup format
+                my $outputstr = "";
+                $outputstr = $sample_name . "\t" . $pathway . "\t" . cleanup($pathway_common_name) . "\t" . $num_reactions . "\t" . $num_covered_rxns . "\t" . $num_predicted_orfs ;
+                if ($ORFS){
+                  # verbose output with all the ORFs
+                  for (keys %orf_strings) {
+                      # print ORFs
+                      my $gene_common = $cyc->get_slot_value($_,"common-name");
+                      $outputstr = $outputstr . "\t" . $gene_common
+                  }
+                }
+                $outputstr .= "\n";
+                print OUT $outputstr;
+              } elsif ($TYPE eq "wide") {
+                # add pathway to mastertable output
+                $pathway_to_sample { $pathway }{ $sample_name } = $num_predicted_orfs; # hash each short_name to the pathway count
+                $short_to_long { $pathway } = cleanup($pathway_common_name);
+              }
+           }
+        
+       }
+       
+     }
+   if ($TYPE eq "wide") {
+     # print compiled pathway collection
+     my $outputstr = "";
+     # print header
+     if (! $RXN ) {
+       $outputstr = $outputstr . "PWY";
+     } else {
+       $outputstr = $outputstr . "RXN";
+     }
+     $outputstr .= "\t". "Common_Name";
+     my $sample;
+     foreach my $sample (@FILES) {
+        # print header
+        $outputstr = $outputstr . "\t" . $sample;
+     }
+     $outputstr .= "\n";
+     print OUT $outputstr;
+     
+     if (! $RXN) {
+       # print pathways by sample
+       $outputstr = "";
+       foreach my $test ( keys %pathway_to_sample ) {
+         $outputstr = $test;
+         $outputstr .= "\t".$short_to_long{$test};
 
-
-   close(OUT);
+         foreach my $test1 (@FILES) {
+              if (exists $pathway_to_sample{$test}{$test1}) {
+                 $outputstr = $outputstr . "\t" . $pathway_to_sample{$test}{$test1};
+              } else {
+                 $outputstr = $outputstr . "\t" . "0" ;
+              }
+         }
+         $outputstr = $outputstr . "\n";
+         print OUT $outputstr;
+       }
+     } else {
+       # print rxn by sample
+       $outputstr = "";
+        foreach my $test ( keys %rxn_to_sample ) {
+          $outputstr = $test;
+          foreach my $test1 (@FILES) {
+               if (exists $rxn_to_sample{$test}{$test1}) {
+                  $outputstr = $outputstr . "\t" . $rxn_to_sample{$test}{$test1};
+               } else {
+                  $outputstr = $outputstr . "\t" . "0" ;
+               }
+          }
+          $outputstr = $outputstr . "\n";
+          print OUT $outputstr;
+        }
+     }
+     close(OUT); 
+    }
    
    # For replacing entities like &xxxx; with real characters (but spelling out greek letters)
    sub cleanup {
@@ -1223,31 +1260,8 @@ use Data::Dumper;
      my $search=join("|",keys %replace);
      $in =~ s/<\/?(i|SUB)>//ig;
      $in =~ s/&($search);/$replace{$1}/ieg; # Replace html character entities
+     $in =~ s/\'//ig;
      return $in;
    }
-
-
-sub get_reaction_type {
-   my $metacyc = shift;
-   my %reaction_type;
-   my @base_pathways = $metacyc->call_func("all-pathways :all T");
-   foreach my $pathway (@base_pathways) {
-      my @rxns = $metacyc->get_slot_values($pathway, "REACTION-LIST");
-      foreach my $reaction (@rxns) {
-         $reaction_type{$reaction}=0;
-      }
-   }
-
-   foreach my $reaction ( keys %reaction_type) {
-     my @rngenes = $metacyc->genes_of_reaction($reaction,"T");
-     if( scalar(@rngenes) > 0) {
-       $reaction_type{$reaction} = 'E'; 
-     }
-     else {
-       $reaction_type{$reaction} = 'S'; 
-     }
-   }
-   return \%reaction_type;
-}
    
 

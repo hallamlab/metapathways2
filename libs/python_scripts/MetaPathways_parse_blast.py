@@ -14,10 +14,10 @@ try:
      from sys import path
      import re
      from copy import copy
-     
      from optparse import OptionParser, OptionGroup
-     from python_modules.metapaths_utils  import parse_command_line_parameters, fprintf, printf, eprintf,  exit_process
-     from python_modules.sysutil import getstatusoutput
+
+     from libs.python_modules.utils.metapathways_utils  import parse_command_line_parameters, fprintf, printf, eprintf,  exit_process
+     from libs.python_modules.utils.sysutil import getstatusoutput
 except:
      print """ Could not load some user defined  module functions"""
      print """ Make sure your typed \"source MetaPathwaysrc\""""
@@ -466,6 +466,7 @@ def add_refscore_to_file(blast_table_out, refscore_file, allNames):
 
 # compute the refscores
 def process_blastoutput(dbname, blastoutput,  mapfile, refscore_file, opts, errorlogger = None):
+
     blastparser =  BlastOutputParser(dbname, blastoutput, mapfile, refscore_file, opts, errorlogger = errorlogger)
     blastparser.setMaxErrorsLimit(5)
     blastparser.setErrorAndWarningLogger(errorlogger)
@@ -492,6 +493,7 @@ def process_blastoutput(dbname, blastoutput,  mapfile, refscore_file, opts, erro
          fprintf(outputfile,"\t%s",field)
     fprintf(outputfile, "\n")
 
+    count = 0;
     for data in blastparser:
         if not data:
           continue
@@ -503,15 +505,16 @@ def process_blastoutput(dbname, blastoutput,  mapfile, refscore_file, opts, erro
         for field in fields:
            fprintf(outputfile, "\t%s",data[field])
         fprintf(outputfile, "\n")
+        count += 1
 
     outputfile.close()
     rename(output_blastoutput_parsed_tmp, output_blastoutput_parsed)
 
 
-    return None
+    return count
 
 # the main function
-def main(argv, errorlogger = None): 
+def main(argv, errorlogger = None, runstatslogger = None): 
     global parser
     (opts, args) = parser.parse_args(argv)
     if not check_arguments(opts, args):
@@ -524,17 +527,19 @@ def main(argv, errorlogger = None):
 #    infile = open(input_fasta,'r')
 
     dictionary={}
+    priority = 5000;
     for dbname, blastoutput, mapfile in zip( opts.database_name, opts.input_blastout, opts.database_map):
         temp_refscore = ""
         if opts.algorithm == "LAST":
             temp_refscore = opts.refscore_file + ".LAST"
         if opts.algorithm == "BLAST":
             temp_refscore = opts.refscore_file + ".BLAST"
-        process_blastoutput(dbname, blastoutput,  mapfile, temp_refscore, opts, errorlogger = errorlogger)
+        count = process_blastoutput(dbname, blastoutput,  mapfile, temp_refscore, opts, errorlogger = errorlogger)
+        runstatslogger.write("%s\tTotal Protein Annotations %s (%s)\t%s\n" %( str(priority), dbname, opts.algorithm, str(count)))  
 
-def MetaPathways_parse_blast(argv, errorlogger = None):       
+def MetaPathways_parse_blast(argv, errorlogger = None, runstatslogger = None):       
     createParser()
-    main(argv, errorlogger = errorlogger)
+    main(argv, errorlogger = errorlogger, runstatslogger = runstatslogger)
     return (0,'')
 
 # the main function of metapaths

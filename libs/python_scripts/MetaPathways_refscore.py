@@ -10,14 +10,13 @@ __maintainer__ = "Kishori M Konwar"
 __status__ = "Release"
 
 try:
-     import os
-     import re
+     import os, re
      from os import makedirs, sys, remove
      from sys import path
-     
      from optparse import OptionParser
-     from python_modules.metapaths_utils  import parse_command_line_parameters, fprintf
-     from python_modules.sysutil import getstatusoutput, pathDelim
+
+     from libs.python_modules.utils.metapathways_utils  import parse_command_line_parameters, fprintf
+     from libs.python_modules.utils.sysutil import getstatusoutput, pathDelim
 except:
      print """ Could not load some user defined  module functions"""
      print """ Make sure your typed \"source MetaPathwaysrc\""""
@@ -180,7 +179,7 @@ def remove_last_index_files(filename):
 
     remove( filename+ '.lastout')
     dirname = os.path.dirname(filename)     
-    remove( dirname + PATHDELIM + 'subset_db' +'.prj')
+    remove( dirname + PATHDELIM + 'subset_db0' +'.prj')
     for prefix in prefixes:
        try:
           remove(dirname + PATHDELIM + 'subset_db0.' + prefix)
@@ -192,7 +191,7 @@ def remove_last_index_files(filename):
 # the main function
 SIZE = 1000
 
-def main(argv, errorlogger = None): 
+def main(argv, errorlogger = None, runstatslogger = None): 
     global parser
     (opts, args) = parser.parse_args(argv)
     if check_arguments(opts, args):
@@ -255,10 +254,10 @@ def main(argv, errorlogger = None):
 
     outfile.close()
 
-def MetaPathways_refscore(argv, errorlogger = None):
+def MetaPathways_refscore(argv, errorlogger = None, runstatslogger = None):
     createParser( )
     errorlogger.write("#STEP\tCOMPUTE_REFSCORE\n")
-    main(argv, errorlogger = errorlogger)
+    main(argv, errorlogger = errorlogger, runstatslogger = runstatslogger)
     return (0,'')
 
 # the main function of metapaths

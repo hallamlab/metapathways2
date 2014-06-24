@@ -7,18 +7,18 @@ Oct 26, 2009 by Simon Eng
 """
 
 try:
-   import optparse
-   import csv
+   import optparse, sys, re, csv, traceback
    from os import path
-   import sys
    import logging.handlers
-   import re
-   from python_modules.sysutil import pathDelim
-   from python_modules.metapaths_utils  import fprintf, printf, eprintf,  exit_process
+
+   from libs.python_modules.utils.sysutil import pathDelim
+   from libs.python_modules.utils.metapathways_utils  import fprintf, printf, eprintf,  exit_process
+   from libs.python_modules.utils.sysutil import getstatusoutput
 except:
      print """ Could not load some user defined  module functions"""
      print """ Make sure your typed \"source MetaPathwaysrc\""""
      print """ """
+     print traceback.print_exc(10)
      sys.exit(3)
 
 PATHDELIM=pathDelim()
@@ -256,13 +256,19 @@ def createParser():
 
     parser.add_option_group(filtering_options)
 
-def main(argv, errorlogger = None):
+def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
     global parser
 
     options, args = parser.parse_args(argv)
+
     if not len(options.blast_files):
        parser.error('At least one taxonomic BLAST output is required')
 
+    if runBlastCommandrRNA(runcommand = runcommand) !=0:
+       errorlogger.write("ERROR: Failed to BLAST the sequences against database %s : "  %(options.tax_databases[0]) )
+       errorlogger.write("     : " + runcommand)
+       exit_process("ERROR: Failed to BLAST the sequences against database %s : "  %(options.tax_databases[0]) +\
+                    "     : " + runcommand)
 
     if not ( len(options.tax_databases) == len( options.blast_files) ):
        parser.error('Number of taxonomic databases and BLAST outputs should be the same')
@@ -271,14 +277,13 @@ def main(argv, errorlogger = None):
        parser.error('Output file must be specified')
     # Incredible sanity check
 
-    if not files_exist( options.blast_files):
+    if not files_exist(options.blast_files):
         sys.exit(0)
 
     if not files_exist( options.tax_databases):
         sys.exit(0)
    
     params = {'length': int(options.length), 'similarity': float(options.similarity), 'evalue':float(options.evalue), 'bitscore':float(options.bitscore) }
-    print params
     #print params['bitscore']
     table={}
     for x in range(0, len(options.blast_files)):
@@ -286,6 +291,7 @@ def main(argv, errorlogger = None):
         process_blastout_file(options.blast_files[x], options.tax_databases[x],table[options.tax_databases[x]], errorlogger = errorlogger)
         
  
+    priority = 7000
     reads = {}
     for x in range(0, len(options.blast_files)):
         append_taxonomic_information(options.tax_databases[x], table[options.tax_databases[x]],  params)
@@ -293,12 +299,15 @@ def main(argv, errorlogger = None):
             if len(table[options.tax_databases[x]][key][6]) > 1:
               reads[key] = True
         
+        dbname  =  re.sub(r'^.*' + PATHDELIM, '', options.tax_databases[x])
+        runstatslogger.write("%s\tTaxonomic hits in %s\t%s\n" %(str(priority),  dbname,  str(len(reads))))
+        priority += 1
     outputfile = open(options.output, 'w')
-    fprintf(outputfile, "Similarity cutoff :\t" +  str(params['similarity']) +'\n')
-    fprintf(outputfile, "Length cutoff :\t" +  str(params['length']) +'\n')
-    fprintf(outputfile, "Evalue cutoff :\t" +  str(params['evalue']) +'\n')
-    fprintf(outputfile, "Bit score cutoff :\t" +  str(params['bitscore']) +'\n')
-    fprintf(outputfile, "Number of rRNA sequences detected:\t" +  str(len(reads)) +'\n\n')
+    fprintf(outputfile, "#Similarity cutoff :\t" +  str(params['similarity']) +'\n')
+    fprintf(outputfile, "#Length cutoff :\t" +  str(params['length']) +'\n')
+    fprintf(outputfile, "#Evalue cutoff :\t" +  str(params['evalue']) +'\n')
+    fprintf(outputfile, "#Bit score cutoff :\t" +  str(params['bitscore']) +'\n')
+    fprintf(outputfile, "#Number of rRNA sequences detected:\t" +  str(len(reads)) +'\n\n')
 
     
     for x in range(0, len(options.tax_databases)):
@@ -310,7 +319,7 @@ def main(argv, errorlogger = None):
 
     #printf('%s', 'read')
     for x in range(0, len(options.blast_files)):
-        fprintf(outputfile, '\t%s\t%s\t%s\t%s\t%s\t%s', 'start', 'end', 'similarity', 'evalue', 'bitscore', 'taxonomy')
+        fprintf(outputfile, '%s\t%s\t%s\t%s\t%s\t%s\t%s', 'sequence', 'start', 'end', 'similarity', 'evalue', 'bitscore', 'taxonomy')
     fprintf(outputfile,'\n')
 
     for read in reads:
@@ -339,10 +348,20 @@ def main(argv, errorlogger = None):
          selected_sequences[read] = selected_sequences[read][database_hits[read][0]:database_hits[read][1]] 
       write_selected_sequences(selected_sequences, options.output +'.fasta')
 
-def MetaPathways_rRNA_stats_calculator(argv, errorlogger = None): 
-    errorlogger.write("#STEP\tSTATS_rRNA\n")
+def runBlastCommandrRNA(runcommand = None):
+    if runcommand == None:
+      return False
+    result = getstatusoutput(runcommand)
+
+    return result[0]
+
+
+
+def MetaPathways_rRNA_stats_calculator(argv, extra_command = None, errorlogger = None, runstatslogger =None): 
+    if errorlogger != None:
+       errorlogger.write("#STEP\tSTATS_rRNA\n")
     createParser()
-    main(argv, errorlogger = errorlogger)
+    main(argv, errorlogger = errorlogger, runcommand= extra_command, runstatslogger = runstatslogger)
     return (0,'')
 
 if __name__ == '__main__':

@@ -7,12 +7,9 @@ Oct 26, 2009 by Simon Eng
 """
 
 try:
-     import optparse
-     import csv
+     import optparse, csv, re, sys
      from os import path
-     import sys
      import logging.handlers
-     import re
 except:
      print """ Could not load some user defined  module functions"""
      print """ Make sure your typed \"source MetaPathwaysrc\""""
@@ -436,7 +433,7 @@ def createParser():
     # Parse options (many!)
     # TODO: Create option groups
     global parser
-    parser = optparse.OptionParser(usage=help)
+    parser = optparse.OptionParser(help)
     # Input options
 
     input_group = optparse.OptionGroup(parser, 'input options')
@@ -461,9 +458,10 @@ def createParser():
 
     parser.add_option_group(input_group)
 
-def main(argv, errorlogger = None):
+
+def main(argv, errorlogger = None, runstatslogger = None):
     # filtering options
-    global parse
+    global parser
     options, args = parser.parse_args(argv)
 
     if not(options.gff_file or options.nucleotide_sequences or options.output_amino or  options.output_nuc  or options.output_gff):
@@ -501,11 +499,12 @@ def main(argv, errorlogger = None):
 
     #print params['bitscore']
 
-def MetaPathways_create_amino_sequences(argv, errorlogger = None):
+def MetaPathways_create_amino_sequences(argv, errorlogger = None, runstatslogger = None):
     createParser()
-    main(argv, errorlogger = errorlogger)
+    main(argv, errorlogger = errorlogger, runstatslogger = runstatslogger)
     return (0,'')
     
 if __name__ == '__main__':
+    createParser()
     main(sys.argv[1:])
 

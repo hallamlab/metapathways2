@@ -14,10 +14,10 @@ try:
      import re
      from optparse import OptionParser, OptionGroup
 
-     from python_modules.LCAComputation import *
-     from python_modules.MeganTree import *
-     from python_modules.metapaths_utils  import parse_command_line_parameters, fprintf, printf, eprintf,  GffFileParser, exit_process
-     from python_modules.sysutil import getstatusoutput
+     from libs.python_modules.taxonomy.LCAComputation import *
+     from libs.python_modules.taxonomy.MeganTree import *
+     from libs.python_modules.utils.metapathways_utils  import parse_command_line_parameters, fprintf, printf, eprintf,  GffFileParser, exit_process
+     from libs.python_modules.utils.sysutil import getstatusoutput
 except:
      print """ Could not load some user defined  module functions"""
      print """ Make sure your typed \"source MetaPathwaysrc\""""
@@ -457,9 +457,10 @@ def beginning_valid_field(line):
 def read_map_file(dbname_map_filename, field_to_description, hierarchical_map) :
     try:
        map_file = open(dbname_map_filename, 'r')
+
        map_filelines = map_file.readlines()
     except:
-       eprintf("ERROR: Cannot open file %\n", dbname_map_filename)
+       eprintf("ERROR: Cannot open file %s\n", dbname_map_filename)
        exit_process()
     
     tempfields = [ '', '', '', '', '', '', '' ]
@@ -830,7 +831,7 @@ import resource
 opts_global = ""
 
 # the main function
-def main(argv, errorlogger = None): 
+def main(argv, errorlogger = None,  runstatslogger = None): 
     global parser
     (opts, args) = parser.parse_args(argv)
     global opts_global
@@ -1096,10 +1097,10 @@ def print_orf_table(results, orfToContig,  output_dir,  outputfile):
        fprintf(outputfile, "%s\n", orfn + "\t" + orf_dict[orfn]['contig'] + '\t' + cogFn + '\t' + keggFn +'\t' + seedFn + '\t' + metacycPwy)
 
 
-def MetaPathways_create_reports_fast(argv, errorlogger =  None):       
+def MetaPathways_create_reports_fast(argv, errorlogger =  None, runstatslogger = None):       
     createParser()
     errorlogger.write("#STEP\tPARSE BLAST\n")
-    main(argv,errorlogger= errorlogger )
+    main(argv,errorlogger= errorlogger, runstatslogger = runstatslogger )
     return (0,'')
 
 # the main function of metapaths

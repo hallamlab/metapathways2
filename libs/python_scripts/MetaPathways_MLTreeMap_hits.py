@@ -14,10 +14,10 @@ try:
      import re
      from os import makedirs, sys, remove, listdir
      from sys import path
-     
+
      from optparse import OptionParser
-     from python_modules.metapaths_utils  import parse_command_line_parameters, fprintf
-     from python_modules.sysutil import getstatusoutput
+     from libs.python_modules.utils.metapathways_utils  import parse_command_line_parameters, fprintf
+     from libs.python_modules.utils.sysutil import getstatusoutput
 except:
      print """ Could not load some user defined  module functions"""
      print """ Make sure your typed \"source MetaPathwaysrc\""""

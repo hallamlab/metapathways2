@@ -17,8 +17,8 @@ try:
     import logging.handlers
     import re
     from glob import glob
-    from python_modules.sysutil import pathDelim, genbankDate, getstatusoutput
-    from python_modules.parse  import parse_parameter_file
+    from libs.python_modules.utils.sysutil import pathDelim, genbankDate, getstatusoutput
+    from libs.python_modules.parsers.parse  import parse_parameter_file
 except:
     print """ Could not load some user defined  module functions"""
     print """ Make sure your typed \"source MetaPathwaysrc\""""
@@ -647,15 +647,13 @@ def process_sequence_file(sequence_file_name,  seq_dictionary):
      #print blast_file + ' ' + tax_maps + ' ' + database
 
 
+help = """Usage:\n   MetaPathways_create_genbank_ptinput_sequin.py  -g gff_files -n nucleotide_sequences -p protein_sequences [--out-gbk gbkfile --out-sequin sequinfile --out-ptinput ptinputdir]\n"""
 
-def main(argv, errorlogger = None):
-    # Parse options (many!)
-    # TODO: Create option groups
+parser = None
 
-    help = """Usage:\n   MetaPathways_create_genbank_ptinput_sequin.py  -g gff_files -n nucleotide_sequences -p protein_sequences [--out-gbk gbkfile --out-sequin sequinfile --out-ptinput ptinputdir]\n"""
-
+def createParser():
+    global parser
     parser = optparse.OptionParser(usage=help)
-
     # Input options
 
     input_group = optparse.OptionGroup(parser, 'input options')
@@ -698,7 +696,11 @@ def main(argv, errorlogger = None):
     parser.add_option_group(output_options_group)
 
 
+def main(argv, errorlogger = None, runstatslogger = None):
+    # Parse options (many!)
+    # TODO: Create option groups
     # filtering options
+    global parser
     options, args = parser.parse_args(argv)
 
     if not(options.gff_file or options.nucleotide_sequences or options.protein_sequences or options.output):
@@ -759,11 +761,13 @@ def main(argv, errorlogger = None):
     process_gff_file(options.gff_file, output_files, nucleotide_seq_dict, protein_seq_dict, input_files) 
     #print params['bitscore']
 
-def MetaPathways_create_genbank_ptinput_sequin(argv, errorlogger = None):
-    main(argv, errorlogger = errorlogger)
+def MetaPathways_create_genbank_ptinput_sequin(argv, errorlogger = None, runstatslogger = None):
+    createParser()
+    main(argv, errorlogger = errorlogger, runstatslogger = runstatslogger)
     return (0,'')
     
 if __name__ == '__main__':
+    createParser()
     main(sys.argv[1:])
 
 

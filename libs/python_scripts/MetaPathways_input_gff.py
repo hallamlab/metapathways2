@@ -15,9 +15,9 @@ try:
      import re
      
      from optparse import OptionParser, OptionGroup
-     from python_modules.metapaths_utils  import parse_command_line_parameters, fprintf, printf
-     from python_modules.sysutil import getstatusoutput
-     from python_modules.annotate.sequence import genbank, fasta
+     from libs.python_modules.utils.metapathways_utils  import parse_command_line_parameters, fprintf, printf
+     from libs.python_modules.utils.sysutil import getstatusoutput
+     from libs.python_modules.annotate.sequence import genbank, fasta
 except:
      print """ Could not load some user defined  module functions"""
      print """ Make sure your typed \"source MetaPathwaysrc\""""
@@ -37,6 +37,9 @@ parser.add_option("-t", "--target", dest="target", default=[], action='append',
 
 
 def check_arguments(opts, args):
+    if len(opts.source) ==0  or len(opts.source)%2 ==  1:
+        return False
+      
     if len(opts.source) != len(opts.target):
          print "The nuber of sources and targets should be the same"
          return False
