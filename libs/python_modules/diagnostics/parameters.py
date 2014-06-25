@@ -122,6 +122,8 @@ class Parameters():
                                          'no': True 
                                          }
                        },
+               'rRNA': { 'refdbs': { }
+               }, 
 # grid settings
                'metapaths_steps': {
                           'PREPROCESS_FASTA'  : {'yes':True, 'skip':True, 'redo':True }, 

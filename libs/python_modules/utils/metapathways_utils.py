@@ -722,7 +722,16 @@ class WorkflowLogger(object):
     def get_log_filename(self): 
         return self._filename
 
-    def write(self,s):
+
+    def printf(self, fmt, *args):
+        if self._f:
+            self._f.write(fmt % args)
+            self._f.flush()
+        else:
+            pass
+
+
+    def write(self, s):
         if self._f:
             self._f.write(s)
             # Flush here so users can see what step they're

@@ -236,7 +236,7 @@ def parse_metapaths_parameters(filename):
             except KeyError:
                 result[script_id] = {parameter_id:value}
     filep.close()
-    result['filename'] = filename
+    #result['filename'] = filename
     return result
 
 

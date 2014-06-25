@@ -11,6 +11,7 @@ __status__ = "Release"
 """Contains general utility code for the metapaths project"""
 
 try:
+    import sys
     from shutil import rmtree
     from optparse import make_option
     from parameters import *
@@ -34,10 +35,9 @@ def staticDiagnose(configs, params, logger = None ):
     """
 
     """ makes sure that the choices in  parameter file are valid """
-    errors = checkParams(params, log=logger)
+    errors = checkParams(params, logger =logger)
     if errors:
-       print 'errors'
-       return 
+       return False
 
     """ Get the configurations for the executables/scripts and databasess """
     _configuration = Configuration() 
@@ -49,23 +49,27 @@ def staticDiagnose(configs, params, logger = None ):
     tools = _tools.getTools()
 
     """ load the actual executables """
-    executables = matchToolsFromConfigs(configs, tools, logger )
+    executables = matchToolsFromConfigs(configs, tools, logger =logger )
 
     """ make sure all the executables exist """
-    executablesExist(executables, logger)
+    executablesExist(executables, logger =logger)
 
     parameters = Parameters()
 
     #print  parameters.getRunSteps()
     """ check if the required set of executables exists """
-    missingList = checkRequiredExecutables(parameters.getRunSteps(), _tools, params, logger)
+    missingList = checkRequiredExecutables(parameters.getRunSteps(), _tools, params, logger =logger)
 
     """ check if the required standard databases exists """
 
 #    print  parameters.getRunSteps( activeOnly = True)
-    checkForRequiredDatabases(tools, params, configs, 'functional',  logger = logger)
+    if not checkForRequiredDatabases(tools, params, configs, 'functional',  logger = logger):
+        return False
+        
 
-    checkForRequiredDatabases(tools, params, configs, 'taxonomic',  logger = logger)
+    if not checkForRequiredDatabases(tools, params, configs, 'taxonomic',  logger = logger):
+        return False
+    return True
 
 def checkForRequiredDatabases(tools, params, configs, dbType, logger =None):
     """ checks the 
@@ -83,11 +87,15 @@ def checkForRequiredDatabases(tools, params, configs, dbType, logger =None):
     if dbType=='taxonomic':
        dbstring = get_parameter(params, 'rRNA', 'refdbs', default=None)
 
-    dbs= [x.strip() for x in dbstring.split(",") ]
+    dbs= [x.strip() for x in dbstring.split(",")  if len(x)!=0 ]
+
+    if not dbs:
+       return True
+
     refdbspath  = configs['REFDBS']
 
     """ checks refdb path """
-    if not check_if_refDB_path_valid(refdbspath, logger = None):
+    if not check_if_refDB_path_valid(refdbspath, logger = logger):
         return False
         
     """ checks raw sequences for dbtype functional/taxonimic """
@@ -97,7 +105,6 @@ def checkForRequiredDatabases(tools, params, configs, dbType, logger =None):
 
         for db in dbs:
            algorithm = ""
-           print dbType, "dbtype"
            if dbType=='taxonomic':
                algorithm = 'BLAST'
                seqType = 'nucl'
@@ -108,11 +115,13 @@ def checkForRequiredDatabases(tools, params, configs, dbType, logger =None):
                algorithm = None
 
            """ is db formatted ? """
-           if not isDBformatted(db, refdbspath, dbType, seqType,   algorithm):
+           if not isDBformatted(db, refdbspath, dbType, seqType,  algorithm, logger = logger):
               """ if note formatted then format it """
-              print 'Formatting DB ' , db
+              eprintf("WARNING\tTrying to format database %s for algorithm %s\n", sQuote(db), sQuote(algorithm) )
+              logger.printf("WARNING\tTring to format database %s for algorithm %s\n", sQuote(db), sQuote(algorithm) )
               if not formatDB(tools, db, refdbspath, seqType, dbType, algorithm, logger = logger):
                  return False
+    return True
 
 
 def formatDB(tools, db, refdbspath, seqType, dbType, algorithm, logger = None):
@@ -155,8 +164,12 @@ def formatDB(tools, db, refdbspath, seqType, dbType, algorithm, logger = None):
 
 
      if result[0]==0:
+        eprintf("INFO\tFormatted database %s successfully for %s\n", sQuote(db), sQuote(algorithm) )
+        logger.printf("INFO\tFormatted database %s successfully for %s\n", sQuote(db), sQuote(algorithm) )
         return True 
      else:
+        eprintf("INFO\tFailed to Format database %s for %s\n", sQuote(db), sQuote(algorithm) )
+        logger.printf("INFO\tFailed to Format database %s for %s\n", sQuote(db), sQuote(algorithm) )
         return False
 
 
@@ -175,17 +188,17 @@ def isRefDBNecessary(params, dbType ):
     return False
 
 
-def isDBformatted(db, refdbspath, dbType, seqType,  algorithm):
+def isDBformatted(db, refdbspath, dbType, seqType,  algorithm, logger = None):
     """ check if the DB is formatted """
     """Checks if the formatted database for the specified algorithm exits """
     dbPath = refdbspath + PATHDELIM + dbType + PATHDELIM + 'formatted'  
     dbname = dbPath + PATHDELIM + db 
-    print seqType, algorithm
     suffixes = getSuffixes(algorithm, seqType) 
 
-    print algorithm, suffixes
+    #print algorithm, suffixes
     if not suffixes :
        return False
+
 
     for suffix in suffixes:
        allfileList = glob(dbname + '*.' + suffix)
@@ -193,14 +206,14 @@ def isDBformatted(db, refdbspath, dbType, seqType,  algorithm):
        fileList = []
        tempFilePattern = re.compile(r''+ dbname + '\d*.' + suffix +'$');
 
-
        for aFile in allfileList:
            searchResult =  tempFilePattern.search(aFile)
            if searchResult:
              fileList.append(aFile)
 
        if len(fileList)==0 :
-          eprintf("ERROR :  if formatted correctely then expected the files with pattern %s\n", dbname + suffix)
+          eprintf("ERROR\tsequence for db  %s not formatted\n", dbname )
+          logger.printf("ERROR\tsequence for db  %s not formatted\n", dbname )
           return False
 
     return True
@@ -215,20 +228,17 @@ def check_if_refDB_path_valid(refdbspath, logger = None):
 
     status = True
     if not doesFolderExist(refdbspath):
-        print "does not exist "
+        eprintf("ERROR\treference sequence folder %s not found\n", sQuote(refdbspath))
+        logger.printf("ERROR\treference sequence folder %s not found\n", sQuote(refdbspath))
         return False
 
     dbTypes = [ 'functional', 'taxonomic' ]  
-
-    if not doesFolderExist(refdbspath):
-        print "does not exist "
-        return False
-
     """ now check if respective dbtype folders are available """
     status = True
     for dbType in dbTypes:
        if not doesFolderExist(refdbspath + PATHDELIM + dbType):
-          print dbType + " folder " + sQuote(refdbspath + PATHDELIM + dbType) +  " does not exist "
+          eprintf("ERROR\tfolder %s for reference type %s not found\n", sQuote(refdbspath + PATHDELIM + dbType), dbType)
+          logger.printf("ERROR\tfolder %s for reference type %s not found\n", sQuote(refdbspath + PATHDELIM + dbType), dbType)
           status = False
 
     if status == False: 
@@ -237,7 +247,10 @@ def check_if_refDB_path_valid(refdbspath, logger = None):
     """ now check if path to drop the formatted dbs are available """
     for dbType in dbTypes:
        if not doesFolderExist(refdbspath + PATHDELIM + dbType + PATHDELIM + 'formatted'):
-          print dbType + " folder " + sQuote(refdbspath + PATHDELIM + dbType + PATHDELIM + 'formatted') +  " does not exist "
+          eprintf("ERROR\tsubfolder %s not found under the folder %s\n" , sQuote('formatted'), \
+                   sQuote(refdbspath + PATHDELIM + dbType + PATHDELIM) )
+          logger.printf("ERROR\tsubfolder %s not found under the folder %s\n" , sQuote('formatted'), \
+                   sQuote(refdbspath + PATHDELIM + dbType + PATHDELIM) )
           status = False
 
     return status
@@ -249,7 +262,8 @@ def check_for_raw_sequences(dbs, refdbspath, dbType,  logger = None):
     for db in dbs:
        fullPath =  refdbspath + PATHDELIM + dbType + PATHDELIM +  db 
        if not doesFolderExist(fullPath):
-            print dbType + " raw seq does not exist in " + fullPath
+            eprintf("ERROR\tRaw sequences %s expected for %s references\n", fullPath, dbType)
+            logger.printf("ERROR\tRaw sequences %s expected for %s references\n", fullPath, dbType)
             status = False
 
     return status 
@@ -286,7 +300,8 @@ def executablesExist( executables, logger = None ):
       if path.exists(script):
            pass
       else:
-           print "ERROR ", name, script
+           eprintf("ERROR\tscript %s for %s not found\n",script, name)
+           logger.printf("ERROR\tscript %s for %s not found\n",script, name)
            missingList.append(script)
 
     return missingList
@@ -340,37 +355,35 @@ def getRequiredTools(params, configs,  tools, configuration):
            #print configs[tools[key]['exec']]
            #tools[key]['exec'] = [ configs[tools[key]['exec']] ]
 
-    print 'tools' 
-    print tools
 
-def _checkParams(key, params, paramsAccept, log= None, errors= None):
+def _checkParams(params, paramsAccept, logger = None, errors= None):
 
     """  make sure that every parameter in the params is valid recursively 
-
      This is initialed by the checkParams() function 
-
      store the erros in the erros dictionary 
      """
 
-
     """ if not level to go deeper  then the leaves of the dict are reached"""
-    if not type(params) is dict: 
-        if  type(paramsAccept) is dict:
-          try:
-             if not params in paramsAccept:
-                if errors!=None:
-                    errors[key] = False
-          except:
-                pass
+
+    if not type(params) is dict and  type(paramsAccept) is dict:
+        #print  'type ',  params, paramsAccept,  (not params in paramsAccept), (len(paramsAccept.keys())!=0)
+        try:
+           if (not params in paramsAccept) and len(paramsAccept.keys())!=0:
+               errors[params] = False
+               choices = ', '.join(paramsAccept.keys()) 
+               eprintf("ERROR\tValue for key %s is not set propertly must be one of %s\n", sQuote(params), sQuote(choices) )
+               logger.printf("ERROR\tValue for key %s is not set propertly must be one of %s\n", sQuote(params), sQuote(choices) )
+        except:
+               pass
         return
 
     """  make sure that every parameter in the params is valid recursively """
     for key, value in params.iteritems(): 
         if type(paramsAccept) is dict:
            if len(key) and key in paramsAccept:
-               _checkParams(key, params[key], paramsAccept[key], log= log, errors = errors)
+               _checkParams(params[key], paramsAccept[key], logger= logger, errors = errors)
 
-def checkParams(params, log= None):
+def checkParams(params, logger = None):
     """ makes sure that all the params provides are valid or acceptable """
     """ when the choices are not any of the acceptable 
     values then it is considered erroneous"""
@@ -380,7 +393,8 @@ def checkParams(params, log= None):
     errors = {}
 
     for key, value in params.iteritems(): 
-       _checkParams(key, params, paramsAccept, log= log, errors = errors)
+       if key in paramsAccept:
+          _checkParams(params[key], paramsAccept[key], logger = logger, errors = errors)
 
     return errors
 

@@ -316,7 +316,10 @@ def main(argv):
     config_settings = read_pipeline_configuration(config_file, globalerrorlogger)
 
     parameter =  Parameters() 
-    staticDiagnose(config_settings, params)
+    if not staticDiagnose(config_settings, params, logger = globalerrorlogger):
+        eprintf("ERROR\tFailed to pass the test for required scripts and inputs before run\n")
+        globalerrorlogger.printf("ERROR\tFailed to pass the test for required scripts and inputs before run\n")
+        exit_process("ERROR\tFailed to pass the test for required scripts and inputs before run\n")
 
     
     sampleData = {}
@@ -330,16 +333,17 @@ def main(argv):
              s = SampleData() 
              s.setInputOutput(inputFile = input_file, sample_output_dir = sample_output_dir)
              s.setParameter('algorithm', algorithm)
-             s.prepareToRun()
 
-             sampleData[input_file] = s
-
-     
              if run_type=='overwrite' and  path.exists(sample_output_dir):
-                shutil.rmtree(sampl_output_dir)
+                shutil.rmtree(sample_output_dir)
                 makedirs(sample_output_dir)
              if not  path.exists(sample_output_dir):
                 makedirs(sample_output_dir)
+
+
+             s.prepareToRun()
+             sampleData[input_file] = s
+
              eprintf("\n")
              sample_name_banner = "PROCESSING INPUT " + input_file
              eprintf('#'*len(sample_name_banner) + "\n")

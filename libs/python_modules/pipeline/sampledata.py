@@ -105,9 +105,6 @@ class SampleData():
         self.runlogger = WorkflowLogger(generate_log_fp(self.output_dir, basefile_name='metapathways_run_log'), open_mode='a')
         self.stepslogger = WorkflowLogger(generate_log_fp(self.output_dir, basefile_name='metapathways_steps_log'),open_mode='a')
         self.errorlogger = WorkflowLogger(generate_log_fp(self.output_dir, basefile_name='errors_warnings_log'),open_mode='a')
-
-        print self.output_run_statistics_dir
-
         self.runstatslogger = WorkflowLogger(generate_log_fp(self.output_run_statistics_dir,  basefile_name = self.sample_name + '.run.stats'),open_mode='a')
 
     def _createFolders(self):

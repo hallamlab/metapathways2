@@ -545,6 +545,7 @@ def write_run_parameters_file(fileName, parameters):
        paramFile = open(fileName, 'w')
     except IOError:
        eprintf("Cannot write run parameters to file %s!\n", fileName)
+       exit_process("Cannot write run parameters to file %s" %(fileName) )
 
 #       16s_rRNA      {'min_identity': '40', 'max_evalue': '0.000001', 'min_bitscore': '06', 'refdbs': 'silva_104_rep_set,greengenes_db_DW'}
     paramFile.write("\nRun Date : " + str(date.today()) + " \n")
@@ -896,6 +897,7 @@ def run_metapathways_before_BLAST(s, input_fp, output_dir, all_samples_output_di
     #################################
     if params['INPUT']['format'] in ['fasta']:
          output_fas = s.preprocessed_dir + PATHDELIM + s.sample_name + ".fasta" 
+         print "writring ", s.output_run_statistics_dir 
          write_run_parameters_file(s.output_run_statistics_dir + PATHDELIM + "run_parameters.txt", params)
          nuc_stats_file = s.output_run_statistics_dir + PATHDELIM + s.sample_name + ".nuc.stats" 
          contig_lengths_file = s.output_run_statistics_dir + PATHDELIM + s.sample_name + ".contig.lengths.txt" 
