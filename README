@@ -1,59 +1,11 @@
+# MetaPathways v2.0: A master-worker model for environmental Pathway/Genome Database construction on grids and clouds
 
-# Description of the data for the MetaPathways 2.0 data product
+Niels W. Hanson, Kishori M. Konwar, Shang-Ju Wu, and Steven J. Hallam
 
-1. Sample_Name/preprocessed/   # the preprocessed folder
-  Sample_Name.fasta   : the preprocessed fasta sequence after filtering the input sequences based
-                        on the cutoffs on length, removal of ambiguous base pairs
-  Sample_Name.mapping.txt   : the original names of the input sequences are mapped to produce 
-                               uniform name in the format Sample_Name_x, where
-                                  x is the contig number
+## Abstract
 
+The development of high-throughput sequencing technologies over the past decade has generated a tidal wave of environmental sequence information from a variety of natural and human engineered ecosystems. The resulting flood of infor- mation into public databases and archived sequencing projects has exponentially expanded computational resource requirements rendering most local homology-based search methods inefficient. We recently introduced MetaPathways v1.0, a modular annota- tion and analysis pipeline for constructing environmental Path- way/Genome Databases (ePGDBs) from environmental sequence information capable of using the Sun Grid engine for external resource partitioning. However, a command-line interface and facile task management introduced user activation barriers with concomitant decrease in fault tolerance.
 
-2. Sample_Name/orf_prediction/:  this folder contains the output related to the prodigal
-   Sample_Name.fna  :  Open Read Frame (ORFs) detected by prodigal
-   Sample_Name.faa  :  the translated ORFs
-   Sample_Name.gff  :  a gff file containing the ORF information by prodigal
-   Sample_Name.qced.faa  : these are QCed amino acid sequences from file Sample_Name.faa after removing 
-                           sequences that are too short. The names of the ORFs are in the format
-                           Sample_Name_x_y, where 
-                                x is the contig number and y is the ORF number in contig Sample_Name_x 
-   Sample_Name.unannot.gff : These are created from the Sample_Name.gff file after removing the filtered sequences
+Here we present MetaPathways v2.0 incorporating a graphical user interface (GUI) and refined task management methods. The MetaPathways GUI provides an intuitive display for setup and process monitoring and supports interactive data visualization and sub-setting via a custom Knowledge Engine data structure. A master-worker model is adopted for task management allowing users to scavenge computational results from a number of worker grids in an ad hoc, asynchronous, distributed network that dramatically increases fault tolerance. This model facilitates the use of EC2 instances extending ePGDB construction to the Amazon Elastic Cloud.
 
-3. Sample_Name/blast_results/:  this folder contains the BLAST or LAST results
-    Sample_Name.dbname.LASTout :  tabular format of the LAST results of the Sample_Name.qced.faa file against the 
-                                  database dbname
-    Sample_Name.dbname.BLASTout : tabular format of the BLAST results of the Sample_Name.qced.faa file against the 
-                                  database dbname
-    Sample_Name.dbname.BLASTout.parsed.txt : tabular format of the parsed BLAST results of the Sample_Name.qced.faa file against the 
-                                  database dbname
-    Sample_Name.dbname.LASTout.parsed.txt : tabular format of the parsed LAST results of the Sample_Name.qced.faa file against the 
-                                  database dbname
-
-4. Sample_Name/genbank/:  this folder contains the annotatied and genbank files
-   Sample_Name.annot.gff : The annotatated file created from Sample_Name.unannot.gff (folder 2 above )  by combining 
-                           the annotations created from the parsed LAST/BLAST files 
-   Sample_Name.gbk      : The genbank file created by putting the annotations into it
-
-5. Sample_Name/mltreemap_calculations/: folder for the MLTreeMap result. Currently, it is empty
-
-
-6. Sample_Name/ptools/:  this is the input to the pathway tools to create the PGDB
-
-7. Sample_Name/results/: this is the results folder
-   annotation_table  : folder that has the annotatation information tables
-   megan : folder to drop the megan input file
-   mltreemap : mltreemap summary results
-   pgdb : the zipped PGDB file that needs to be unzipped in the ptools-local/pgdb/user/ folder
-     Sample_Name.pathways.txt : provides the list of pathways in the column format 
-                PWY_NAME   PWY_COMMON_NAME NUM_REACTIONS   NUM_COVERED_REACTIONS   ORF_COUNT
-                note that at the end of each line (after the column ORF_COUNT) all the ORFs names are appended 
-   rRNA : the rRNA scan stats file
-   sequin : not used currently
-   tRNA : the tRNA scan stats file
-
-8 Sample_Name/run_statistics/: this folder has informatio about the run stats
-   Sample_Name.amino.stats : the amino acid stats file before and after filtering the translated ORFs
-   Sample_Name.contig.lengths.txt  : the contig length distribution file
-   Sample_Name.nuc.stats : the nucleotide sequence stats file before and after filtering the translated ORFs
-   Sample_Name.orf.lengths.txt : the ORF length stats file
-   run_parameters.txt : this file stores the parameters  that were used for the run
+Please see the [MetaPathways v2.0 wiki](https://github.com/kishori82/metapathways2/wiki) for more installation and usage information.
