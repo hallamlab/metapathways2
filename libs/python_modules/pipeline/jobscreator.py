@@ -258,7 +258,7 @@ class ContextCreator:
               cmd = "%s  -F %s -B %s -o %s -i %s -a  %s"\
                    %( pyScript, formatterExec, searchExec, output_refscores, input_filtered_faa, s.algorithm)
 
-          elif algorithm == 'LAST':
+          elif s.algorithm == 'LAST':
               pyScript      = self.configs.METAPATHWAYS_PATH + self.configs.COMPUTE_REFSCORE
               formatterExec =  self.configs.METAPATHWAYS_PATH + self.configs.LASTDB_EXECUTABLE
               searchExec =   self.configs.METAPATHWAYS_PATH + self.configs.LAST_EXECUTABLE
@@ -414,11 +414,12 @@ class ContextCreator:
 
              context = Context()
              context.name = 'SCAN_rRNA:' + db
-             context.inputs = { 'dbpath' : dbpath, 'input_fasta':input_fasta, 'dbsequences':dbsequences }
+             context.inputs = {  'input_fasta':input_fasta, 'dbsequences':dbsequences }
+             context.inputs1 = { 'dbpath' : dbpath }
              context.outputs = { 'rRNA_blastout':rRNA_blastout, 'rRNA_stat_results': rRNA_stat_results }
 
              cmd1="%s -outfmt 6 -num_threads 8  -query %s -out %s -db %s -max_target_seqs 5"\
-                   %(pyScript, context.inputs['input_fasta'], context.outputs['rRNA_blastout'], dbpath)
+                   %(pyScript, context.inputs['input_fasta'], context.outputs['rRNA_blastout'], context.inputs1['dbpath'])
 
 
 

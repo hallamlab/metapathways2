@@ -1,4 +1,3 @@
-
 from __future__ import division
 
 __author__ = "Kishori M Konwar Niels W Hanson"
@@ -12,24 +11,25 @@ __status__ = "Release"
 #import sys
 
 try:
-     import sys, traceback
+     import sys, traceback, re, inspect, signal, shutil 
      from os import makedirs, sys, listdir, environ, path
-     import re 
-     import inspect
-     import signal
      #from commands import getstatusoutput
      from optparse import OptionParser
-     import shutil 
      
-     from libs.python_modules import metapaths_utils
-     from libs.python_modules.metapaths_utils  import parse_command_line_parameters, eprintf, exit_process,WorkflowLogger, generate_log_fp
-     from libs.python_modules.parse  import parse_metapaths_parameters, parse_parameter_file
-     from libs.python_modules.metapaths_pipeline import print_commands, call_commands_serially, print_to_stdout, no_status_updates
-     from libs.python_modules.sysutil import pathDelim
-     from libs.python_modules.metapaths import run_metapathways_before_BLAST, run_metapathways_at_BLAST,\
+     from libs.python_modules.utils import metapathways_utils
+     from libs.python_modules.utils.utils import *
+     from libs.python_modules.utils.metapathways_utils  import parse_command_line_parameters, eprintf, halt_process, exit_process,WorkflowLogger, generate_log_fp
+     from libs.python_modules.parsers.parse  import parse_metapaths_parameters, parse_parameter_file
+     from libs.python_modules.pipeline.metapathways_pipeline import print_commands, call_commands_serially, print_to_stdout, no_status_updates
+     from libs.python_modules.utils.sysutil import pathDelim
+     from libs.python_modules.pipeline.metapathways import run_metapathways_before_BLAST, run_metapathways_at_BLAST,\
                                                run_metapathways_after_BLAST, get_parameter, read_pipeline_configuration
      from libs.python_modules.annotate import *
-     from libs.python_modules.blast_using_grid import blast_in_grid
+     from libs.python_modules.grid.blast_using_grid import blast_in_grid
+
+     from libs.python_modules.diagnostics.parameters import *
+     from libs.python_modules.diagnostics.diagnoze import *
+     from libs.python_modules.pipeline.sampledata import *
 except:
    print """ Could not load some user defined  module functions"""
    print """ Make sure your typed \"source MetaPathwaysrc\""""
@@ -85,9 +85,6 @@ parser.add_option('-r','--run-type', dest="run_type", default='safe',
 parser.add_option("-v", "--verbose",
                   action="store_true", dest="verbose", default=False,
                   help="print lots of information on the stdout [default]")
-parser.add_option("--stats",
-                  dest="compute_stats", default='off', choices= ['on', 'off', 'auto'], 
-                  help="force compute the stats [default OFF]")
 parser.add_option("-P", "--print-only",
                   action="store_true", dest="print_only", default=False,
                   help="print only  the commands [default False]")
@@ -243,7 +240,7 @@ def main(argv):
 
     # try to load the parameter file    
     try:
-        parameter_f = open(opts.parameter_fp)
+        parameter_f = opts.parameter_fp
     except IOError:
         raise IOError,\
          "Can't open parameters file (%s). Does it exist? Do you have read access?"\
@@ -309,46 +306,63 @@ def main(argv):
     if sample_subset:
        remove_unspecified_samples(input_output_list, sample_subset)
 
-    config_params=parse_metapaths_parameters(parameter_f)
+    params=parse_metapaths_parameters(parameter_f)
 
-    state_vars = {}
     # add check the config parameters 
-    
     sorted_input_output_list = sorted(input_output_list.keys())
+
 
     globalerrorlogger = WorkflowLogger(generate_log_fp(output_dir, basefile_name= 'global_errors_warnings'), open_mode='w') 
     config_settings = read_pipeline_configuration(config_file, globalerrorlogger)
+
+    parameter =  Parameters()
+    if not staticDiagnose(config_settings, params, logger = globalerrorlogger):
+        eprintf("ERROR\tFailed to pass the test for required scripts and inputs before run\n")
+        globalerrorlogger.printf("ERROR\tFailed to pass the test for required scripts and inputs before run\n")
+        exit_process("ERROR\tFailed to pass the test for required scripts and inputs before run\n")
+
+    
+    sampleData = {}
     # PART1 before the blast
     try:
          if len(input_output_list): 
            for input_file in sorted_input_output_list:
              sample_output_dir = input_output_list[input_file]
-     
+             algorithm = get_parameter(params, 'annotation', 'algorithm', default='LAST').upper()
+
+             s = SampleData() 
+             s.setInputOutput(inputFile = input_file, sample_output_dir = sample_output_dir)
+             s.setParameter('algorithm', algorithm)
+             s.setParameter('ncbi_params_file', ncbi_sequin_params)
+             s.setParameter('ncbi_sequin_sbt', ncbi_sequin_sbt)
+
              if run_type=='overwrite' and  path.exists(sample_output_dir):
-                shutil.rmtree(sampl_output_dir)
+                shutil.rmtree(sample_output_dir)
                 makedirs(sample_output_dir)
              if not  path.exists(sample_output_dir):
                 makedirs(sample_output_dir)
+
+
+             s.prepareToRun()
+             sampleData[input_file] = s
+
              eprintf("\n")
              sample_name_banner = "PROCESSING INPUT " + input_file
              eprintf('#'*len(sample_name_banner) + "\n")
              eprintf(sample_name_banner + '\n')
              run_metapathways_before_BLAST(
+                sampleData[input_file],
                 input_file, 
                 sample_output_dir,
                 output_dir,
                 globallogger = globalerrorlogger,
                 command_handler=command_handler,
                 command_line_params=command_line_params,
-                config_params=config_params,
+                params=params,
                 metapaths_config=metapaths_config,
                 status_update_callback=status_update_callback,
                 config_file=config_file,
-                ncbi_sequin_params = ncbi_sequin_params,
-                ncbi_sequin_sbt = ncbi_sequin_sbt,
                 run_type = run_type, 
-                state_vars = state_vars,
-                compute_stats = opts.compute_stats,
                 config_settings = config_settings
              )
          else: 
@@ -357,15 +371,16 @@ def main(argv):
      
          # blast the files
      
-         blasting_system =    get_parameter(config_params,  'metapaths_steps', 'BLAST_REFDB', default='yes')
+         blasting_system =    get_parameter(params,  'metapaths_steps', 'BLAST_REFDB', default='yes')
      
          if blasting_system =='grid':
             #  blasting the files files on the grids
              input_files = sorted_input_output_list
              blast_in_grid(
+                   sampleData[input_file],
                    input_files, 
                    path.abspath(opts.output_dir),   #important to use opts.
-                   config_params=config_params,
+                   params=params,
                    metapaths_config=metapaths_config,
                    config_file=config_file,
                    run_type = run_type
@@ -375,22 +390,21 @@ def main(argv):
             #  blasting  the files files locally
             for input_file in sorted_input_output_list:
                 sample_output_dir = input_output_list[input_file]
+
      
                 run_metapathways_at_BLAST(
+                   sampleData[input_file],
                    input_file, 
                    sample_output_dir,
                    output_dir,
                    globallogger = globalerrorlogger,
                    command_handler=command_handler,
                    command_line_params=command_line_params,
-                   config_params=config_params,
+                   params=params,
                    metapaths_config=metapaths_config,
                    status_update_callback=status_update_callback,
                    config_file=config_file,
-                   ncbi_sequin_params = ncbi_sequin_params,
-                   ncbi_sequin_sbt = ncbi_sequin_sbt,
                    run_type = run_type,
-                   state_vars = state_vars,
                    config_settings = config_settings
                 )
      
@@ -399,31 +413,31 @@ def main(argv):
              sample_output_dir = input_output_list[input_file]
      
              run_metapathways_after_BLAST(
+                sampleData[input_file],
                 input_file, 
                 sample_output_dir,
                 output_dir,
                 globallogger = globalerrorlogger,
                 command_handler=command_handler,
                 command_line_params=command_line_params,
-                config_params=config_params,
+                params=params,
                 metapaths_config=metapaths_config,
                 status_update_callback=status_update_callback,
                 config_file=config_file,
-                ncbi_sequin_params = ncbi_sequin_params,
-                ncbi_sequin_sbt = ncbi_sequin_sbt,
                 run_type = run_type,
-                state_vars = state_vars,
                 config_settings = config_settings
              )
     except:
        globalerrorlogger.write( "ERROR\t" + str(traceback.format_exc(10)))
-#       exit_process("ERROR:" + str(traceback.format_exc(10)))
+       exit_process("ERROR:" + str(traceback.format_exc(10)))
 
 
+    
     eprintf("            ***********                \n")
     eprintf("INFO : FINISHED PROCESSING THE SAMPLES \n")
     eprintf("             THE END                   \n")
     eprintf("            ***********                \n")
+    halt_process(4)
 
 # the main function of metapaths
 if __name__ == "__main__":

@@ -28,6 +28,7 @@ PATHDELIM = pathDelim()
 class Context:
     """ This class holds the context of a stage """
     inputs = {}
+    inputs1 = {}
     outputs = {}
     outputs1 = {}
     name = None
@@ -47,7 +48,7 @@ class Context:
         status = True
         for file in self.inputs.values():
             if not doesFileExist(file):
-                print file
+          #      print file
                 if errorlogger!=None:
                    errorlogger.printf("ERROR\tMissing input %s\n", file)
                 status = False

@@ -52,13 +52,13 @@ def staticDiagnose(configs, params, logger = None ):
     executables = matchToolsFromConfigs(configs, tools, logger =logger )
 
     """ make sure all the executables exist """
-    executablesExist(executables, logger =logger)
+    executablesExist(executables, configs,  logger =logger)
 
     parameters = Parameters()
 
     #print  parameters.getRunSteps()
     """ check if the required set of executables exists """
-    missingList = checkRequiredExecutables(parameters.getRunSteps(), _tools, params, logger =logger)
+    missingList = checkRequiredExecutables(parameters.getRunSteps(), _tools, params, configs, logger =logger)
 
     """ check if the required standard databases exists """
 
@@ -315,19 +315,23 @@ def get_parameter(params, category, field, default = None):
 
 
 
-def checkRequiredExecutables(steps, tools, params, logger = None):
+def checkRequiredExecutables(steps, tools, params, configs, logger = None):
     """  check the required executables in the steps """
     missingList = []
     for step in steps:
-       missingList +=  executablesExist(tools.getExecutables(step, params), logger)
+       missingList +=  executablesExist(tools.getExecutables(step, params), configs,  logger)
 
     return missingList
 
 
-def executablesExist( executables, logger = None ):
+def executablesExist( executables, configs, logger = None ):
     missingList = []
     for name, script in executables.iteritems():
-      if path.exists(script):
+
+      if name!='PATHOLOGIC_EXECUTABLE' and  path.exists(configs['METAPATHWAYS_PATH'] + PATHDELIM + script):
+           pass
+      elif name=='PATHOLOGIC_EXECUTABLE' and  path.exists(script):
+           print "FIX ME: diagnoze"
            pass
       else:
            eprintf("ERROR\tscript %s for %s not found\n",script, name)
