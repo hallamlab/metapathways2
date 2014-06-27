@@ -530,10 +530,7 @@ def main(argv, errorlogger = None, runstatslogger = None):
     priority = 5000;
     for dbname, blastoutput, mapfile in zip( opts.database_name, opts.input_blastout, opts.database_map):
         temp_refscore = ""
-        if opts.algorithm == "LAST":
-            temp_refscore = opts.refscore_file + ".LAST"
-        if opts.algorithm == "BLAST":
-            temp_refscore = opts.refscore_file + ".BLAST"
+        temp_refscore = opts.refscore_file 
         count = process_blastoutput(dbname, blastoutput,  mapfile, temp_refscore, opts, errorlogger = errorlogger)
         runstatslogger.write("%s\tTotal Protein Annotations %s (%s)\t%s\n" %( str(priority), dbname, opts.algorithm, str(count)))  
 

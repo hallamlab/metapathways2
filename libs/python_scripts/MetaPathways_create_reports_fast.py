@@ -887,7 +887,7 @@ def main(argv, errorlogger = None,  runstatslogger = None):
        for  i in range(start, last): 
           pickorfs[listOfOrfs[i]]= 'root'
        start = last
-       print 'Num of Min support orfs ' + str(start)
+       #print 'Num of Min support orfs ' + str(start)
 
        results_dictionary={}
        for dbname, blastoutput in zip( opts.database_name, opts.input_blastout):
@@ -955,7 +955,7 @@ def main(argv, errorlogger = None,  runstatslogger = None):
           pickorfs[listOfOrfs[i]]= True
        start = last
        gc.collect()
-       eprintf("Memory used  = %s MB\n", str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1000000))
+       eprintf("\nMemory used  = %s MB\n", str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1000000))
        results_dictionary={}
        for dbname, blastoutput in zip( opts.database_name, opts.input_blastout):
             try:

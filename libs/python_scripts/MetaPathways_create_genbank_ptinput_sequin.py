@@ -17,6 +17,7 @@ try:
     import logging.handlers
     import re
     from glob import glob
+    from libs.python_modules.utils.utils import *
     from libs.python_modules.utils.sysutil import pathDelim, genbankDate, getstatusoutput
     from libs.python_modules.parsers.parse  import parse_parameter_file
 except:
@@ -708,10 +709,12 @@ def main(argv, errorlogger = None, runstatslogger = None):
       sys.exit(0)
     
     if not options.gff_file:
-       parser.error('No gff files are specified')
+       eprintf("ERROR\tGFF file not specified\n")
+       errorlogger.printf("ERROR\tGFF file not specified\n")
 
     if not options.nucleotide_sequences:
-       parser.error('Nucleotide sequences')
+       eprintf("ERROR\tNucleotide sequences not specified\n")
+       errorlogger.printf("ERROR\tNucleotide sequences not specified\n")
 
     if not options.protein_sequences:
        parser.error('Protein sequences')
@@ -727,6 +730,8 @@ def main(argv, errorlogger = None, runstatslogger = None):
 
     if not path.exists(options.gff_file):
         print "gff file does not exist"
+        eprintf("ERROR\tGFF file %s  not found\n", options.gff_file)
+        errorlogger.printf("ERROR\tGFF file %s  not found\n", options.gff_file)
         sys.exit(0)
 
     if not path.exists(options.nucleotide_sequences):

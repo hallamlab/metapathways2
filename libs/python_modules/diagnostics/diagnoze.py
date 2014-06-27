@@ -121,7 +121,39 @@ def checkForRequiredDatabases(tools, params, configs, dbType, logger =None):
               logger.printf("WARNING\tTring to format database %s for algorithm %s\n", sQuote(db), sQuote(algorithm) )
               if not formatDB(tools, db, refdbspath, seqType, dbType, algorithm, logger = logger):
                  return False
+
+           dbMapFile = configs['REFDBS'] + PATHDELIM + dbType + PATHDELIM +\
+                       'formatted'  + PATHDELIM + db + "-names.txt"
+           seqFilePath = configs['REFDBS'] + PATHDELIM + dbType + PATHDELIM + db
+           """ check for dbmapfile """
+
+           if not doesFileExist(dbMapFile):
+              eprintf("WARNING\tDoes not have map file %s for %s\n", sQuote(dbMapFile), sQuote(db) )
+              logger.printf("WARNING\tDoes not have map file %s for %s\n", sQuote(dbMapFile), sQuote(db) )
+              if not createMapFile(seqFilePath, dbMapFile):
+                 eprintf("ERROR\tFailed to create map file %s for %s\n", sQuote(dbMapFile),sQuote(db))
+                 logger.printf("ERROR\tFailed to create map file %s for %s\n",sQuote(dbMapFile), sQuote(db) )
+                 return False
+              eprintf("INFO\tSuccessfully created  map file %s for %s\n", sQuote(dbMapFile), sQuote(db) )
+              logger.printf("INFO\tSuccessfully created map file %s for %s\n", sQuote(dbMapFile), sQuote(db) )
+
+
     return True
+
+def createMapFile(seqFilePath, dbMapFile):
+      """ Creates the dbMapFile from sequence file seqFilePath """
+      try:
+           mapfile = open(dbMapFile,'w')
+           seqFile = open(seqFilePath,'r')
+           for line in seqFile:
+                 if re.match(r'>', line):
+                    fprintf(mapfile, "%s\n",line.strip())
+           seqFile.close()
+           mapfile.close()
+      except:
+           return False
+      return True
+
 
 
 def formatDB(tools, db, refdbspath, seqType, dbType, algorithm, logger = None):
@@ -150,8 +182,6 @@ def formatDB(tools, db, refdbspath, seqType, dbType, algorithm, logger = None):
          # dirname = os.path.dirname(raw_sequence_file)    
          cmd='%s -s 4G -p -c %s  %s' %(formatdb_executable, _temp_formatted_db, raw_sequence_file)
 
-
-     print cmd
      result= getstatusoutput(cmd)
      temp_fileList = glob(_temp_formatted_db + '*') 
 

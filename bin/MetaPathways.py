@@ -333,6 +333,8 @@ def main(argv):
              s = SampleData() 
              s.setInputOutput(inputFile = input_file, sample_output_dir = sample_output_dir)
              s.setParameter('algorithm', algorithm)
+             s.setParameter('ncbi_params_file', ncbi_sequin_params)
+             s.setParameter('ncbi_sequin_sbt', ncbi_sequin_sbt)
 
              if run_type=='overwrite' and  path.exists(sample_output_dir):
                 shutil.rmtree(sample_output_dir)
@@ -360,8 +362,6 @@ def main(argv):
                 metapaths_config=metapaths_config,
                 status_update_callback=status_update_callback,
                 config_file=config_file,
-                ncbi_sequin_params = ncbi_sequin_params,
-                ncbi_sequin_sbt = ncbi_sequin_sbt,
                 run_type = run_type, 
                 config_settings = config_settings
              )
@@ -404,8 +404,6 @@ def main(argv):
                    metapaths_config=metapaths_config,
                    status_update_callback=status_update_callback,
                    config_file=config_file,
-                   ncbi_sequin_params = ncbi_sequin_params,
-                   ncbi_sequin_sbt = ncbi_sequin_sbt,
                    run_type = run_type,
                    config_settings = config_settings
                 )
@@ -426,8 +424,6 @@ def main(argv):
                 metapaths_config=metapaths_config,
                 status_update_callback=status_update_callback,
                 config_file=config_file,
-                ncbi_sequin_params = ncbi_sequin_params,
-                ncbi_sequin_sbt = ncbi_sequin_sbt,
                 run_type = run_type,
                 config_settings = config_settings
              )

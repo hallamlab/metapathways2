@@ -15,7 +15,7 @@ try:
 
     from shutil import rmtree
     from optparse import make_option
-    from os import path
+    from os import path, _exit
 
     from libs.python_modules.utils.metapathways_utils import *
     from libs.python_modules.utils.sysutil import pathDelim
@@ -25,6 +25,8 @@ except:
     sys.exit(0)
    
 PATHDELIM = pathDelim()
+
+
 class SampleData():
     """Contains the sample related data """
 
@@ -34,7 +36,7 @@ class SampleData():
     runstatslogger = None
 
 
-    input_fp = None
+    input_file = None
     output_dir = None
     sample_name = None
 
@@ -55,17 +57,30 @@ class SampleData():
     output_results_pgdb_dir  = None
     output_results_rRNA_dir  = None
     output_results_tRNA_dir  = None
+    ncbi_params_file = None
+    ncbi_sequin_sbt = None
 
+    stages = []
+    stages_context = {}
 
     def __init__(self):
         pass
+
+    def getContexts(self):
+        contexts = []
+        for name in self.stages:
+           if name in self.stages_context:
+              contexts.append( self.stages_context[name] )
+        return contexts
+
+
 
     def setInputOutput(self, inputFile = None, sample_output_dir = None):
         if inputFile == None and sample_output_dir == None:
             return False
 
-        self.input_fp = inputFile
-        self.sample_name = re.sub(r'[.][a-zA-Z]*$','',self.input_fp)
+        self.input_file = inputFile
+        self.sample_name = re.sub(r'[.][a-zA-Z]*$','',self.input_file)
         self.sample_name = path.basename(self.sample_name)
         self.sample_name = re.sub('[.]','_',self.sample_name)
 
@@ -92,9 +107,7 @@ class SampleData():
 
 
     def setParameter(self,  parameter, value):
-        
         setattr(self, parameter, value)
-
 
     def prepareToRun(self):
         self._createFolders()
@@ -125,5 +138,43 @@ class SampleData():
         checkOrCreateFolder(self.output_results_pgdb_dir)
         checkOrCreateFolder(self.output_results_rRNA_dir)
         checkOrCreateFolder(self.output_results_tRNA_dir)
+
+    def addPipeLineStage(self, stepName, inputs= [], outputs = [], status = 'yes'):
+
+        stagecontext = Context()
+        stagecontext.inputs  = inputs
+        stagecontext.outputs = outputs
+        stagecontext.name= stepName
+        stagecontext.status = context
+
+        stages_context[stepName] = stagecontext
+
+    def addContexts(self, contexts):
+        for context in contexts:
+           self.stages.append(context.name)
+           self.stages_context[context.name] = context
+
+
+    def hasPToolsInput(self):
+        """ checks if the ptools folder has the right inputs"""
+        files = [ '0.pf', '0.fasta', 'genetic-elements.dat', 'organism-params.dat']
+
+        for file in files:
+            if not doesFileExist( self.output_fasta_pf_dir +PATHDELIM + file):
+               return False
+
+        return True
+               
+
+    def hasGenbankFile(self):
+        """ checks if genbank file has already been created"""
+        output_annot_gbk= self.genbank_dir + PATHDELIM + self.sample_name +  '.gbk'
+        return doesFileExist(output_annot_gbk)
+
+    def hasSequinFile(self):
+        """ checks if sequin file has already been created"""
+        output_annot_sequin= self.output_results_sequin_dir + PATHDELIM + self.sample_name +  '.tbl'
+        return doesFileExist(output_annot_sequin)
+        
 
 

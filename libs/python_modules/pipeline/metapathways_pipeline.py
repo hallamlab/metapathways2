@@ -7,7 +7,7 @@ try:
       import traceback
       import sys
       from subprocess import Popen, PIPE, STDOUT
-      from os import makedirs, listdir
+      from os import makedirs, listdir, _exit
       from glob import glob
       from optparse import OptionParser
       from os.path import split, splitext, join, dirname, abspath
@@ -144,6 +144,75 @@ def call_commands_serially(commands, status_update_callback, logger, stepslogger
 
       #  timestamp_pattern='%Y-%m-%d %H:%M:%S'
       #  timestamp = datetime.now().strftime(timestamp_pattern)
+
+
+def execute_tasks(s, verbose = False):
+    """Run list of commands, one after another """
+    #logger.write("Executing commands.\n\n")
+
+    for c in s.getContexts():
+
+        #print c.name, c.status, 'status'
+        if c.status=='stop':
+           print "Stopping!"
+           s.stepslogger.write('%s\t%s\n' %(c.name, "STOPPED"))
+           return (0,'')
+
+        if verbose:
+             eprintf("\n\n\nEXECUTED COMMAND : %s\n", ', '.join(c.commands) )
+
+        eprintf("%s" %(c.message))
+        s.stepslogger.write('%s\t%s\n' %(c.name, "RUNNING"))
+
+        if c.status in ['redo']:
+            c.removeOutput(s)
+            if c.isInputAvailable( errorlogger = s.errorlogger):
+               result = execute(s,c)
+               if result[0] == 0 :
+                  eprintf('..... Redo Success!\n')
+                  s.stepslogger.write('%s\t%s\n' %( ','.join(c.commands), "SUCCESS"))
+               else:
+                  eprintf('..... Failed!\n')
+                  s.stepslogger.write('%s\t%s\n' %(','.join(c.commands), "FAILED"))
+            else:
+               eprintf('..... Skipping [NO INPUT]!\n')
+               s.stepslogger.write('%s\t%s\n' %( c.name, "MISSING_INPUT"))
+
+        elif c.status in ['yes']:
+           if not c.isOutputAvailable():
+               if c.isInputAvailable(errorlogger = s.errorlogger):
+                  result = execute(s,c)
+                  if result[0] == 0 :
+                     eprintf('..... Success!\n')
+                     s.stepslogger.write('%s\t%s\n' %( c.name, "SUCCESS"))
+                  else:
+                     eprintf('..... Failed!\n')
+                     s.stepslogger.write('%s\t%s\n' %( c.name, "FAILED"))
+               else:
+                  eprintf('..... Skipping [NO INPUT]!\n')
+                  s.stepslogger.write('%s\t%s\n' %(  c.name, "SKIPPED"))
+           else:
+               eprintf('..... Already Computed!\n')
+               s.stepslogger.write('%s\t%s\n' %( c.name, "ALREADY_COMPUTED"))
+
+        elif c.status in ['skip']:
+           eprintf('..... Skipping!\n')
+           s.stepslogger.write('%s\t%s\n' %(  c.name, "SKIPPED"))
+        elif c.status=='grid':
+           blastgrid(c.commands[0])
+
+
+
+def execute(s, c):
+       if len(c.commands) == 2:
+             result = execute_pipeline_stage(c.commands[0], extra_command =  c.commands[1], errorlogger= s.errorlogger, runstatslogger = s.runstatslogger )
+       else:
+             result = execute_pipeline_stage(c.commands[0], errorlogger= s.errorlogger, runstatslogger = s.runstatslogger)
+       return result
+
+
+
+
 
 def print_to_stdout(s):
     print s

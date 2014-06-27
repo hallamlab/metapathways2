@@ -1,0 +1,59 @@
+#!/usr/bin/env python
+
+__author__ = "Kishori M Konwar"
+__copyright__ = "Copyright 2013, MetaPathways"
+__credits__ = ["r"]
+__version__ = "1.0"
+__maintainer__ = "Kishori M Konwar"
+__status__ = "Release"
+
+
+"""Contains general utility code for the metapaths project"""
+
+try:
+    import os, re
+
+    from shutil import rmtree
+    from optparse import make_option
+    from os import path, _exit
+
+    from libs.python_modules.utils.utils import *
+except:
+    print "Cannot load some modules"
+    sys.exit(0)
+   
+PATHDELIM = pathDelim()
+
+
+class Context:
+    """ This class holds the context of a stage """
+    inputs = {}
+    outputs = {}
+    outputs1 = {}
+    name = None
+    status = None
+    commands = []
+    message = "Message not set"
+
+    def __init__(self):
+        pass
+
+    def isOutputAvailable(self):
+        #print self.outputs.values()
+        return doFilesExist(self.outputs.values())
+
+    def isInputAvailable(self, errorlogger = None):
+        #print self.inputs.values()
+        status = True
+        for file in self.inputs.values():
+            if not doesFileExist(file):
+                print file
+                if errorlogger!=None:
+                   errorlogger.printf("ERROR\tMissing input %s\n", file)
+                status = False
+        return status
+
+    def removeOutput(self, errorlogger = None):
+        #print self.inputs.values()
+        pass
+
