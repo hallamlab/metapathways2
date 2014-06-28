@@ -111,6 +111,8 @@ def printlist(list, lim):
            break
 
 def check_arguments(opts, args):
+    return True
+
     if len(opts.input_blastout) == 0:
          print "There sould be at least one blastoutput file"  
          return False

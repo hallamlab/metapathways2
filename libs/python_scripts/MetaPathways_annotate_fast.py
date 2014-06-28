@@ -90,20 +90,24 @@ def createParser():
 
 
 def check_arguments(opts, args):
+
+    return True 
+
     if len(opts.input_blastout) == 0:
-         eprintf("There sould be at least one blastoutput file\n")  
+         eprintf("There should be at least one blastoutput file\n")  
          return False
 
     if len(opts.database_name) == 0:
-         eprintf("There sould be at least one database name\n")  
+         eprintf("There should be at least one database name\n")  
          return False
 
     if len(opts.weight_db) == 0:
-         eprint("There sould be at least one weight\n")  
+         eprint("There should be at least one weight\n")  
          return False
 
-    if len(opts.input_blastout) != len(opts.database_name) or len(opts.input_blastout) !=  len(opts.weight_db) :
-         eprint("The number of database names, blastoutputs and database map file should be equal\n")
+    if len(opts.input_blastout) != len(opts.database_name) or\
+         len(opts.input_blastout) !=  len(opts.weight_db) :
+         eprint("The num of database names, blastoutputs and database map file should be equal\n")
          return False
 
     if opts.output_gff == None:

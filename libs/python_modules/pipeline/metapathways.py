@@ -830,7 +830,15 @@ def run_metapathways_before_BLAST(s, input_fp, output_dir, all_samples_output_di
     jobcreator.addJobs(s)
     execute_tasks(s, verbose = command_line_params['verbose'])    
 
-    _exit(0)
+
+    
+        
+    eprintf("            ***********                \n")
+    eprintf("INFO : FINISHED PROCESSING THE SAMPLES \n")
+    eprintf("             THE END                   \n")
+    eprintf("            ***********                \n")
+    halt_process(4)
+
 
     ####################  IMPORTANT VARIABLES ########################
     checkMetapathsteps(params, globallogger)

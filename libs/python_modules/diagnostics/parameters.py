@@ -126,24 +126,23 @@ class Parameters():
                }, 
 # grid settings
                'metapaths_steps': {
-                          'PREPROCESS_FASTA'  : {'yes':True, 'skip':True, 'redo':True }, 
-                          'PREPROCESS_FASTA'  : {'yes':True, 'skip':True, 'redo':True }, 
+                          'PREPROCESS_INPUT'  : {'yes':True, 'skip':True, 'redo':True }, 
                           'ORF_PREDICTION'  : {'yes':True, 'skip':True, 'redo':True }, 
                           'GFF_TO_AMINO'  : {'yes':True, 'skip':True, 'redo':True }, 
-                          'FILTERED_FASTA'  : {'yes':True, 'skip':True, 'redo':True }, 
-                          'COMPUTE_REFSCORE'  : {'yes':True, 'skip':True, 'redo':True, }, 
-                          'BLAST_REFDB'  : {'yes':True, 'skip':True, 'redo':True, 'grid':True }, 
-                          'PARSE_BLAST'  : {'yes':True, 'skip':True, 'redo':True }, 
+                          'FILTER_AMINOS'  : {'yes':True, 'skip':True, 'redo':True }, 
+                          'COMPUTE_REFSCORES'  : {'yes':True, 'skip':True, 'redo':True, }, 
+                          'FUNC_SEARCH'  : {'yes':True, 'skip':True, 'redo':True, 'grid':True }, 
+                          'PARSE_FUNC_SEARCH'  : {'yes':True, 'skip':True, 'redo':True }, 
                           'SCAN_rRNA'  : {'yes':True, 'skip':True, 'redo':True }, 
                           'SCAN_tRNA'  : {'yes':True, 'skip':True, 'redo':True }, 
-                          'ANNOTATE'  : {'yes':True, 'skip':True, 'redo':True }, 
+                          'ANNOTATE_ORFS'  : {'yes':True, 'skip':True, 'redo':True }, 
                           'PATHOLOGIC_INPUT'  : {'yes':True, 'skip':True, 'redo':True }, 
                           'GENBANK_FILE'  : {'yes':True, 'skip':True, 'redo':True, }, 
-                          'CREATE_SEQUIN_FILE'  : {'yes':True, 'skip':True, 'redo':True }, 
-                          'CREATE_REPORT_FILES'  : {'yes':True, 'skip':True, 'redo':True }, 
+                          'CREATE_ANNOT_REPORTS'  : {'yes':True, 'skip':True, 'redo':True }, 
                           'MLTREEMAP_CALCULATION'  : {'skip':True }, 
                           'MLTREEMAP_IMAGEMAKER'  : {'skip':True }, 
-                          'PATHOLOGIC'  : {'yes':True, 'skip':True, 'redo':True, }
+                          'BUILD_PGDB'  : {'yes':True, 'skip':True, 'redo':True, }
+     #                     'COMPUTE_RPKM'  : {'yes':True, 'skip':True, 'redo':True, }
                 }
            }
 

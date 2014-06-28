@@ -93,37 +93,37 @@ class Tools():
 
     def initializeTools(self):
         self.specialAlternatives =  { 
-                                  'COMPUTE_REFSCORE'  : [ 'annotation', 'algorithm' ],
+                                  'COMPUTE_REFSCORES'  : [ 'annotation', 'algorithm' ],
                                   'BLAST_REFDB'       : [ 'annotation', 'algorithm' ]
                                }
 
         self.Tools = { 
-               'PREPROCESS_FASTA'  : {
-                               'exec': { 'PREPROCESS_FASTA': None }
+               'PREPROCESS_INPUT'  : {
+                               'exec': { 'PREPROCESS_INPUT': None }
                                      }, 
                'ORF_PREDICTION'  : {
                               'exec':  {'ORF_PREDICTION': None }
                                    },
-               'GFF_TO_AMINO':  {
-                              'exec': { 'GFF_TO_FASTA': None }
+               'ORF_TO_AMINO':  {
+                              'exec': { 'ORF_TO_AMINO': None }
                                 }, 
-               'FILTERED_FASTA': { 
-                              'exec': { 'PREPROCESS_FASTA': None }
+               'FILTER_AMINOS': { 
+                              'exec': { 'PREPROCESS_INPUT': None }
                                  },
-               'COMPUTE_REFSCORE'  : {
+               'COMPUTE_REFSCORES'  : {
                               'exec': { 
-                                         'BLAST': {'COMPUTE_REFSCORE':None, 'BLASTP_EXECUTABLE' : None, 'FORMATDB_EXECUTABLE': None }, 
-                                         'LAST':  {'COMPUTE_REFSCORE':None, 'LAST_EXECUTABLE' : None, 'LASTDB_EXECUTABLE':None }  
+                                         'BLAST': {'COMPUTE_REFSCORES':None, 'BLASTP_EXECUTABLE' : None, 'FORMATDB_EXECUTABLE': None }, 
+                                         'LAST':  {'COMPUTE_REFSCORES':None, 'LAST_EXECUTABLE' : None, 'LASTDB_EXECUTABLE':None }  
                                       },
                               },
-               'BLAST_REFDB':{  
+               'FUNC_SEARCH':{  
                               'exec': { 
-                                         'BLAST': {'COMPUTE_REFSCORE':None, 'BLASTP_EXECUTABLE' : None, 'FORMATDB_EXECUTABLE': None }, 
-                                         'LAST':  {'COMPUTE_REFSCORE':None, 'LAST_EXECUTABLE' : None, 'LASTDB_EXECUTABLE':None }  
+                                         'BLAST': {'COMPUTE_REFSCORES':None, 'BLASTP_EXECUTABLE' : None, 'FORMATDB_EXECUTABLE': None }, 
+                                         'LAST':  {'COMPUTE_REFSCORES':None, 'LAST_EXECUTABLE' : None, 'LASTDB_EXECUTABLE':None }  
                                       }
                                },
-               'PARSE_BLAST':{
-                              'exec': { 'PARSE_BLAST': None }
+               'PARSE_FUNC_SEARCH':{
+                              'exec': { 'PARSE_FUNC_SEARCH': None }
                              }, 
                'SCAN_rRNA'  : {
                               'exec': { 'SCAN_rRNA': None, 'BLASTN_EXECUTABLE':None }
@@ -131,8 +131,8 @@ class Tools():
                'SCAN_tRNA'  : {
                               'exec': { 'SCAN_tRNA': None }
                               }, 
-               'ANNOTATE'  : {
-                              'exec': { 'ANNOTATE': None }
+               'ANNOTATE_ORFS'  : {
+                              'exec': { 'ANNOTATE_ORFS': None }
                              }, 
                'PATHOLOGIC_INPUT'  : {
                               'exec': { 'GENBANK_FILE': None }
@@ -140,11 +140,8 @@ class Tools():
                'GENBANK_FILE'  : {
                               'exec': { 'GENBANK_FILE': None }
                                  }, 
-               'CREATE_SEQUIN_FILE'  : {
-                              'exec': { 'CREATE_REPORT_FILES': None }
-                                 }, 
-               'CREATE_REPORT_FILES'  : {
-                              'exec':  { 'CREATE_REPORT_FILES': None }
+               'CREATE_ANNOT_REPORTS'  : {
+                              'exec':  { 'CREATE_ANNOT_REPORTS': None }
                                  }, 
                'MLTREEMAP_CALCULATION'  : {
                               'exec':  {'MLTREEMAP_CALCULATION': None }
@@ -152,7 +149,7 @@ class Tools():
                'MLTREEMAP_IMAGEMAKER'  : {
                               'exec':  { 'MLTREEMAP_IMAGEMAKER': None }
                                          }, 
-               'PATHOLOGIC': { 
+               'BUILD_PGDB': { 
                               'exec': {'PATHOLOGIC_EXECUTABLE': None }
                              }
            }

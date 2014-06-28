@@ -6,6 +6,7 @@ MetaPathways2
 .*.swp
 blastDB
 executables
-mltreemap
+mltreemap/mltreemap_imagemaker/tree_data
 output
+regtests/output
 .DS_Store
