@@ -170,10 +170,10 @@ def execute_tasks(s, verbose = False):
                result = execute(s,c)
                if result[0] == 0 :
                   eprintf('..... Redo Success!\n')
-                  s.stepslogger.write('%s\t%s\n' %( ','.join(c.name), "SUCCESS"))
+                  s.stepslogger.write('%s\t%s\n' %( c.name, "SUCCESS"))
                else:
                   eprintf('..... Failed!\n')
-                  s.stepslogger.write('%s\t%s\n' %(','.join(c.name), "FAILED"))
+                  s.stepslogger.write('%s\t%s\n' %( c.name, "FAILED"))
             else:
                eprintf('..... Skipping [NO INPUT]!\n')
                s.stepslogger.write('%s\t%s\n' %( c.name, "MISSING_INPUT"))
