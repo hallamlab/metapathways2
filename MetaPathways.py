@@ -12,7 +12,7 @@ __status__ = "Release"
 
 try:
      import sys, traceback, re, inspect, signal, shutil 
-     from os import makedirs, sys, listdir, environ, path
+     from os import makedirs, sys, listdir, environ, path, _exit
      #from commands import getstatusoutput
      from optparse import OptionParser
      
@@ -100,26 +100,43 @@ parser.add_option("-s", "--subset", dest="sample_subset", action="append", defau
 
 
 
-# checks if the supplied arguments are adequate
 def valid_arguments(opts, args):
+    """ checks if the supplied arguments are adequate """
     if (opts.input_fp == None and opts.output_dir ==None )  or\
      opts.output_dir == None or opts.parameter_fp == None :
        return True
     else:
        return False
 
-#keep only the samples that are specified  before processing 
-def remove_unspecified_samples(input_output_list, sample_subset):
-
+def remove_unspecified_samples(input_output_list, sample_subset, format):
+   """ keep only the samples that are specified  before processing  """
    shortened_names = {}
+
    for input_file in input_output_list.keys():
-      shortname = re.sub('[.](fasta|fas|fna|faa|gbk|gff|fa)$','',input_file, re.IGNORECASE) 
+      shortname = None 
+      if format in ['gbk-unannotated', 'gbk-annotated']:
+          shortname = re.sub('[.]gbk$','',input_file, re.IGNORECASE) 
+      elif format =='fasta':
+          shortname = re.sub('[.](fasta|fas|fna|faa|fa)$','',input_file, re.IGNORECASE) 
+
+      if shortname==None:
+         continue
+
       shortname = re.sub(r'[.]','_',shortname) 
       shortened_names[shortname] = input_file
 
    shortened_subset_names = [] 
    for sample_in_subset in sample_subset:
-      shortname = re.sub('[.](fasta|fas|fna|faa|gbk|gff|fa)$','',sample_in_subset,  re.IGNORECASE) 
+      shortname = None 
+      if format in ['gbk-unannotated', 'gbk-annotated']:
+          shortname = re.sub('[.]gbk$','',sample_in_subset, re.IGNORECASE) 
+      elif format =='fasta':
+          shortname = re.sub('[.](fasta|fas|fna|faa|fa)$','',sample_in_subset, re.IGNORECASE) 
+
+
+      if shortname==None:
+         continue
+
       shortname = re.sub(r'[.]','_',shortname) 
       if len(shortname)!=0:
         shortened_subset_names.append(shortname)
@@ -141,10 +158,18 @@ def remove_unspecified_samples(input_output_list, sample_subset):
 
 
 
-#creates an input output pair if input is just an input file
-def create_an_input_output_pair(input_file, output_dir):
+def create_an_input_output_pair(input_file, output_dir, format):
+    """ creates an input output pair if input is just an input file """
     input_output = {}
-    shortname = re.sub('[.](fasta|fas|fna|faa|gbk|gff|fa)$','',input_file, re.IGNORECASE) 
+
+    shortname = None 
+    if format in ['gbk-unannotated', 'gbk-annotated']:
+        shortname = re.sub('[.]gbk$','',input_file, re.IGNORECASE) 
+    elif format =='fasta':
+        shortname = re.sub('[.](fasta|fas|fna|faa|fa)$','',input_file, re.IGNORECASE) 
+    else:
+        shortname = re.sub('[.]gff$','',input_file, re.IGNORECASE) 
+
     shortname = re.sub(r'.*' + PATHDELIM ,'',shortname) 
     shortname = re.sub(r'[.]','_',shortname) 
     
@@ -158,22 +183,43 @@ def create_an_input_output_pair(input_file, output_dir):
     return input_output
 
 
-#creates a list of  input output pairs if input is  an input dir
-def create_input_output_pairs(input_dir, output_dir):
+def create_input_output_pairs(input_dir, output_dir, format):
+    """  creates a list of  input output pairs if input is  an input dir """
     fileslist =  listdir(input_dir)
+    gbkPatt = re.compile('[.]gbk$',re.IGNORECASE) 
+
+    fastaPatt = re.compile('[.](fasta|fas|fna|faa|fa)$',re.IGNORECASE) 
+    gffPatt = re.compile('[.]gff$',re.IGNORECASE) 
 
     input_files = {}
-    for file in fileslist:
-       shortname = re.sub('.(fasta|fas|fna|faa|gbk|gff|fa)$','',file,re.I) 
+    for input_file in fileslist:
+
+       shortname = None 
+       if format in ['gbk-unannotated', 'gbk-annotated']:
+          result =  gbkPatt.search(input_file)
+          if result:
+             shortname = re.sub('[.]gbk$','',input_file, re.IGNORECASE) 
+
+       elif format in [ 'fasta' ]:
+          result =  fastaPatt.search(input_file)
+          if result:
+             shortname = re.sub('[.](fasta|fas|fna|faa|fa)$','',input_file, re.IGNORECASE) 
+
+       if shortname == None:
+          continue
+
+
        shortname = re.sub(r'[.]','_',shortname) 
-       if re.search('.(fasta|fas|fna|faa|gff|gbk|fa)$',file, re.I):
+
+       if re.search('.(fasta|fas|fna|faa|gff|gbk|fa)$',input_file, re.IGNORECASE):
           if len(shortname)>1:
-             input_files[file] = shortname
+             input_files[input_file] = shortname
           else:
-             print "WARNING : sample with one character name " + shortname + "(i.e., file \"" + file + "\" will be ignored"
+             print "WARNING : sample with one character name " + shortname + "(i.e., file \"" + input_file + "\" will be ignored"
              print "          because prodigal creates some problem with such files"
 
     paired_input = {} 
+    
     for key, value in input_files.iteritems():
             paired_input[input_dir + PATHDELIM + key] = path.abspath(output_dir) + PATHDELIM + value
 
@@ -286,27 +332,32 @@ def main(argv):
     command_line_params={}
     command_line_params['verbose']= opts.verbose
 
+    params=parse_metapaths_parameters(parameter_f)
+    format = params['INPUT']['format']
 
-    # load the sample inputs  it expects either a fasta file or  a directory 
-    # containing fasta and yaml file pairs
+    """ load the sample inputs  it expects either a fasta 
+        file or  a directory containing fasta and yaml file pairs
+    """
 
     input_output_list = {}
-    if path.isfile(input_fp):   # check if it is a file
-       input_output_list = create_an_input_output_pair(input_fp, output_dir)
+    if path.isfile(input_fp):   
+       """ check if it is a file """
+       input_output_list = create_an_input_output_pair(input_fp, output_dir, format)
     else:
-       if path.exists(input_fp):   # check if dir exists
-          input_output_list = create_input_output_pairs(input_fp, output_dir)
-       else:   # must be an error
+       if path.exists(input_fp):   
+          """ check if dir exists """
+          input_output_list = create_input_output_pairs(input_fp, output_dir, format)
+       else:   
+          """ must be an error """
           eprintf("No valid input sample file or directory containing samples exists .!")
           eprintf("As provided as arguments in the -in option.!\n")
           sys.exit(1)
    
-    # these are the subset of sample to process if specified
-    # in case of an empty subset process all the samples
+    """ these are the subset of sample to process if specified
+        in case of an empty subset process all the sample """
     if sample_subset:
-       remove_unspecified_samples(input_output_list, sample_subset)
+       remove_unspecified_samples(input_output_list, sample_subset, format)
 
-    params=parse_metapaths_parameters(parameter_f)
 
     # add check the config parameters 
     sorted_input_output_list = sorted(input_output_list.keys())
@@ -350,6 +401,7 @@ def main(argv):
              sample_name_banner = "PROCESSING INPUT " + input_file
              eprintf('#'*len(sample_name_banner) + "\n")
              eprintf(sample_name_banner + '\n')
+
              run_metapathways_before_BLAST(
                 sampleData[input_file],
                 input_file, 
@@ -366,8 +418,10 @@ def main(argv):
                 config_settings = config_settings
              )
          else: 
-             eprintf("ERROR :No input files to process!\n")
-             sys.exit(0)
+             eprintf("ERROR\tNo input files in the specified folder %s to process!\n",sQuote(input_fp) )
+             globalerrorlogger.printf("ERROR\tNo input files in the specified folder %s to process!\n",sQuote(input_fp) )
+     
+             _exit(0)
      
          # blast the files
      

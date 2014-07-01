@@ -45,10 +45,18 @@ class JobCreator():
           contextCreator = ContextCreator(self.params, self.configs)
 
           for stage in contextCreator.getStageList():
-              if stage in self.params['metapaths_steps']:
+              print stage
+              if stage in self.params['metapaths_steps'] or\
+                 stage == 'GBK_TO_FNA_FAA_GFF' or\
+                 stage == 'GBK_TO_FNA_FAA_GFF_ANNOT':
+
+                 #if self.params['INPUT']['format'] =='gbk-unannotated':
+                 #  if stage=='PREPROCESS_INPUT':
+                 #    stage = 'GBK_TO_FNA_FAA_GFF'
+
+               #  self.stageList['gbk-unannotated'] = [ 'GBK_TO_FNA_FAA_GFF',
                  contexts = contextCreator.getContexts(s, stage)
                  s.addContexts(contexts) 
-                  
 
 
 
@@ -85,7 +93,8 @@ class ContextCreator:
       params = None
       configs = None
       factory = {}
-      stageList = []
+      stageList = {}
+      format = None
 
       def _Message(self, str):
 
@@ -115,8 +124,10 @@ class ContextCreator:
 
           context.outputs = { 
                               'output_fas': output_fas, 'mapping_file': mapping_file,\
-                              'nuc_stats_file' : nuc_stats_file, 'contig_lengths_file' : contig_lengths_file\
+                              'nuc_stats_file' : nuc_stats_file,\
+                              'contig_lengths_file' : contig_lengths_file\
                             }
+
           context.status = self.params.get('metapaths_steps','PREPROCESS_INPUT')
 
 
@@ -132,6 +143,74 @@ class ContextCreator:
           context.commands = [cmd]
           contexts.append(context)
           return contexts
+
+      
+      def  convert_gbk_to_fna_faa_gff_annotated(self, s):
+          contexts = self._convert_gbk_to_fna_faa_gff(s, annotated = True,\
+                                                      create_functional_table = True)
+          return contexts
+
+      def  convert_gbk_to_fna_faa_gff_unannotated(self, s):
+          contexts = self._convert_gbk_to_fna_faa_gff(s, annotated = False)
+          return contexts
+
+      def  _convert_gbk_to_fna_faa_gff(self, s, annotated = False, create_functional_table = False):
+          """ GBK_TO_FNA_FAA_GFF """
+          contexts = []
+
+          '''inputs'''
+          input_gbk = s.input_file 
+
+          '''outputs'''
+          output_fna = s.preprocessed_dir + s.sample_name + ".fasta"
+          output_faa = s.orf_prediction_dir + s.sample_name + ".faa"
+          output_annot_table = s.output_results_annotation_table_dir +\
+                               PATHDELIM + 'functional_and_taxonomic_table.txt'
+          contig_lengths_file = s.output_run_statistics_dir + PATHDELIM + s.sample_name + ".contig.lengths.txt"
+
+
+          output_gff = ''
+          if annotated == True:
+             output_gff = s.genbank_dir + s.sample_name + ".annot.gff"
+          else:
+             output_gff = s.orf_prediction_dir + s.sample_name + ".unannot.gff"
+
+          mapping_file =  s.preprocessed_dir + PATHDELIM + s.sample_name + ".mapping.txt"
+
+          context = Context()
+          context.inputs = { 'input_gbk' : input_gbk }
+          context.outputs = { 
+                               'output_gff' : output_gff, 
+                               'output_fna':output_fna, 
+                               'output_faa':output_faa,
+                               'mapping_file': mapping_file,
+                               'output_annot_table':output_annot_table,
+                               'contig_lengths_file':contig_lengths_file
+                            }
+
+
+          context.name = 'PREPROCESS_INPUT'
+          context.status = self.params.get('metapaths_steps','PREPROCESS_INPUT')
+          pyScript = self.configs.METAPATHWAYS_PATH + self.configs.GBK_TO_FNA_FAA_GFF
+
+
+          cmd = "%s -g %s --output-fna %s --output-faa %s --output-gff %s -M %s -L %s "\
+                 %( pyScript, context.inputs['input_gbk'], context.outputs['output_fna'],\
+                   context.outputs['output_faa'], context.outputs['output_gff'],\
+                   context.outputs['mapping_file'],\
+                   context.outputs['contig_lengths_file']\
+                  ) 
+
+          if create_functional_table :
+             cmd = cmd + " --create-functional-table %s" %(context.outputs['output_annot_table'])
+
+          context.message = self._Message("PREPROCESSING THE GBK INPUT")
+          context.commands = [cmd]
+
+          contexts.append(context)
+
+          return contexts
+
 
 
       def create_orf_prediction_cmd(self, s) :
@@ -227,7 +306,6 @@ class ContextCreator:
                  context.outputs['orf_lengths_file'], type)
 
           context.commands = [cmd]
-          print cmd
           context.message = self._Message("FILTER AMINO ACID SEQS")
           contexts.append(context)
           return contexts
@@ -498,8 +576,11 @@ class ContextCreator:
           context = Context()
           context.name = 'ANNOTATE_ORFS'
         
-          context.inputs = { 'mapping_txt':mapping_txt,
+          context.inputs = { 
                              'input_unannotated_gff':input_unannotated_gff
+                           }
+          context.inputs1 = { 
+                             'mapping_txt':mapping_txt,
                            }
           context.outputs = { 
                 'output_annotated_gff':output_annotated_gff,
@@ -542,7 +623,7 @@ class ContextCreator:
                cmd = cmd + " -b " + parsed_file + " -d " + refdb + " -w 1 "
 
 
-          cmd = cmd + " -m " + context.inputs['mapping_txt']
+          cmd = cmd + " -m " + context.inputs1['mapping_txt']
 
           context.message = self._Message("ANNOTATE ORFS")
           context.commands = [ cmd ]
@@ -613,8 +694,12 @@ class ContextCreator:
                              'input_amino_acid_fasta':input_amino_acid_fasta
                            }
           context.outputs = {
-                               'output_fasta_pf_dir':s.output_fasta_pf_dir
-                            }
+            'output_fasta_pf_dir':s.output_fasta_pf_dir,
+            'output_fasta_pf_dir_fasta':s.output_fasta_pf_dir + PATHDELIM +  '0.fasta',
+            'output_fasta_pf_dir_pf':s.output_fasta_pf_dir + PATHDELIM +  '0.pf',
+            'output_fasta_pf_dir_genetic':s.output_fasta_pf_dir + PATHDELIM + 'genetic-elements.dat',
+            'output_fasta_pf_dir_organism':s.output_fasta_pf_dir + PATHDELIM +  'organism-params.dat'
+          }
 
           pyScript = self.configs.METAPATHWAYS_PATH + self.configs.GENBANK_FILE
           cmd="%s -g %s -n %s -p %s " %(pyScript, context.inputs['input_annot_gff'],\
@@ -734,18 +819,21 @@ class ContextCreator:
       def __init__(self, params, configs): 
           self.params = Singleton(Params)(params)
           self.configs = Singleton(Configs)(configs)
+          self.format = params['INPUT']['format']
           self.initFactoryList()
           pass
 
       def getContexts(self, s, stage):
-          if stage in self.stageList:
+          if stage in self.stageList[self.format]:
               return self.factory[stage](s)
 
       def getStageList(self):
-           return self.stageList
+           return self.stageList[self.format]
            
 
       def initFactoryList(self):
+           self.factory['GBK_TO_FNA_FAA_GFF'] = self.convert_gbk_to_fna_faa_gff_unannotated
+           self.factory['GBK_TO_FNA_FAA_GFF_ANNOT'] = self.convert_gbk_to_fna_faa_gff_annotated
            self.factory['PREPROCESS_INPUT'] = self.create_quality_check_cmd
            self.factory['ORF_PREDICTION'] = self.create_orf_prediction_cmd
            self.factory['ORF_TO_AMINO'] = self.create_aa_orf_sequences_cmd
@@ -762,7 +850,7 @@ class ContextCreator:
            self.factory['BUILD_PGDB'] = self.create_pgdb_using_pathway_tools_cmd
            #self.factory['COMPUTE_RPKM'] = self.create_pgdb_using_pathway_tools_cmd
 
-           self.stageList = [
+           self.stageList['fasta'] = [
                               'PREPROCESS_INPUT',
                               'ORF_PREDICTION',
                               'ORF_TO_AMINO',
@@ -782,6 +870,29 @@ class ContextCreator:
                            #   'COMPUTE_RPKM'
                              ]
            
-
-       
-
+           self.stageList['gbk-unannotated'] = [
+                              'GBK_TO_FNA_FAA_GFF',
+                              'FILTER_AMINOS',
+                              'COMPUTE_REFSCORES',
+                              'FUNC_SEARCH',
+                              'PARSE_FUNC_SEARCH',
+                              'SCAN_rRNA',
+                              'SCAN_tRNA',
+                              'ANNOTATE_ORFS',
+                              'PATHOLOGIC_INPUT',
+                              'GENBANK_FILE',  
+                              'CREATE_ANNOT_REPORTS',
+#                              'MLTREEMAP_CALCULATION',
+#                              'MLTREEMAP_IMAGEMAKER',
+                              'BUILD_PGDB'
+                           #   'COMPUTE_RPKM'
+                             ]
+           
+           self.stageList['gbk-annotated'] = [
+                              'GBK_TO_FNA_FAA_GFF_ANNOT',
+                              'FILTER_AMINOS',
+                              'SCAN_rRNA',
+                              'SCAN_tRNA',
+                              'PATHOLOGIC_INPUT',
+                              'BUILD_PGDB'
+                            ]

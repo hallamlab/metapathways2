@@ -424,3 +424,25 @@ def Singleton(class_):
     return instances[class_]
   return getinstance
 
+
+def extractSampleName(sampleName, type = None):
+     sample_name  = sampleName 
+
+     if type == 'fasta' or type==None:
+         sample_name = re.sub(r'^.*/','',sample_name, re.I)
+         sample_name = re.sub(r'^.*\\','',sample_name, re.I)
+         sample_name = re.sub(r'\.fasta$','',sample_name, re.I)
+         sample_name = re.sub(r'\.fna$','',sample_name, re.I)
+         sample_name = re.sub(r'\.faa$','',sample_name, re.I)
+         sample_name = re.sub(r'\.fas$','',sample_name, re.I)
+         sample_name = re.sub(r'\.fa$','',sample_name, re.I)
+     elif type in ['gbk-unannotated', 'gbk-annotated']  or type==None:
+         sample_name = re.sub(r'^.*/','',sample_name, re.I)
+         sample_name = re.sub(r'^.*\\','',sample_name, re.I)
+         sample_name = re.sub(r'\.gbk$','',sample_name, re.I)
+     else:
+         eprintf("ERROR: Incorrect type %s to function extractSampleName\n", sQuote(type))
+
+     return sample_name 
+
+

@@ -825,20 +825,15 @@ def  copy_fna_faa_gff_orf_prediction( source_files, target_files, config_setting
 #################################################################################
 def run_metapathways_before_BLAST(s, input_fp, output_dir, all_samples_output_dir, globallogger,  command_handler, command_line_params, params, metapaths_config, status_update_callback, config_file, run_type, config_settings = None):
 
-    
     jobcreator = JobCreator(params, config_settings)
     jobcreator.addJobs(s)
     execute_tasks(s, verbose = command_line_params['verbose'])    
 
-
-    
-        
     eprintf("            ***********                \n")
     eprintf("INFO : FINISHED PROCESSING THE SAMPLES \n")
     eprintf("             THE END                   \n")
     eprintf("            ***********                \n")
     halt_process(4)
-
 
     ####################  IMPORTANT VARIABLES ########################
     checkMetapathsteps(params, globallogger)

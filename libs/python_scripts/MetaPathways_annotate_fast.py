@@ -784,6 +784,7 @@ def read_contig_lengths(contig_map_file, contig_lengths):
 def main(argv, errorlogger =None, runstatslogger = None): 
     global parser
     (opts, args) = parser.parse_args(argv)
+
     if not check_arguments(opts, args):
        print usage
        sys.exit(0)
@@ -800,7 +801,8 @@ def main(argv, errorlogger =None, runstatslogger = None):
         results_dictionary[dbname]={}
         dbname_weight[dbname] = weight
         count = process_parsed_blastoutput( dbname, weight, blastoutput, opts, results_dictionary[dbname])
-        runstatslogger.write("%s\tProtein Annotations from %s\t%s\n" %( str(priority), dbname, str(count)))
+        if runstatslogger!=None:
+           runstatslogger.write("%s\tProtein Annotations from %s\t%s\n" %( str(priority), dbname, str(count)))
         count_annotations 
         priority += 1
 
@@ -808,7 +810,8 @@ def main(argv, errorlogger =None, runstatslogger = None):
       for seqname in results_dictionary[dbname]: 
          count_annotations[seqname] = True      
     count = len(count_annotations)
-    runstatslogger.write("%s\tTotal Protein Annotations\t%s\n" %( str(priority),  str(count)))
+    if runstatslogger!=None:
+       runstatslogger.write("%s\tTotal Protein Annotations\t%s\n" %( str(priority),  str(count)))
         
 
     #create the annotations from he results
