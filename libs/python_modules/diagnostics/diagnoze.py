@@ -328,7 +328,6 @@ def executablesExist( executables, configs, logger = None ):
     missingList = []
     for name, script in executables.iteritems():
 
-      print name, script
       if name!='PATHOLOGIC_EXECUTABLE' and  path.exists(configs['METAPATHWAYS_PATH'] + PATHDELIM + script):
            pass
       elif name=='PATHOLOGIC_EXECUTABLE' and  path.exists(script):

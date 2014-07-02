@@ -257,10 +257,12 @@ def main(argv):
 
     run_type = opts.run_type.strip()
 
-    if run_type == 'overwrite':
-       force_remove_dir=True
-    else:
-       force_remove_dir=False
+
+    '''no need to remove the whole directory'''
+#    if run_type == 'overwrite':
+#       force_remove_dir=True
+#    else:
+#       force_remove_dir=False
 
     if opts.config_file:
        config_file= opts.config_file
@@ -293,24 +295,9 @@ def main(argv):
          % opts.parameter_fp
 
     
-    if force_remove_dir:
-        try: 
-           if path.exists(output_dir):
-              shutil.rmtree(output_dir)
-        except OSError:
-           print "ERROR: Cannot remove directory: " + output_dir
-           sys.exit(1)
-
     try:
-       if (run_type in ['overlay', 'safe'] or force_remove_dir) and not path.exists(output_dir):
+       if run_type in ['overlay'] and not path.exists(output_dir):
              makedirs(output_dir)
-       elif run_type in ['safe'] and path.exists(output_dir):
-        print ""
-        print "ERROR: Cannot create output directory \"" + output_dir + "\"\n"+\
-              "       Perhaps output directory already exists.\n" +\
-              "       Please choose a different directory, or \n" +\
-              "       run with the option \"-r  overwrite\" to force overwrite it."
-        sys.exit(1)
     except OSError:
         print ""
         print "ERROR: Cannot create output directory \"" + output_dir + "\"\n"+\
@@ -318,6 +305,8 @@ def main(argv):
               "       Please choose a different directory, or \n" +\
               "       run with the option \"-r  overwrite\" to force overwrite it."
         sys.exit(1)
+
+
         
     if print_only:
         command_handler = print_commands

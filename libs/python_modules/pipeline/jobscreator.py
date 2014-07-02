@@ -45,7 +45,6 @@ class JobCreator():
           contextCreator = ContextCreator(self.params, self.configs)
 
           for stage in contextCreator.getStageList():
-              print stage
               if stage in self.params['metapaths_steps'] or\
                  stage == 'GBK_TO_FNA_FAA_GFF' or\
                  stage == 'GBK_TO_FNA_FAA_GFF_ANNOT':
@@ -395,7 +394,6 @@ class ContextCreator:
               context.status = self.params.get('metapaths_steps','FUNC_SEARCH')
               context.commands = [ cmd ]
 
-              print cmd
               contexts.append(context)
 
           return contexts
@@ -780,7 +778,6 @@ class ContextCreator:
           context.commands = [ cmd ]
           context.status = self.params.get('metapaths_steps', 'CREATE_ANNOT_REPORTS') 
           context.message = self._Message("CREATING REPORT FILE FOR ORF ANNOTATION")
-          print context.status
 
           contexts.append(context)
           return contexts
