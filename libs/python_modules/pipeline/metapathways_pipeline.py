@@ -86,7 +86,8 @@ def call_commands_serially(commands, status_update_callback, logger, stepslogger
              eprintf("\n\n\nEXECUTED COMMAND : %s\n", c[1])
 
         eprintf("%s" %(c[0]))
-        stepslogger.write('%s\t%s\n' %(c[2], "RUNNING"))
+        stepslogger.write('%s\t%s\n' %(c[2], "YYYYRUNNING"))
+
         if c[3]=='missing':
            print "..... Input Missing!"
            stepslogger.write('%s\t%s\n' %(c[2], "INPUT_MISSING"))
@@ -162,11 +163,11 @@ def execute_tasks(s, verbose = False):
              eprintf("\n\n\nEXECUTED COMMAND : %s\n", ', '.join(c.commands) )
 
         eprintf("%s" %(c.message))
-        s.stepslogger.write('%s\t%s\n' %(c.name, "RUNNING"))
 
         if c.status in ['redo']:
             c.removeOutput(s)
             if c.isInputAvailable( errorlogger = s.errorlogger):
+               s.stepslogger.write('%s\t%s\n' %(c.name, "RUNNING"))
                result = execute(s,c)
                if result[0] == 0 :
                   eprintf('..... Redo Success!\n')
@@ -181,6 +182,7 @@ def execute_tasks(s, verbose = False):
         elif c.status in ['yes']:
            if not c.isOutputAvailable():
                if c.isInputAvailable(errorlogger = s.errorlogger):
+                  s.stepslogger.write('%s\t%s\n' %(c.name, "RUNNING"))
                   result = execute(s,c)
                   if result[0] == 0 :
                      eprintf('..... Success!\n')

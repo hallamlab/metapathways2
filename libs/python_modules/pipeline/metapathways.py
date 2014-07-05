@@ -827,6 +827,7 @@ def run_metapathways_before_BLAST(s, input_fp, output_dir, all_samples_output_di
 
     jobcreator = JobCreator(params, config_settings)
     jobcreator.addJobs(s)
+    s.stepslogger.printf("==============  BEGIN RUN ==================\n")
     execute_tasks(s, verbose = command_line_params['verbose'])    
 
     eprintf("            ***********                \n")

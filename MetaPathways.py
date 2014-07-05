@@ -362,8 +362,10 @@ def main(argv):
         exit_process("ERROR\tFailed to pass the test for required scripts and inputs before run\n")
 
     
+    
     sampleData = {}
     # PART1 before the blast
+
     try:
          if len(input_output_list): 
            for input_file in sorted_input_output_list:

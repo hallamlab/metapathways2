@@ -146,7 +146,9 @@ def create_query_dictionary(blastoutputfile, query_dictionary, algorithm, errorl
 def create_dictionary(databasemapfile, annot_map, query_dictionary, errorlogger= None):
        if not query_dictionary:
           print "WARNING : empty query dictionary in parse B/LAST"
-          errologger.write("WARNING : empty query dictionary in parse B/LAST\n")
+
+          if errorlogger:
+            errologger.write("WARNING : empty query dictionary in parse B/LAST\n")
          
           return 
 
@@ -154,7 +156,8 @@ def create_dictionary(databasemapfile, annot_map, query_dictionary, errorlogger=
        try:
             dbmapfile = open( databasemapfile,'r')
        except:
-            errologger.write("PARSE_BLAST\tERROR\tCannot open database map file %s\t Please check the file manuallyT\n" %(databasemapfile) )
+            if errorlogger:
+               errologger.write("PARSE_BLAST\tERROR\tCannot open database map file %s\t Please check the file manuallyT\n" %(databasemapfile) )
             exit_process("ERROR: Cannot open database map file %s\n" %(databasemapfile))
 
        for line in dbmapfile:
@@ -173,8 +176,9 @@ def create_dictionary(databasemapfile, annot_map, query_dictionary, errorlogger=
        dbmapfile.close()
 
        if len(annot_map)==0:
-          errorlogger.write( "PARSE_BLAST\tERROR\tFile "+databasemapfile+ " seems to be empty!\tCreate datbasemap file\n") 
-          errorlogger.write( "Try re-running after deleting file : %s\n" %(databasemapfile)) 
+          if errorlogger:
+             errorlogger.write( "PARSE_BLAST\tERROR\tFile "+databasemapfile+ " seems to be empty!\tCreate datbasemap file\n") 
+             errorlogger.write( "Try re-running after deleting file : %s\n" %(databasemapfile)) 
           exit_process( "no anntations in file :" + databasemapfile)
         
 def create_refscores(refscores_file, refscore_map):
@@ -221,7 +225,8 @@ class BlastOutputParser(object):
             eprintf("\nERROR : cannot open B/LAST output file " + blastoutput + " to parse "+\
                       "      : make sure \"B/LAST\"ing was done for the particular database" )
 
-            self.error_and_warning_logger.write("ERROR : cannot open B/LAST output file %s %s to parse \n" +\
+            if self.error_and_warning_logger:
+               self.error_and_warning_logger.write("ERROR : cannot open B/LAST output file %s %s to parse \n" +\
                                              "      : make sure \"B/LAST\"ing was done for "+\
                                              "the particular database" %(blastoutput) )
             exit_process( "Cannot open B/LAST output file " + blastoutput )
@@ -274,7 +279,8 @@ class BlastOutputParser(object):
            words[11] = temp[0]
         except:
            eprintf("ERROR : Invalid B/LAST output file %s \n" % (self.blastoutput))
-           self.error_and_warning_logger.write("ERROR : Invalid B/LAST output file" %(self.blastoutput))
+           if error_and_warning_logger:   
+               self.error_and_warning_logger.write("ERROR : Invalid B/LAST output file" %(self.blastoutput))
            exit_process( "ERROR : Invalid B/LAST output file %s " % (self.blastoutput))
 
     def refillBuffer(self):
@@ -371,10 +377,12 @@ def isWithinCutoffs(words, data, cutoffs, annot_map, refscores):
        data['product'] = annot_map[words[1]]
     except:
        eprint("Sequence with name \"" + words[1] + "\" is not present in map file ")
-       self.error_and_warning_logger.write("Sequence with name %s is not present in map file " %(words[1] ))
+       if error_and_warning_logger:   
+          self.error_and_warning_logger.write("Sequence with name %s is not present in map file " %(words[1] ))
        self.incErrorCount()
        if maxErrorsReached():
-           self.error_and_warning_logger.write("Number of sequence absent in map file %s exceeds %d" %(self.blastoutput, self.ERROR_COUNT ))
+           if error_and_warning_logger:   
+              self.error_and_warning_logger.write("Number of sequence absent in map file %s exceeds %d" %(self.blastoutput, self.ERROR_COUNT ))
            exit_process("Number of sequence absent in map file %s exceeds %d" %(self.blastoutput, self.ERROR_COUNT ))
          
 
@@ -484,7 +492,8 @@ def process_blastoutput(dbname, blastoutput,  mapfile, refscore_file, opts, erro
     try:
         outputfile = open(output_blastoutput_parsed_tmp, 'w') 
     except:
-        errorlogger.write("PARSE_BLAST\tERROR\tCannot open temp file %s to sort\tfor reference db\n" %(soutput_blastoutput_parsed_tmp, dbname))
+        if errorlogger:
+           errorlogger.write("PARSE_BLAST\tERROR\tCannot open temp file %s to sort\tfor reference db\n" %(soutput_blastoutput_parsed_tmp, dbname))
         exit_process("PARSE_BLAST\tERROR\tCannot open temp file %s to sort\tfor reference db\n" %(soutput_blastoutput_parsed_tmp, dbname))
 
     # write the headers out
@@ -521,7 +530,8 @@ def main(argv, errorlogger = None, runstatslogger = None):
        print usage
        sys.exit(0)
     
-    errorlogger.write("#STEP\tPARSE_BLAST\n")
+    if errorlogger:
+      errorlogger.write("#STEP\tPARSE_BLAST\n")
 
   # input file to blast with itself to commpute refscore
 #    infile = open(input_fasta,'r')
@@ -532,7 +542,8 @@ def main(argv, errorlogger = None, runstatslogger = None):
         temp_refscore = ""
         temp_refscore = opts.refscore_file 
         count = process_blastoutput(dbname, blastoutput,  mapfile, temp_refscore, opts, errorlogger = errorlogger)
-        runstatslogger.write("%s\tTotal Protein Annotations %s (%s)\t%s\n" %( str(priority), dbname, opts.algorithm, str(count)))  
+        if runstatslogger:  
+           runstatslogger.write("%s\tTotal Protein Annotations %s (%s)\t%s\n" %( str(priority), dbname, opts.algorithm, str(count)))  
 
 def MetaPathways_parse_blast(argv, errorlogger = None, runstatslogger = None):       
     createParser()
