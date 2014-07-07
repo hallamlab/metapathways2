@@ -73,6 +73,13 @@ class SampleData():
               contexts.append( self.stages_context[name] )
         return contexts
 
+    def numJobs(self):
+        return len(self.stages)
+
+    def clearJobs(self):
+       self.stages = []
+       self.stages_context = {}
+
 
 
     def setInputOutput(self, inputFile = None, sample_output_dir = None):

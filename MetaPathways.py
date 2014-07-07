@@ -20,10 +20,9 @@ try:
      from libs.python_modules.utils.utils import *
      from libs.python_modules.utils.metapathways_utils  import parse_command_line_parameters, eprintf, halt_process, exit_process,WorkflowLogger, generate_log_fp
      from libs.python_modules.parsers.parse  import parse_metapaths_parameters, parse_parameter_file
-     from libs.python_modules.pipeline.metapathways_pipeline import print_commands, call_commands_serially, print_to_stdout, no_status_updates
+     from libs.python_modules.pipeline.metapathways_pipeline import print_commands, print_to_stdout, no_status_updates
      from libs.python_modules.utils.sysutil import pathDelim
-     from libs.python_modules.pipeline.metapathways import run_metapathways_before_BLAST, run_metapathways_at_BLAST,\
-                                               run_metapathways_after_BLAST, get_parameter, read_pipeline_configuration
+     from libs.python_modules.pipeline.metapathways import run_metapathways, get_parameter, read_pipeline_configuration
      from libs.python_modules.annotate import *
      from libs.python_modules.grid.blast_using_grid import blast_in_grid
 
@@ -247,7 +246,7 @@ def main(argv):
     signal.signal(signal.SIGINT, sigint_handler)
     signal.signal(signal.SIGTERM, sigint_handler)
 
-    eprintf("COMMAND : %s\n", ' '.join(argv))
+    eprintf("COMMAND : %s\n", sys.argv[0] + ' ' +  ' '.join(argv))
     # initialize the input directory or file
     input_fp = opts.input_fp 
     output_dir = path.abspath(opts.output_dir)
@@ -308,11 +307,6 @@ def main(argv):
 
 
         
-    if print_only:
-        command_handler = print_commands
-    else:
-        command_handler = call_commands_serially
-    
     if verbose:
         status_update_callback = print_to_stdout
     else:
@@ -366,6 +360,7 @@ def main(argv):
     sampleData = {}
     # PART1 before the blast
 
+    print input_output_list
     try:
          if len(input_output_list): 
            for input_file in sorted_input_output_list:
@@ -377,6 +372,7 @@ def main(argv):
              s.setParameter('algorithm', algorithm)
              s.setParameter('ncbi_params_file', ncbi_sequin_params)
              s.setParameter('ncbi_sequin_sbt', ncbi_sequin_sbt)
+             s.clearJobs()
 
              if run_type=='overwrite' and  path.exists(sample_output_dir):
                 shutil.rmtree(sample_output_dir)
@@ -388,18 +384,13 @@ def main(argv):
              s.prepareToRun()
              sampleData[input_file] = s
 
-             eprintf("\n")
-             sample_name_banner = "PROCESSING INPUT " + input_file
-             eprintf('#'*len(sample_name_banner) + "\n")
-             eprintf(sample_name_banner + '\n')
 
-             run_metapathways_before_BLAST(
+             run_metapathways(
                 sampleData[input_file],
                 input_file, 
                 sample_output_dir,
                 output_dir,
                 globallogger = globalerrorlogger,
-                command_handler=command_handler,
                 command_line_params=command_line_params,
                 params=params,
                 metapaths_config=metapaths_config,
@@ -411,8 +402,6 @@ def main(argv):
          else: 
              eprintf("ERROR\tNo input files in the specified folder %s to process!\n",sQuote(input_fp) )
              globalerrorlogger.printf("ERROR\tNo input files in the specified folder %s to process!\n",sQuote(input_fp) )
-     
-             _exit(0)
      
          # blast the files
      
@@ -431,47 +420,6 @@ def main(argv):
                    run_type = run_type
                 )
      
-         else:
-            #  blasting  the files files locally
-            for input_file in sorted_input_output_list:
-                sample_output_dir = input_output_list[input_file]
-
-     
-                run_metapathways_at_BLAST(
-                   sampleData[input_file],
-                   input_file, 
-                   sample_output_dir,
-                   output_dir,
-                   globallogger = globalerrorlogger,
-                   command_handler=command_handler,
-                   command_line_params=command_line_params,
-                   params=params,
-                   metapaths_config=metapaths_config,
-                   status_update_callback=status_update_callback,
-                   config_file=config_file,
-                   run_type = run_type,
-                   config_settings = config_settings
-                )
-     
-         # after blasting  the files
-         for input_file in sorted_input_output_list:
-             sample_output_dir = input_output_list[input_file]
-     
-             run_metapathways_after_BLAST(
-                sampleData[input_file],
-                input_file, 
-                sample_output_dir,
-                output_dir,
-                globallogger = globalerrorlogger,
-                command_handler=command_handler,
-                command_line_params=command_line_params,
-                params=params,
-                metapaths_config=metapaths_config,
-                status_update_callback=status_update_callback,
-                config_file=config_file,
-                run_type = run_type,
-                config_settings = config_settings
-             )
     except:
        globalerrorlogger.write( "ERROR\t" + str(traceback.format_exc(10)))
        exit_process("ERROR:" + str(traceback.format_exc(10)))
