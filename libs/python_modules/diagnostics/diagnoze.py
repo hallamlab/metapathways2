@@ -119,7 +119,7 @@ def checkForRequiredDatabases(tools, params, configs, dbType, logger =None):
               """ if note formatted then format it """
               eprintf("WARNING\tTrying to format database %s for algorithm %s\n", sQuote(db), sQuote(algorithm) )
               logger.printf("WARNING\tTring to format database %s for algorithm %s\n", sQuote(db), sQuote(algorithm) )
-              if not formatDB(tools, db, refdbspath, seqType, dbType, algorithm, logger = logger):
+              if not formatDB(tools, db, refdbspath, seqType, dbType, algorithm, configs, logger = logger):
                  return False
 
            dbMapFile = configs['REFDBS'] + PATHDELIM + dbType + PATHDELIM +\
@@ -156,18 +156,16 @@ def createMapFile(seqFilePath, dbMapFile):
 
 
 
-def formatDB(tools, db, refdbspath, seqType, dbType, algorithm, logger = None):
+def formatDB(tools, db, refdbspath, seqType, dbType, algorithm, configs, logger = None):
      """ Formats the sequences for the specified algorithm """
-
-     formatdb_executable = tools['BLAST_REFDB']['exec']['BLAST']['FORMATDB_EXECUTABLE']
+     formatdb_executable = configs['METAPATHWAYS_PATH'] + PATHDELIM + tools['FUNC_SEARCH']['exec']['BLAST']['FORMATDB_EXECUTABLE']
      if seqType=='nucl':
-            formatdb_executable = tools['BLAST_REFDB']['exec']['BLAST']['FORMATDB_EXECUTABLE']
+            formatdb_executable = configs['METAPATHWAYS_PATH'] + PATHDELIM + tools['FUNC_SEARCH']['exec']['BLAST']['FORMATDB_EXECUTABLE']
      if seqType=='prot':
         if algorithm=='LAST':
-            formatdb_executable = tools['BLAST_REFDB']['exec']['LAST']['LASTDB_EXECUTABLE']
+            formatdb_executable = configs['METAPATHWAYS_PATH'] + PATHDELIM + tools['FUNC_SEARCH']['exec']['LAST']['LASTDB_EXECUTABLE']
         if algorithm=='BLAST':
-            formatdb_executable = tools['BLAST_REFDB']['exec']['BLAST']['FORMATDB_EXECUTABLE']
-
+            formatdb_executable = configs['METAPATHWAYS_PATH'] + PATHDELIM + tools['FUNC_SEARCH']['exec']['BLAST']['FORMATDB_EXECUTABLE']
 
      formatted_db = refdbspath + PATHDELIM + dbType + PATHDELIM + 'formatted'  + PATHDELIM + db
      raw_sequence_file = refdbspath + PATHDELIM + dbType + PATHDELIM + db
@@ -181,7 +179,8 @@ def formatDB(tools, db, refdbspath, seqType, dbType, algorithm, logger = None):
      if algorithm=='LAST':
          # dirname = os.path.dirname(raw_sequence_file)    
          cmd='%s -s 4G -p -c %s  %s' %(formatdb_executable, _temp_formatted_db, raw_sequence_file)
-
+     
+     eprintf("INFO\t" + cmd)
      result= getstatusoutput(cmd)
      temp_fileList = glob(_temp_formatted_db + '*') 
 
@@ -191,7 +190,6 @@ def formatDB(tools, db, refdbspath, seqType, dbType, algorithm, logger = None):
            rename(tempFile, file);
      except:
         return False
-
 
      if result[0]==0:
         eprintf("INFO\tFormatted database %s successfully for %s\n", sQuote(db), sQuote(algorithm) )
@@ -206,7 +204,7 @@ def formatDB(tools, db, refdbspath, seqType, dbType, algorithm, logger = None):
 def isRefDBNecessary(params, dbType ):
     """ decide yes or no based on the params settings yes or redo """
     if dbType=="functional": 
-        status = get_parameter(params, 'metapaths_steps', 'BLAST_REFDB', default=None)
+        status = get_parameter(params, 'metapaths_steps', 'FUNC_SEARCH', default=None)
         if status in [ 'yes', 'redo' ]:
            return True
 
