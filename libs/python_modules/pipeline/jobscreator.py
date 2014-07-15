@@ -790,6 +790,7 @@ class ContextCreator:
           ptools_input_folder = s.output_fasta_pf_dir
 
           '''output'''
+          ptools_status_file = s.output_results_pgdb_dir + '.pgdbbuilt'
 
           context = Context()
           context.name = 'BUILD_PGDB'
@@ -797,17 +798,26 @@ class ContextCreator:
                              'ptools_input_folder':ptools_input_folder
                            }
 
+          context.outputs = {
+                             'ptools_status_file':ptools_status_file
+                           }
+
+          pyScript = self.configs.METAPATHWAYS_PATH + self.configs.RUN_PATHOLOGIC
+          cmd1="%s --statusfile %s"  %(pyScript, context.outputs['ptools_status_file'])
+
+
+
           ptoolsExec = self.configs.PATHOLOGIC_EXECUTABLE
-          cmd="%s -patho %s"  %(ptoolsExec, context.inputs['ptools_input_folder'] +  PATHDELIM)
+          cmd2="%s -patho %s"  %(ptoolsExec, context.inputs['ptools_input_folder'] +  PATHDELIM)
 
           taxonomic_pruning_flag = self.params.get('ptools_settings', 'taxonomic_pruning')
           if taxonomic_pruning_flag=='no':
-              cmd= cmd + " -no-taxonomic-pruning "
-          cmd= cmd + " -no-web-cel-overview"
+              cmd2= cmd2 + " -no-taxonomic-pruning "
+          cmd2= cmd2 + " -no-web-cel-overview"
 
           context.status = self.params.get('metapaths_steps', 'BUILD_PGDB') 
 
-          context.commands = [cmd]  
+          context.commands = [cmd2, cmd1]  
           contexts.append(context)
           context.message = self._Message("RUNNING PATHOLOGIC")
           return contexts

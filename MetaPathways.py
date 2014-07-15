@@ -360,7 +360,6 @@ def main(argv):
     sampleData = {}
     # PART1 before the blast
 
-    print input_output_list
     try:
          if len(input_output_list): 
            for input_file in sorted_input_output_list:

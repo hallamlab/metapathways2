@@ -1,10 +1,5 @@
 #!/usr/bin/python
-"""This script applies parsed BLAST results from a CSV file (produced by
-parseblast.pl) to a series of GenBank files.
-
-Oct 26, 2009 by Simon Eng
-    Changed the method of outputting statistics.
-"""
+"""This script BLASTs the preprocessed input agains the Taxonomy databases"""
 
 try:
    import optparse, sys, re, csv, traceback
