@@ -66,7 +66,7 @@ class Configuration():
     def initializeConfiguration(self):
         self.acceptableConfiguration = { 
             'PYTHON_EXECUTABLE': True,
-            'PERL_EXECUTABLE': False,
+            'PGDB_FOLDER': False,
             'METAPATHWAYS_PATH': True,
             'PATHOLOGIC_EXECUTABLE': False, 
             'REFDBS': False,
@@ -96,7 +96,7 @@ class Configuration():
 
         self.missingErrors = { 
             'PYTHON_EXECUTABLE': True,
-            'PERL_EXECUTABLE': False,
+            'PGDB_FOLDER': False,
             'METAPATHWAYS_PATH': True,
             'PATHOLOGIC_EXECUTABLE': False, 
             'REFDBS': False,

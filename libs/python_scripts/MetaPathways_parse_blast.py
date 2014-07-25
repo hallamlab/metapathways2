@@ -210,10 +210,10 @@ class BlastOutputParser(object):
         self.data = {}
         self.refscores = {}
 
-        self.MAX_READ_ERRORS_ALLOWED = 0
+        self.MAX_READ_ERRORS_ALLOWED = 100
         self.ERROR_COUNT = 0
         self.STEP_NAME = 'PARSE_BLAST'
-        self.error_and_warning_logger = None 
+        self.error_and_warning_logger = errorlogger 
 
 
         #print "trying to open blastoutput file " + blastoutput
@@ -257,10 +257,10 @@ class BlastOutputParser(object):
     def setSTEP_NAME(self, step_name):
         self.STEP_NAME  = step_name
 
-    def incErrorCount():
+    def incErrorCount(self):
         self.ERROR_COUNT += 1
 
-    def maxErrorsReached():
+    def maxErrorsReached(self):
           return (self.ERROR_COUNT > self.MAX_READ_ERRORS_ALLOWED)
 
     def __iter__(self):
@@ -279,7 +279,7 @@ class BlastOutputParser(object):
            words[11] = temp[0]
         except:
            eprintf("ERROR : Invalid B/LAST output file %s \n" % (self.blastoutput))
-           if error_and_warning_logger:   
+           if self.error_and_warning_logger:   
                self.error_and_warning_logger.write("ERROR : Invalid B/LAST output file" %(self.blastoutput))
            exit_process( "ERROR : Invalid B/LAST output file %s " % (self.blastoutput))
 
@@ -318,7 +318,7 @@ class BlastOutputParser(object):
               self.i = self.i + 1
               return None 
 
-           if len(words) != 12 or not isWithinCutoffs(words, self.data, self.opts, self.annot_map, self.refscores):
+           if len(words) != 12 or not self.isWithinCutoffs(words, self.data, self.opts, self.annot_map, self.refscores):
              self.i = self.i + 1
              return None 
 
@@ -333,125 +333,124 @@ class BlastOutputParser(object):
            self.blastoutputfile.close()
            raise StopIteration()
               
-def isWithinCutoffs(words, data, cutoffs, annot_map, refscores):
-    data['query'] = words[0]
-
-    try:
-       data['target'] = words[1]
-    except:
-       data['target'] = 0
-
-    try:
-       data['q_length'] = int(words[7]) - int(words[6]) + 1
-    except:
-       data['q_length'] = 0
-
-    try:
-       data['bitscore'] = int(words[11])
-    except:
-       data['bitscore'] = 0
-
-    try:
-       data['bsr'] = float(words[11])/refscores[words[0]]
-    except:
-       #print "words 0 " + str(refscores[words[0]])
-       #print "words 11 " + str( words[11])
-       data['bsr'] = 0
-
-    try:
-       data['expect'] = float(words[10])
-    except:
-       data['expect'] = 0
-
-    try:
-       data['aln_length'] = float(words[3])
-    except:
-       data['aln_length'] = 0
-
-    try:
-       data['identity'] = float(words[2])
-    except:
-       data['identity'] = 0
-
-    try:
-       data['product'] = annot_map[words[1]]
-    except:
-       eprint("Sequence with name \"" + words[1] + "\" is not present in map file ")
-       if error_and_warning_logger:   
-          self.error_and_warning_logger.write("Sequence with name %s is not present in map file " %(words[1] ))
-       self.incErrorCount()
-       if maxErrorsReached():
-           if error_and_warning_logger:   
-              self.error_and_warning_logger.write("Number of sequence absent in map file %s exceeds %d" %(self.blastoutput, self.ERROR_COUNT ))
-           exit_process("Number of sequence absent in map file %s exceeds %d" %(self.blastoutput, self.ERROR_COUNT ))
-         
-
-       data['product'] = 'hypothetical protein'
-
-    try:
-       m = re.search(r'(\d+[.]\d+[.]\d+[.]\d+)', data['product'])
-       if m != None:
-         data['ec'] = m.group(0)
-       else:
-         data['ec'] = ''
-    except:
-        data['ec'] = ''
-
-    if cutoffs.taxonomy:
-       try:
-          m = re.search(r'\[([^\[]+)\]', data['product'])
-          if m != None:
-            data['taxonomy'] = m.group(1)
-          else:
-            data['taxonomy'] = ''
-       except:
-            data['taxonomy'] = ''
-
+    def isWithinCutoffs(self, words, data, cutoffs, annot_map, refscores):
+        data['query'] = words[0]
     
-    if cutoffs.remove_taxonomy:
-       try:
-          data['product'] = re.sub(r'\[([^\[]+)\]','', data['product'])
-       except:
-          data['product'] = ''
-
-    if cutoffs.remove_ec:
-       try:
-          data['product'] = re.sub(r'\([Ee][Ce][:]\d+[.]\d+[.]\d+[.]\d+\)', '', data['product'])
-          data['product'] = re.sub(r'\[[Ee][Ce][:]\d+[.]\d+[.]\d+[.]\d+\]', '', data['product'])
-          data['product'] = re.sub(r'\[[Ee][Ce][:]\d+[.]\d+[.]\d+[.-]\]', '', data['product'])
-          data['product'] = re.sub(r'\[[Ee][Ce][:]\d+[.]\d+[.-.-]\]', '', data['product'])
-          data['product'] = re.sub(r'\[[Ee][Ce][:]\d+[.-.-.-]\]', '', data['product'])
-       except:
-          data['product'] = ''
-
-
-    if data['q_length'] < cutoffs.min_length:
-       return False
-
-    if data['bitscore'] < cutoffs.min_score:
-       return False
-
-    if data['expect'] > cutoffs.max_evalue:
-       return False
-
-    if data['identity'] < cutoffs.min_identity:
-       return False
-
-    if data['bsr'] < cutoffs.min_bsr:
-       return False
-
-#min_length'
-#'min_score'
-#'max_evalue'
-# 'min_identity'
-#'limit'
-#'max_length'
-#'min_query_coverage'
-#'max_gaps'
-#min_bsr'
-
-
-    return True
+        try:
+           data['target'] = words[1]
+        except:
+           data['target'] = 0
+    
+        try:
+           data['q_length'] = int(words[7]) - int(words[6]) + 1
+        except:
+           data['q_length'] = 0
+    
+        try:
+           data['bitscore'] = int(words[11])
+        except:
+           data['bitscore'] = 0
+    
+        try:
+           data['bsr'] = float(words[11])/refscores[words[0]]
+        except:
+           #print "words 0 " + str(refscores[words[0]])
+           #print "words 11 " + str( words[11])
+           data['bsr'] = 0
+    
+        try:
+           data['expect'] = float(words[10])
+        except:
+           data['expect'] = 0
+    
+        try:
+           data['aln_length'] = float(words[3])
+        except:
+           data['aln_length'] = 0
+    
+        try:
+           data['identity'] = float(words[2])
+        except:
+           data['identity'] = 0
+    
+        try:
+           data['product'] = annot_map[words[1]]
+        except:
+           eprintf("Sequence with name \"" + words[1] + "\" is not present in map file ")
+           if self.error_and_warning_logger:   
+              self.error_and_warning_logger.write("Sequence with name %s is not present in map file " %(words[1] ))
+           self.incErrorCount()
+           if self.maxErrorsReached():
+               if self.error_and_warning_logger:   
+                  self.error_and_warning_logger.write("Number of sequence absent in map file %s exceeds %d" %(self.blastoutput, self.ERROR_COUNT ))
+               exit_process("Number of sequence absent in map file %s exceeds %d" %(self.blastoutput, self.ERROR_COUNT ))
+             
+    
+           data['product'] = 'hypothetical protein'
+    
+        try:
+           m = re.search(r'(\d+[.]\d+[.]\d+[.]\d+)', data['product'])
+           if m != None:
+             data['ec'] = m.group(0)
+           else:
+             data['ec'] = ''
+        except:
+            data['ec'] = ''
+    
+        if cutoffs.taxonomy:
+           try:
+              m = re.search(r'\[([^\[]+)\]', data['product'])
+              if m != None:
+                data['taxonomy'] = m.group(1)
+              else:
+                data['taxonomy'] = ''
+           except:
+                data['taxonomy'] = ''
+    
+        
+        if cutoffs.remove_taxonomy:
+           try:
+              data['product'] = re.sub(r'\[([^\[]+)\]','', data['product'])
+           except:
+              data['product'] = ''
+    
+        if cutoffs.remove_ec:
+           try:
+              data['product'] = re.sub(r'\([Ee][Ce][:]\d+[.]\d+[.]\d+[.]\d+\)', '', data['product'])
+              data['product'] = re.sub(r'\[[Ee][Ce][:]\d+[.]\d+[.]\d+[.]\d+\]', '', data['product'])
+              data['product'] = re.sub(r'\[[Ee][Ce][:]\d+[.]\d+[.]\d+[.-]\]', '', data['product'])
+              data['product'] = re.sub(r'\[[Ee][Ce][:]\d+[.]\d+[.-.-]\]', '', data['product'])
+              data['product'] = re.sub(r'\[[Ee][Ce][:]\d+[.-.-.-]\]', '', data['product'])
+           except:
+              data['product'] = ''
+    
+    
+        if data['q_length'] < cutoffs.min_length:
+           return False
+    
+        if data['bitscore'] < cutoffs.min_score:
+           return False
+    
+        if data['expect'] > cutoffs.max_evalue:
+           return False
+    
+        if data['identity'] < cutoffs.min_identity:
+           return False
+    
+        if data['bsr'] < cutoffs.min_bsr:
+           return False
+    
+    #min_length'
+    #'min_score'
+    #'max_evalue'
+    # 'min_identity'
+    #'limit'
+    #'max_length'
+    #'min_query_coverage'
+    #'max_gaps'
+    #min_bsr'
+    
+        return True
 
 def add_refscore_to_file(blast_table_out, refscore_file, allNames):
     infile = open( blast_table_out,'r')
@@ -476,7 +475,7 @@ def add_refscore_to_file(blast_table_out, refscore_file, allNames):
 def process_blastoutput(dbname, blastoutput,  mapfile, refscore_file, opts, errorlogger = None):
 
     blastparser =  BlastOutputParser(dbname, blastoutput, mapfile, refscore_file, opts, errorlogger = errorlogger)
-    blastparser.setMaxErrorsLimit(5)
+    blastparser.setMaxErrorsLimit(100)
     blastparser.setErrorAndWarningLogger(errorlogger)
     blastparser.setSTEP_NAME('PARSE BLAST')
 

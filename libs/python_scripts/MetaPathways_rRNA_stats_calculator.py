@@ -260,8 +260,9 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
        parser.error('At least one taxonomic BLAST output is required')
 
     if runBlastCommandrRNA(runcommand = runcommand) !=0:
-       errorlogger.write("ERROR: Failed to BLAST the sequences against database %s : "  %(options.tax_databases[0]) )
-       errorlogger.write("     : " + runcommand)
+       if errorloger:
+          errorlogger.write("ERROR: Failed to BLAST the sequences against database %s : "  %(options.tax_databases[0]) )
+          errorlogger.write("     : " + runcommand)
        exit_process("ERROR: Failed to BLAST the sequences against database %s : "  %(options.tax_databases[0]) +\
                     "     : " + runcommand)
 

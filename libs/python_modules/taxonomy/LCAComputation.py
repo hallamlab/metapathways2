@@ -3,7 +3,7 @@
 from __future__ import division
 try:
      import sys, traceback, re
-     from   libs.python_modules.utils.metapathways_utils  import fprintf, printf, GffFileParser
+     from   libs.python_modules.utils.metapathways_utils  import fprintf, printf, GffFileParser, getShortORFId
 except:
      print """ Could not load some user defined  module functions"""
      print """ Make sure your typed \"source MetaPathwaysrc\""""
@@ -226,20 +226,26 @@ class LCAComputation:
         try:
            for contig in  gffreader:
               for orf in  gffreader.orf_dictionary[contig]:
-                 if not orf['id'] in pickorfs:
+                 shortORFId = getShortORFId(orf['id'])
+
+
+                 #print shortORFId, orf['id']
+                 if not shortORFId in pickorfs:
                      continue
+                 #print ">", shortORFId, orf['id']
+
                  taxonomy = None
                  species = []
                  if self.tax_dbname in self.results_dictionary:
-                   if orf['id'] in self.results_dictionary[self.tax_dbname]:
+                   if shortORFId in self.results_dictionary[self.tax_dbname]:
                        #compute the top hit wrt score
                        top_score = 0 
-                       for hit in self.results_dictionary[self.tax_dbname][orf['id']]:
-                          #print hit['bitscore'], self.lca_min_score, top_score 
+                       for hit in self.results_dictionary[self.tax_dbname][shortORFId]:
+                        #  print hit['bitscore'], self.lca_min_score, top_score 
                           if hit['bitscore'] >= self.lca_min_score and hit['bitscore'] >= top_score:
                             top_score = hit['bitscore']
        
-                       for hit in self.results_dictionary[self.tax_dbname][orf['id']]:
+                       for hit in self.results_dictionary[self.tax_dbname][shortORFId]:
                           if (100-self.lca_top_percent)*top_score/100 < hit['bitscore']:
                              names = self.get_species(hit)
                              if names:
@@ -251,7 +257,7 @@ class LCAComputation:
                  taxonomy=self.getTaxonomy(species)
                  #print taxonomy,  orf['id'], species
                  self.update_taxon_support_count(taxonomy)
-                 pickorfs[orf['id']] = taxonomy
+                 pickorfs[shortORFId] = taxonomy
         except:
            import traceback
            traceback.print_exc()

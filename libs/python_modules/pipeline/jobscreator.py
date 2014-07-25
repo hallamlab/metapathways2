@@ -788,36 +788,41 @@ class ContextCreator:
 
           '''input'''
           ptools_input_folder = s.output_fasta_pf_dir
+          taxonomic_pruning_flag = self.params.get('ptools_settings', 'taxonomic_pruning')
+          if taxonomic_pruning_flag=='no':
+              taxonomic_pruning= False
+          else:
+              taxonomic_pruning= True
 
           '''output'''
-          ptools_status_file = s.output_results_pgdb_dir + '.pgdbbuilt'
+          reactions_file = s.output_results_annotation_table_dir + PATHDELIM + s.sample_name + '.metacyc.orf.annots.txt'
+          pgdb_location = self.configs.PGDB_FOLDER + PATHDELIM + s.sample_name.lower() + "cyc"
 
           context = Context()
           context.name = 'BUILD_PGDB'
           context.inputs = {
-                             'ptools_input_folder':ptools_input_folder
+                             'ptools_input_folder':ptools_input_folder,
+                             'ptoolsExec': self.configs.PATHOLOGIC_EXECUTABLE,
                            }
 
           context.outputs = {
-                             'ptools_status_file':ptools_status_file
+                             'reactions_file':reactions_file,
+                             'pgdb_location':pgdb_location
                            }
 
-          pyScript = self.configs.METAPATHWAYS_PATH + self.configs.RUN_PATHOLOGIC
-          cmd1="%s --statusfile %s"  %(pyScript, context.outputs['ptools_status_file'])
 
+          pyScript = self.configs.METAPATHWAYS_PATH + PATHDELIM +  self.configs.RUN_PATHOLOGIC
+          cmd = "%s --reactions %s --ptoolsExec %s -i %s -p %s -s %s"\
+                 %(pyScript, context.outputs['reactions_file'],\
+                 context.inputs['ptoolsExec'],\
+                 context.inputs['ptools_input_folder'] +  PATHDELIM,\
+                 context.outputs['pgdb_location'],\
+                 s.sample_name )
 
-
-          ptoolsExec = self.configs.PATHOLOGIC_EXECUTABLE
-          cmd2="%s -patho %s"  %(ptoolsExec, context.inputs['ptools_input_folder'] +  PATHDELIM)
-
-          taxonomic_pruning_flag = self.params.get('ptools_settings', 'taxonomic_pruning')
-          if taxonomic_pruning_flag=='no':
-              cmd2= cmd2 + " -no-taxonomic-pruning "
-          cmd2= cmd2 + " -no-web-cel-overview"
 
           context.status = self.params.get('metapaths_steps', 'BUILD_PGDB') 
 
-          context.commands = [cmd2, cmd1]  
+          context.commands = [cmd]  
           contexts.append(context)
           context.message = self._Message("RUNNING PATHOLOGIC")
           return contexts

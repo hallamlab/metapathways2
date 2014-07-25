@@ -256,7 +256,8 @@ def main(argv, errorlogger = None, runstatslogger = None):
 
 def MetaPathways_refscore(argv, errorlogger = None, runstatslogger = None):
     createParser( )
-    errorlogger.write("#STEP\tCOMPUTE_REFSCORE\n")
+    if errorlogger:
+       errorlogger.write("#STEP\tCOMPUTE_REFSCORE\n")
     main(argv, errorlogger = errorlogger, runstatslogger = runstatslogger)
     return (0,'')
 

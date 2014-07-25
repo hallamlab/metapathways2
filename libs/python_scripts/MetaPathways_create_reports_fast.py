@@ -16,8 +16,10 @@ try:
 
      from libs.python_modules.taxonomy.LCAComputation import *
      from libs.python_modules.taxonomy.MeganTree import *
-     from libs.python_modules.utils.metapathways_utils  import parse_command_line_parameters, fprintf, printf, eprintf,  GffFileParser, exit_process
-     from libs.python_modules.utils.sysutil import getstatusoutput
+     from libs.python_modules.utils.metapathways_utils  import parse_command_line_parameters,\
+               fprintf, printf, eprintf,  GffFileParser, exit_process, getShortORFId, getSampleNameFromContig
+     from libs.python_modules.utils.sysutil import getstatusoutput, pathDelim
+     from libs.python_modules.utils.utils import *
 except:
      print """ Could not load some user defined  module functions"""
      print """ Make sure your typed \"source MetaPathwaysrc\""""
@@ -26,6 +28,8 @@ except:
 
 
 usage= """./MetapathWays_annotate.py -d dbname1 -b parsed_blastout_for_database1 [-d dbname2 -b parsed_blastout_for_database2 ] --input-annotated-gff input.gff  """
+PATHDELIM = pathDelim()
+
 parser=None
 def createParser():
      global parser
@@ -100,6 +104,7 @@ def createParser():
                             'that taxon to be present otherwise move up the tree until there ' + 
                             'is a taxon that meets the requirement')
      parser.add_option_group(lca_options_group)
+
 
 
 def printlist(list, lim):
@@ -204,19 +209,21 @@ def create_annotation(results_dictionary, dbname,  annotated_gff,  output_dir, T
 
     count = 0
     for contig in  gffreader:
+      #    shortORFId = getShortORFId(orf['id'])
        for orf in  gffreader.orf_dictionary[contig]:
-          if orf['id'] not in orfsPicked:
+          shortORFId = getShortORFId(orf['id'])
+          if shortORFId not in orfsPicked:
             continue
           
-          orfToContig[orf['id']] = contig
+          orfToContig[shortORFId] = contig
           
           taxonomy = None
           # if count%10000==0 :
           #    pass 
 
           #_results = re.search(r'refseq', opts_global.database_name, re.I)
-          if orf['id'] in Taxons:
-              taxonomy1=Taxons[orf['id']]
+          if shortORFId in Taxons:
+              taxonomy1=Taxons[shortORFId]
               taxonomy=lca.get_supported_taxon(taxonomy1)
           else:
               taxonomy = 'root'
@@ -428,20 +435,25 @@ def process_parsed_blastoutput(dbname, blastparser, cutoffs, annotation_results,
            # if dbname=='refseq':
            # print data['query'] + '\t' + str(data['q_length']) +'\t' + str(data['bitscore']) +'\t' + str(data['expect']) +'\t' + str(data['identity']) + '\t' + str(data['bsr']) + '\t' + data['ec'] + '\t' + data['product']
            annotation = {}
+           shortORFId = None
            for field in fields:
              if field in data:
-                annotation[field] = data[field] 
+               if field == 'query':
+                   shortORFId =  getShortORFId(data[field])  
+                   annotation[field] = shortORFId 
+               else:
+                   annotation[field] = data[field] 
 
-           if not data['query'] in pickorfs: 
+           if not shortORFId in pickorfs: 
               blastparser.rewind()
               return None
           
            annotation['dbname'] = dbname
 
-           if not data['query'] in annotation_results:
-               annotation_results[data['query']] = []
+           if not shortORFId in annotation_results:
+               annotation_results[shortORFId] = []
 
-           annotation_results[data['query']].append(annotation)
+           annotation_results[shortORFId].append(annotation)
 
     return None
 
@@ -627,7 +639,8 @@ def get_list_of_queries(annotated_gff):
     count = 0
     for contig in  gffreader:
        for orf in  gffreader.orf_dictionary[contig]:
-          orfList[orf['id']]  = 1
+          orfid =  getShortORFId(orf['id']) 
+          orfList[orfid]  = 1
           count += 1
     #      if count%500000==0:
     #         print count
@@ -723,7 +736,8 @@ def merge_sorted_parsed_files(dbname, filenames, outputfilename, orfRanks, verbo
           next(iterate)
           line = readerhandles[i].getProcessedLine()  
           fields  = [ x.strip() for x in line.split('\t') ]
-          values.append( (i, orfRanks[fields[0]], line) )
+          shortORFId = getShortORFId(fields[0])
+          values.append( (i, orfRanks[shortORFId], line) )
        except:
           outputfile.close()
           return
@@ -742,7 +756,8 @@ def merge_sorted_parsed_files(dbname, filenames, outputfilename, orfRanks, verbo
 
           line = readerhandles[values[0][0]].getProcessedLine()  
           fields  = [ x.strip() for x in line.split('\t') ]
-          values[0] = (values[0][0], orfRanks[fields[0]], line) 
+          shortORFId = getShortORFId(fields[0])
+          values[0] = (values[0][0], orfRanks[shortORFId], line) 
        except:
           #import traceback
           #traceback.print_exc()
@@ -786,7 +801,14 @@ def  create_sorted_parse_blast_files(dbname, blastoutput, listOfOrfs, size = 100
     fieldmapHeaderLine = blastparser.getHeaderLine()
     
     for data in blastparser:
-       names[seqid] = data['query']
+     #  query =  getShortORFId(data['query'])
+
+       query =  data['query']
+       #names[seqid] = data['query']
+
+       #print query, data['query']
+       names[seqid] = query
+
        parsedLines[seqid] = blastparser.getProcessedLine()
        list.append( (seqid, names[seqid]) )
          
@@ -849,6 +871,11 @@ def main(argv, errorlogger = None,  runstatslogger = None):
     results_dictionary={}
     dbname_weight={}
 
+    checkOrCreateFolder(opts.output_dir)
+    output_table_file = open(opts.output_dir + PATHDELIM +'functional_and_taxonomic_table.txt', 'w')
+    fprintf(output_table_file, "ORF_ID\tORF_length\tstart\tend\tContig_Name\tContig_length\tstrand\tec\ttaxonomy\tproduct\n")
+    output_table_file.close()
+
 #    print "memory used  = %s" %(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss /1000000)
     listOfOrfs =  get_list_of_queries(opts.input_annotated_gff)       
     listOfOrfs.sort(key=lambda tup: tup, reverse=False)
@@ -856,16 +883,13 @@ def main(argv, errorlogger = None,  runstatslogger = None):
     #printlist(listOfOrfs,5)
     #sys.exit(0)
 
+
 ##### uncomment the following lines
     for dbname, blastoutput in zip(opts.database_name, opts.input_blastout):
       create_sorted_parse_blast_files(dbname, blastoutput, listOfOrfs, verbose= opts.verbose, errorlogger = errorlogger) 
 #####
 
     # process in blocks of size _stride
-    output_table_file = open(opts.output_dir + '/functional_and_taxonomic_table.txt', 'w')
-    fprintf(output_table_file, "ORF_ID\tORF_length\tstart\tend\tContig_Name\tContig_length\tstrand\tec\ttaxonomy\tproduct\n")
-    output_table_file.close()
-
     lca = LCAComputation(opts.ncbi_taxonomy_map)
     lca.setParameters(opts.lca_min_score, opts.lca_top_percent, opts.lca_min_support)
 
@@ -898,6 +922,7 @@ def main(argv, errorlogger = None,  runstatslogger = None):
             try:
                results_dictionary[dbname]={}
                process_parsed_blastoutput(dbname, blastParsers[dbname], opts, results_dictionary[dbname], pickorfs)
+               #print results_dictionary[dbname].keys()[1:5]
                lca.set_results_dictionary(results_dictionary)
                lca.compute_min_support_tree(opts.input_annotated_gff, pickorfs, dbname = dbname )
                for key, taxon  in pickorfs.iteritems():
@@ -1071,6 +1096,7 @@ def print_orf_table(results, orfToContig,  output_dir,  outputfile):
          database_maps['metacyc'] = dbname
 
     
+    sampleName = None
     for orfn in orf_dict:
 #       print orfn, '<<',  orf_dict[orfn], ' >> xxxx'
        #_keys =  orf_dict[orfn].keys()
@@ -1096,7 +1122,11 @@ def print_orf_table(results, orfToContig,  output_dir,  outputfile):
        else:
           seedFn = ""
 
-       fprintf(outputfile, "%s\n", orfn + "\t" + orf_dict[orfn]['contig'] + '\t' + cogFn + '\t' + keggFn +'\t' + seedFn + '\t' + metacycPwy)
+       if not sampleName:
+         sampleName = getSampleNameFromContig(orf_dict[orfn]['contig']) 
+
+       orfName = sampleName + "_" + orfn 
+       fprintf(outputfile, "%s\n", orfName + "\t" + orf_dict[orfn]['contig'] + '\t' + cogFn + '\t' + keggFn +'\t' + seedFn + '\t' + metacycPwy)
 
 
 def MetaPathways_create_reports_fast(argv, errorlogger =  None, runstatslogger = None):       

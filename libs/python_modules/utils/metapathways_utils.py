@@ -40,6 +40,37 @@ def exit_process(message = None):
     #sys.exit(0)
     _exit(0)
 
+def getShortORFId(orfname) :
+    #return orfname
+    orfNameRegEx = re.compile(r'_(\d+_\d+)$')
+
+    pos  = orfNameRegEx.search(orfname)
+
+    shortORFname = "" 
+    if pos: 
+        shortORFname = pos.group(1)
+
+    return shortORFname
+
+
+def getShortContigId(contigname):
+    contigNameRegEx = re.compile(r'_(\d+)$')
+    shortContigname = "" 
+    pos  = contigNameRegEx.search(contigname)
+    if pos: 
+        shortContigname = pos.group(1)
+
+    return shortContigname
+
+def getSampleNameFromContig(contigname):
+    contigNameRegEx = re.compile(r'(.*)_(\d+)$')
+    sampleName = "" 
+    pos  = contigNameRegEx.search(contigname)
+    if pos: 
+        sampleName = pos.group(1)
+
+    return sampleName
+
 class GffFileParser(object):
    def __init__(self, gff_filename):
         self.Size = 10000

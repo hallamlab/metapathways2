@@ -587,11 +587,11 @@ def check_config_settings(config_settings, file, globalerrorlogger = None):
       if key in ['METAPATHWAYS_PATH' ]:
          if not path.isdir( config_settings[key]) :
             eprintf("ERROR: Path for \"%s\" is NOT set properly in configuration file \"%s\"\n", key, file)  
-            eprintf("ERROR: Currently it is.t to \"%s\"\n",  config_settings[key] )  
+            eprintf("ERROR: Currently it is set to \"%s\"\n",  config_settings[key] )  
 
             if globalerrorlogger!=None:
                globalerrorlogger.write("ERROR\tPath for \"%s\" is NOT set properly in configuration file \"%s\"\n"  %(key, file))  
-               globalerrorlogger.write("       Currently it is.t to \"%s\"\n" %(config_settings[key] )  )
+               globalerrorlogger.write("       Currently it is set to \"%s\"\n" %(config_settings[key] )  )
             missingItems.append(key) 
          continue
 
@@ -600,10 +600,10 @@ def check_config_settings(config_settings, file, globalerrorlogger = None):
       if key in [ 'REFDBS' ]:
          if not path.isdir( config_settings[key]) :
             eprintf("ERROR: Path for \"%s\" is NOT set properly in configuration file \"%s\"\n", key, file)  
-            eprintf("ERROR: Currently it is.t to \"%s\"\n", config_settings[key] )  
+            eprintf("ERROR: Currently it is set to \"%s\"\n", config_settings[key] )  
             if globalerrorlogger!=None:
                 globalerrorlogger.write("ERROR\tPath for \"%s\" is NOT set properly in configuration file \"%s\"\n" %(key,file))
-                globalerrorlogger.write("Currently it is.t to \"%s\"\n" %( config_settings[key]) )  
+                globalerrorlogger.write("Currently it is set to \"%s\"\n" %( config_settings[key]) )  
             missingItems.append(key) 
          continue
 
@@ -611,10 +611,10 @@ def check_config_settings(config_settings, file, globalerrorlogger = None):
       if key in [ 'EXECUTABLES_DIR']:
          if not path.isdir( config_settings['METAPATHWAYS_PATH'] + PATHDELIM + config_settings[key]) :
             eprintf("ERROR: Path for \"%s\" is NOT set properly in configuration file \"%s\"\n", key, file)  
-            eprintf("ERROR: Currently it is.t to \"%s\"\n", config_settings[key] )  
+            eprintf("ERROR: Currently it is set to \"%s\"\n", config_settings[key] )  
             if globalerrorlogger!=None:
                globalerrorlogger.write("ERROR\tPath for \"%s\" is NOT set properly in configuration file \"%s\"\n" %(key, file))  
-               globalerrorlogger.write("Currently it is.t to \"%s\"\n" %( config_settings[key] )) 
+               globalerrorlogger.write("Currently it is set to \"%s\"\n" %( config_settings[key] )) 
             missingItems.append(key) 
          continue
 
@@ -622,34 +622,37 @@ def check_config_settings(config_settings, file, globalerrorlogger = None):
       if key in [ 'RESOURCES_DIR']:
          if not path.isdir( config_settings['METAPATHWAYS_PATH'] + PATHDELIM + config_settings[key]) :
             eprintf("ERROR: Path for \"%s\" is NOT set properly in configuration file \"%s\"\n", key, file)  
-            eprintf("ERROR: Currently it is.t to \"%s\"\n",  config_settings['METAPATHWAYS_PATH'] + PATHDELIM + config_settings[key] )  
+            eprintf("ERROR: Currently it is set to \"%s\"\n",  config_settings['METAPATHWAYS_PATH'] + PATHDELIM + config_settings[key] )  
             print  config_settings['METAPATHWAYS_PATH'], config_settings[key] 
             if globalerrorlogger!=None:
                globalerrorlogger.write("ERROR\tPath for \"%s\" is NOT set properly in configuration file \"%s\"\n" %(key, file))
-               globalerrorlogger.write("Currently it is.t to \"%s\"\n" %( config_settings[key]))  
+               globalerrorlogger.write("Currently it is set to \"%s\"\n" %( config_settings[key]))  
             missingItems.append(key) 
          continue
 
       # make sure  MetaPaths directory is present
-      if key in ['PERL_EXECUTABLE',  'PYTHON_EXECUTABLE' , 'PATHOLOGIC_EXECUTABLE' ]:
+      if key in ['PYTHON_EXECUTABLE' , 'PATHOLOGIC_EXECUTABLE' ]:
          if not path.isfile( config_settings[key]) :
             eprintf("ERROR: Path for \"%s\" is NOT set properly in configuration file \"%s\"\n", key, file)  
-            eprintf("ERROR: Currently it is.t to \"%s\"\n", config_settings[key] )  
+            eprintf("ERROR: Currently it is set to \"%s\"\n", config_settings[key] )  
             if globalerrorlogger!=None:
                globalerrorlogger.write("ERROR\tPath for \"%s\" is NOT set properly in configuration file \"%s\"\n" %(key, file)) 
-               globalerrorlogger.write("Currently it is.t to \"%s\"\n" %( config_settings[key] ) )
+               globalerrorlogger.write("Currently it is set to \"%s\"\n" %( config_settings[key] ) )
             missingItems.append(key) 
          continue
 
+      # ignore pgdb folder for now
+      if key in ['PGDB_FOLDER' ]:
+          continue
       
       # check if the desired file exis. if not, then print a message
       if not path.isfile( config_settings['METAPATHWAYS_PATH'] +  value ) :
           if not path.isfile( value ) :
               eprintf("ERROR:Path for \"%s\" is NOT set properly in configuration file \"%s\"\n", key, file)  
-              eprintf("Currently it is.t to \"%s\"\n", config_settings['METAPATHWAYS_PATH'] + value ) 
+              eprintf("Currently it is set to \"%s\"\n", config_settings['METAPATHWAYS_PATH'] + value ) 
               if globalerrorlogger!=None:
                  globalerrorlogger.write("ERROR\tPath for \"%s\" is NOT set properly in configuration file \"%s\"\n" %(key, file) )
-                 globalerrorlogger.write("Currently it is.t to \"%s\"\n" %(config_settings['METAPATHWAYS_PATH'] + value)) 
+                 globalerrorlogger.write("Currently it is set to \"%s\"\n" %(config_settings['METAPATHWAYS_PATH'] + value)) 
               missingItems.append(key) 
           continue
      
@@ -691,23 +694,23 @@ def read_pipeline_configuration( file, globallogger ):
               if len(result.groups()) == 2:
                  fields = result.groups()
               else:
-                 eprintf("     The following line in your config settings files is.t set up yet\n")
+                 eprintf("     The following line in your config settings files is not set up yet\n")
                  eprintf("     Please rerun the pipeline after setting up this line\n")
                  eprintf("     Error in line : %s\n", line)
                  globalerrorlogger(
                       "WARNING\t\n"+\
-                      "     The following line in your config settings files is.t set up yet\n"+\
+                      "     The following line in your config settings files isn not set up yet\n"+\
                       "     Please rerun the pipeline after setting up this line\n"+\
                       "     Error in line : %s\n" %(line))
 
                  exit_process()
            except:
-                 eprintf("     The following line in your config settings files is.t set up yet\n")
+                 eprintf("     The following line in your config settings files is not set up yet\n")
                  eprintf("     Please rerun the pipeline after setting up this line\n")
                  eprintf("     Error ine line : %s\n", line)
                  globalerrorlogger(
                       "WARNING\t\n"+\
-                      "     The following line in your config settings files is.t set up yet\n"+\
+                      "     The following line in your config settings files is not set up yet\n"+\
                       "     Please rerun the pipeline after setting up this line\n"+\
                       "     Error in line : %s\n" %(line))
                  exit_process()

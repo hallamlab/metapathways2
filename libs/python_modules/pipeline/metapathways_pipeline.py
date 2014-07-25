@@ -15,6 +15,8 @@ try:
 
       from libs.python_modules.utils.metapathways_utils import printf, eprintf
       from libs.python_modules.utils.sysutil import getstatusoutput
+      from libs.python_modules.utils.pathwaytoolsutils import *
+
       from libs.python_modules.grid.BlastGrid import *
       import libs.python_scripts  as python_scripts
 
@@ -58,11 +60,13 @@ def execute_pipeline_stage(pipeline_command, extra_command = None,  errorlogger 
      funcname = re.sub(r'^.*/','', funcname)
      args = argv[1:] 
      
+
      if hasattr(python_scripts, funcname):
         methodtocall = getattr( getattr(python_scripts, funcname), funcname)
         if extra_command == None:
            result = methodtocall(args, errorlogger = errorlogger, runstatslogger = runstatslogger)
         else:
+#           print extra_command
            result = methodtocall(args, errorlogger = errorlogger, extra_command = extra_command, runstatslogger = runstatslogger)
      else:
         result = getstatusoutput(pipeline_command)
@@ -73,9 +77,7 @@ def execute_pipeline_stage(pipeline_command, extra_command = None,  errorlogger 
 def execute_tasks(s, verbose = False):
     """Run list of commands, one after another """
     #logger.write("Executing commands.\n\n")
-
     for c in s.getContexts():
-
         #print c.name, c.status, 'status'
         if c.status=='stop':
            print "Stopping!"
@@ -129,6 +131,7 @@ def execute_tasks(s, verbose = False):
 
 
 def execute(s, c):
+       
        if len(c.commands) == 2:
              result = execute_pipeline_stage(c.commands[0], extra_command =  c.commands[1], errorlogger= s.errorlogger, runstatslogger = s.runstatslogger )
        else:

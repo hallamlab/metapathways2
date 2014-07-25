@@ -15,7 +15,7 @@ try:
 
     from shutil import rmtree
     from optparse import make_option
-    from os import path, _exit
+    from os import path, _exit, remove
 
     from libs.python_modules.utils.utils import *
 except:
@@ -40,7 +40,7 @@ class Context:
         pass
 
     def isOutputAvailable(self):
-        #print self.outputs.values()
+
         return doFilesExist(self.outputs.values())
 
     def isInputAvailable(self, errorlogger = None):
@@ -56,5 +56,12 @@ class Context:
 
     def removeOutput(self, errorlogger = None):
         #print self.inputs.values()
-        pass
+        for item in self.outputs.values():
+           if not path.exists(item):
+              continue
+
+           if path.isdir(item):
+              rmtree(item)
+           else:
+              remove(item)
 
