@@ -84,6 +84,11 @@ parser.add_option('-r','--run-type', dest="run_type", default='safe',
 parser.add_option("-v", "--verbose",
                   action="store_true", dest="verbose", default=False,
                   help="print lots of information on the stdout [default]")
+
+parser.add_option("-b", "--block-mode",
+                  action="store_true", dest="block_mode", default=False,
+                  help="processes the samples by blocking the stages before and after functional search [default off]")
+
 parser.add_option("-P", "--print-only",
                   action="store_true", dest="print_only", default=False,
                   help="print only  the commands [default False]")
@@ -94,6 +99,8 @@ parser.add_option("-n", "--ncbi-header", dest="ncbi_header",
 parser.add_option("-s", "--subset", dest="sample_subset", action="append", default=[],
                   help="Processes only samples in the list  subset specified [ -s sample1 -s sample2 ]" )
 
+parser.add_option("--runid", dest="runid",  default="",
+                  help="Any string to represent the runid [ default Empty string ]" )
 #parser.add_option("-s", "--ncbi-sbt-file", dest="ncbi_sbt", 
 #                  help="the NCBI sbt location created by the \"Create Submission Template\" form: http://www.ncbi.nlm.nih.gov/WebSub/template.cgi" )
 
@@ -357,10 +364,14 @@ def main(argv):
 
     
     
-    sampleData = {}
+    samplesData = {}
     # PART1 before the blast
 
+    block_mode = opts.block_mode
+    runid = opts.runid
+
     try:
+         # load the sample information 
          if len(input_output_list): 
            for input_file in sorted_input_output_list:
              sample_output_dir = input_output_list[input_file]
@@ -379,13 +390,16 @@ def main(argv):
              if not  path.exists(sample_output_dir):
                 makedirs(sample_output_dir)
 
-
              s.prepareToRun()
-             sampleData[input_file] = s
+             samplesData[input_file] = s
+         else: 
+             eprintf("ERROR\tNo input files in the specified folder %s to process!\n",sQuote(input_fp) )
+             globalerrorlogger.printf("ERROR\tNo input files in the specified folder %s to process!\n",sQuote(input_fp) )
 
-
-             run_metapathways(
-                sampleData[input_file],
+ 
+         # load the sample information 
+         run_metapathways(
+                samplesData,
                 input_file, 
                 sample_output_dir,
                 output_dir,
@@ -396,16 +410,22 @@ def main(argv):
                 status_update_callback=status_update_callback,
                 config_file=config_file,
                 run_type = run_type, 
-                config_settings = config_settings
-             )
-         else: 
-             eprintf("ERROR\tNo input files in the specified folder %s to process!\n",sQuote(input_fp) )
-             globalerrorlogger.printf("ERROR\tNo input files in the specified folder %s to process!\n",sQuote(input_fp) )
+                config_settings = config_settings,
+                block_mode = block_mode,
+                runid = runid
+        )
      
+
+
+
+
+
+
+
+
          # blast the files
      
          blasting_system =    get_parameter(params,  'metapaths_steps', 'BLAST_REFDB', default='yes')
-     
          if blasting_system =='grid':
             #  blasting the files files on the grids
              input_files = sorted_input_output_list
@@ -416,7 +436,8 @@ def main(argv):
                    params=params,
                    metapaths_config=metapaths_config,
                    config_file=config_file,
-                   run_type = run_type
+                   run_type = run_type,
+                   runid = runid
                 )
      
     except:

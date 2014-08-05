@@ -1,0 +1,5 @@
+# the following colors are available for the -d option. Feel free to add more.
+0 0 255
+255 0 0
+0 255 0
+0 255 255

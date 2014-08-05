@@ -79,11 +79,10 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
     global parser
 
     options, args = parser.parse_args(argv)
-
-
     if options.inputfolder ==None:
        parser.error('Input folder for Pathologic not found')
     else:
+      # required files to be able to build ePGDB
       files = [ 
                 options.inputfolder + PATHDELIM + '0.pf',
                 options.inputfolder + PATHDELIM + '0.fasta',
@@ -94,6 +93,7 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
       if files_exist( files , errorlogger = errorlogger):
         exit_process("ERROR: Cannot find all inputs for Pathologic in folder %s : "  %(options.inputfolder) )
 
+    # command to build the ePGDB
     command = "%s -patho %s"  %(options.ptoolsExec, options.inputfolder)
     if options.no_taxonomic_pruning:
        command += " -no-taxonomic-pruning "
@@ -116,16 +116,11 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
           errorlogger.write("     : " + command)
        exit_process("ERROR: Failed to run Pathologic on input %s : "  %(options.inputfolder) )
     
-
-    eprintf(" sytatus %s\n", status)
-
     try:
-        eprintf(options.reactions_list + "\n")
         pythonCyc = PythonCyc()
         pythonCyc.setOrganism(options.sample_name.lower())
+        pythonCyc.setPToolsExec(options.ptoolsExec)
         pythonCyc.startPathwayTools()
-
-        print pythonCyc.getOrganismList()
 
         resultLines = pythonCyc.getReactionListLines()
         pythonCyc.stopPathwayTools()

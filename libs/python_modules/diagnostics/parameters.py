@@ -137,10 +137,9 @@ class Parameters():
                           'PATHOLOGIC_INPUT'  : {'yes':True, 'skip':True, 'redo':True }, 
                           'GENBANK_FILE'  : {'yes':True, 'skip':True, 'redo':True, }, 
                           'CREATE_ANNOT_REPORTS'  : {'yes':True, 'skip':True, 'redo':True }, 
-                          'MLTREEMAP_CALCULATION'  : {'skip':True }, 
-                          'MLTREEMAP_IMAGEMAKER'  : {'skip':True }, 
-                          'BUILD_PGDB'  : {'yes':True, 'skip':True, 'redo':True, }
-     #                     'COMPUTE_RPKM'  : {'yes':True, 'skip':True, 'redo':True, }
+                          'MLTREEMAP_CALCULATION'  : {'yes':True, 'skip': True, 'redo':True }, 
+                          'BUILD_PGDB'  : {'yes':True, 'skip':True, 'redo':True, },
+                          'COMPUTE_RPKM'  : {'yes':True, 'skip':True, 'redo':True, }
                 }
            }
 

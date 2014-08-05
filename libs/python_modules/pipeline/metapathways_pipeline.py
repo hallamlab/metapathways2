@@ -74,10 +74,14 @@ def execute_pipeline_stage(pipeline_command, extra_command = None,  errorlogger 
 
 
 
-def execute_tasks(s, verbose = False):
+def execute_tasks(s, verbose = False, block = 0):
     """Run list of commands, one after another """
     #logger.write("Executing commands.\n\n")
-    for c in s.getContexts():
+    contextBlocks = s.getContextBlocks()
+       
+    contextBlock = contextBlocks[block]
+
+    for c in contextBlock:
         #print c.name, c.status, 'status'
         if c.status=='stop':
            print "Stopping!"

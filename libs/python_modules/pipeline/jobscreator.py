@@ -41,21 +41,32 @@ class JobCreator():
           self.configs = configs
           #print self.configs
 
-      def addJobs(self, s):
+      def addJobs(self, s, block_mode=False):
           contextCreator = ContextCreator(self.params, self.configs)
 
-          for stage in contextCreator.getStageList():
-              if stage in self.params['metapaths_steps'] or\
-                 stage == 'GBK_TO_FNA_FAA_GFF' or\
-                 stage == 'GBK_TO_FNA_FAA_GFF_ANNOT':
+          contextBlock = []
+          for stageList in contextCreator.getStageLists():
+            if block_mode ==True:
+               contextBlock = []
 
-                 #if self.params['INPUT']['format'] =='gbk-unannotated':
-                 #  if stage=='PREPROCESS_INPUT':
-                 #    stage = 'GBK_TO_FNA_FAA_GFF'
+            for stage in stageList: 
+               if stage in self.params['metapaths_steps'] or\
+                  stage == 'GBK_TO_FNA_FAA_GFF' or\
+                  stage == 'GBK_TO_FNA_FAA_GFF_ANNOT':
+                  #if self.params['INPUT']['format'] =='gbk-unannotated':
+                  #  if stage=='PREPROCESS_INPUT':
+                  #    stage = 'GBK_TO_FNA_FAA_GFF'
 
-               #  self.stageList['gbk-unannotated'] = [ 'GBK_TO_FNA_FAA_GFF',
-                 contexts = contextCreator.getContexts(s, stage)
-                 s.addContexts(contexts) 
+                #  self.stageList['gbk-unannotated'] = [ 'GBK_TO_FNA_FAA_GFF',
+                  contexts = contextCreator.getContexts(s, stage)
+                  contextBlock.append(contexts)
+
+            if block_mode==True:
+               s.addContexts(contextBlock) 
+
+          # block stages
+          if block_mode==False:
+             s.addContexts(contextBlock) 
 
 
 
@@ -227,10 +238,11 @@ class ContextCreator:
           context.inputs = { 'input_file' : input_file }
           context.outputs = { 'output_gff' : output_gff }
           context.status = self.params.get('metapaths_steps','ORF_PREDICTION')
+          translation_table = self.params.get('orf_prediction', 'translation_table')
 
-          options = " -m -p meta -f gff"
+          options = " -m -p meta -f gff -g " + translation_table
 
-          pyScript = self.configs.METAPATHWAYS_PATH + self.configs.ORF_PREDICTION
+          pyScript = self.configs.METAPATHWAYS_PATH + PATHDELIM + self.configs.EXECUTABLES_DIR + PATHDELIM + self.configs.ORF_PREDICTION
           
           cmd = "%s %s -i %s -o %s" %( pyScript, options, context.inputs['input_file'],\
                 context.outputs['output_gff'] ) 
@@ -330,16 +342,16 @@ class ContextCreator:
 
           cmd = None
           if s.algorithm == 'BLAST':
-              pyScript      = self.configs.METAPATHWAYS_PATH + self.configs.COMPUTE_REFSCORES
-              formatterExec =  self.configs.METAPATHWAYS_PATH + self.configs.FORMATDB_EXECUTABLE
-              searchExec =   self.configs.METAPATHWAYS_PATH + self.configs.BLASTP_EXECUTABLE
+              pyScript      = self.configs.METAPATHWAYS_PATH + PATHDELIM + self.configs.EXECUTABLES_DIR + PATHDELIM + self.configs.COMPUTE_REFSCORES
+              formatterExec = self.configs.METAPATHWAYS_PATH + PATHDELIM + self.configs.EXECUTABLES_DIR + PATHDELIM + self.configs.FORMATDB_EXECUTABLE
+              searchExec =   self.configs.METAPATHWAYS_PATH + PATHDELIM + self.configs.EXECUTABLES_DIR + PATHDELIM + self.configs.BLASTP_EXECUTABLE
               cmd = "%s  -F %s -B %s -o %s -i %s -a  %s"\
                    %( pyScript, formatterExec, searchExec, output_refscores, input_filtered_faa, s.algorithm)
 
-          elif s.algorithm == 'LAST':
-              pyScript      = self.configs.METAPATHWAYS_PATH + self.configs.COMPUTE_REFSCORES
-              formatterExec =  self.configs.METAPATHWAYS_PATH + self.configs.LASTDB_EXECUTABLE
-              searchExec =   self.configs.METAPATHWAYS_PATH + self.configs.LAST_EXECUTABLE
+          elif s.algorithm == 'LAST': 
+              pyScript      = self.configs.METAPATHWAYS_PATH + PATHDELIM +  self.configs.COMPUTE_REFSCORES
+              formatterExec =  self.configs.METAPATHWAYS_PATH + PATHDELIM +  self.configs.EXECUTABLES_DIR + PATHDELIM + self.configs.LASTDB_EXECUTABLE
+              searchExec =   self.configs.METAPATHWAYS_PATH + PATHDELIM + self.configs.EXECUTABLES_DIR + PATHDELIM +  self.configs.LAST_EXECUTABLE
               cmd = "%s  -F %s -B %s -o %s -i %s -a %s"\
                        %( pyScript, formatterExec, searchExec, output_refscores, input_filtered_faa, s.algorithm)
    
@@ -379,14 +391,14 @@ class ContextCreator:
       
               cmd = None
               if s.algorithm == 'BLAST':
-                 searchExec =   self.configs.METAPATHWAYS_PATH + self.configs.BLASTP_EXECUTABLE
+                 searchExec =   self.configs.METAPATHWAYS_PATH + PATHDELIM + self.configs.EXECUTABLES_DIR + PATHDELIM + self.configs.BLASTP_EXECUTABLE
                  cmd="%s -num_threads 16  -max_target_seqs %s  -outfmt 6  -db %s -query  %s -evalue  %s  -out %s"\
                       %( searchExec, max_hits, refDbFullName, context.inputs['input_filtered_faa'],\
                         max_evalue, context.outputs['blastoutput']) 
                  context.message = self._Message("BLASTING AMINO SEQS AGAINST " + db)
    
               if s.algorithm == 'LAST':
-                  searchExec =   self.configs.METAPATHWAYS_PATH + self.configs.LAST_EXECUTABLE
+                  searchExec =   self.configs.METAPATHWAYS_PATH + PATHDELIM + self.configs.EXECUTABLES_DIR + PATHDELIM + self.configs.LAST_EXECUTABLE
                   cmd="%s -o %s -f 0 %s %s"\
                        %( searchExec, blastoutput, refDbFullName, input_filtered_faa) 
                   context.message = self._Message("LASTING AMINO SEQS AGAINST " + db)
@@ -476,8 +488,8 @@ class ContextCreator:
           '''inputs'''
           input_fasta = s.preprocessed_dir +  PATHDELIM + s.sample_name + ".fasta"
 
-          pyScript =  self.configs.METAPATHWAYS_PATH + self.configs.BLASTN_EXECUTABLE
-          executable= self.configs.METAPATHWAYS_PATH + self.configs.SCAN_rRNA
+          executable =  self.configs.METAPATHWAYS_PATH +  PATHDELIM + self.configs.EXECUTABLES_DIR + PATHDELIM +  self.configs.BLASTN_EXECUTABLE
+          pyScript= self.configs.METAPATHWAYS_PATH + PATHDELIM + self.configs.SCAN_rRNA
 
           for db in refrRNArefDBs:
              '''inputs'''
@@ -495,14 +507,14 @@ class ContextCreator:
              context.outputs = { 'rRNA_blastout':rRNA_blastout, 'rRNA_stat_results': rRNA_stat_results }
 
              cmd1="%s -outfmt 6 -num_threads 8  -query %s -out %s -db %s -max_target_seqs 5"\
-                   %(pyScript, context.inputs['input_fasta'], context.outputs['rRNA_blastout'], context.inputs1['dbpath'])
+                   %(executable, context.inputs['input_fasta'], context.outputs['rRNA_blastout'], context.inputs1['dbpath'])
 
 
 
              """ now the scanning part"""
 
 
-             cmd2= "%s -o %s -b %s -e %s -s %s"  %(executable, context.outputs['rRNA_stat_results'],\
+             cmd2= "%s -o %s -b %s -e %s -s %s"  %(pyScript, context.outputs['rRNA_stat_results'],\
                    bscore_cutoff, eval_cutoff, identity_cutoff)
 
              cmd2 = cmd2 +  " -i "  + context.outputs['rRNA_blastout'] + " -d " + context.inputs['dbsequences']
@@ -513,7 +525,6 @@ class ContextCreator:
 
 
           return contexts
-
 
 
 
@@ -539,9 +550,9 @@ class ContextCreator:
 
 
 
-           pyScript = self.configs.METAPATHWAYS_PATH + self.configs.SCAN_tRNA
+           executable = self.configs.METAPATHWAYS_PATH + PATHDELIM + self.configs.EXECUTABLES_DIR + PATHDELIM +  self.configs.SCAN_tRNA
            cmd= "%s -o %s -F %s  -i %s -T %s  -D %s"\
-                %(pyScript, context.outputs['tRNA_stats_output'], context.outputs['tRNA_fasta_output'],\
+                %(executable, context.outputs['tRNA_stats_output'], context.outputs['tRNA_fasta_output'],\
                 context.inputs['input_fasta'], context.inputs['TPCsignal'], context.inputs['Dsignal'])
 
            context.commands = [ cmd ]
@@ -727,7 +738,6 @@ class ContextCreator:
           output_annot_table = s.output_results_annotation_table_dir +\
                                PATHDELIM + 'functional_and_taxonomic_table.txt'
 
-          
           context = Context()
           context.name = 'CREATE_ANNOT_REPORTS'
           basefun  =  self.configs.REFDBS + PATHDELIM + 'functional_categories' 
@@ -737,7 +747,7 @@ class ContextCreator:
                            'KO_classification':basefun + PATHDELIM +  'KO_classification.txt',
                            'COG_categories':basefun + PATHDELIM +  'COG_categories.txt',
                            'SEED_subsystems':basefun + PATHDELIM + 'SEED_subsystems.txt',
-                           'ncbi_taxonomy_tree': basencbi + PATHDELIM + 'ncbi_taxonomy_tree.txt'
+                           'ncbi_taxonomy_tree': basencbi + PATHDELIM + 'NCBI_TAXONOMY_TREE.TXT'
                            }
           context.outputs = {
                            'output_results_annotation_table_dir':s.output_results_annotation_table_dir,
@@ -781,6 +791,126 @@ class ContextCreator:
 
           contexts.append(context)
           return contexts
+
+      def create_mltreemap_cmd(self, s):
+          """MLTREEMAP CALCULATION"""
+
+          contexts = []
+
+          '''input'''
+          input_fasta = s.preprocessed_dir + PATHDELIM + s.sample_name + ".fasta"
+
+          '''output'''
+          mltreemap_output_folder  = s.output_results_mltreemap_dir
+          mltreemap_final_outputs  = s.output_results_mltreemap_dir + PATHDELIM + 'final_outputs'
+
+          context = Context()
+          context.name = 'MLTREEMAP_CALCULATION'
+          context.inputs = {
+                             'input_fasta':input_fasta,
+                           }
+
+          context.outputs = {
+                             'mltreemap_output_folder': mltreemap_output_folder,
+                             'mltreemap_final_outputs': mltreemap_final_outputs
+                            }
+
+          pyScript = self.configs.METAPATHWAYS_PATH + self.configs.MLTREEMAP_CALCULATION
+          mltreemap_data = self.configs.METAPATHWAYS_PATH + PATHDELIM + 'mltreemap_data'
+          executables_dir = self.configs.METAPATHWAYS_PATH + PATHDELIM + self.configs.EXECUTABLES_DIR
+
+
+          cmd = "%s  -i %s  -o %s --overwrite --mltreemap_data %s --executables %s"\
+                % ( pyScript, context.inputs['input_fasta'], context.outputs['mltreemap_output_folder'],\
+                    mltreemap_data, executables_dir)
+                
+          context.status = self.params.get('metapaths_steps', 'MLTREEMAP_CALCULATION') 
+
+          context.commands = [cmd]  
+          contexts.append(context)
+          context.message = self._Message("RUNNING MLTREEMAP")
+          return contexts
+
+
+      def create_pgdb_using_pathway_tools_cmd(self, s):
+          """BUILD PGDB"""
+          contexts = []
+
+          '''input'''
+          ptools_input_folder = s.output_fasta_pf_dir
+          taxonomic_pruning_flag = self.params.get('ptools_settings', 'taxonomic_pruning')
+          if taxonomic_pruning_flag=='no':
+              taxonomic_pruning= False
+          else:
+              taxonomic_pruning= True
+
+          '''output'''
+          reactions_file = s.output_results_annotation_table_dir + PATHDELIM + s.sample_name + '.metacyc.orf.annots.txt'
+          pgdb_location = self.configs.PGDB_FOLDER + PATHDELIM + s.sample_name.lower() + "cyc"
+
+          context = Context()
+          context.name = 'BUILD_PGDB'
+          context.inputs = {
+                             'ptools_input_folder':ptools_input_folder,
+                             'ptoolsExec': self.configs.PATHOLOGIC_EXECUTABLE,
+                           }
+
+          context.outputs = {
+                             'reactions_file':reactions_file,
+                             'pgdb_location':pgdb_location
+                           }
+
+
+          pyScript = self.configs.METAPATHWAYS_PATH + PATHDELIM +  self.configs.RUN_PATHOLOGIC
+          cmd = "%s --reactions %s --ptoolsExec %s -i %s -p %s -s %s"\
+                 %(pyScript, context.outputs['reactions_file'],\
+                 context.inputs['ptoolsExec'],\
+                 context.inputs['ptools_input_folder'] +  PATHDELIM,\
+                 context.outputs['pgdb_location'],\
+                 s.sample_name )
+
+
+          context.status = self.params.get('metapaths_steps', 'BUILD_PGDB') 
+
+          context.commands = [cmd]  
+          contexts.append(context)
+          context.message = self._Message("RUNNING PATHOLOGIC")
+          return contexts
+
+      def create_rpkm_cmd(self, s):
+          """RPKM CALCULATION"""
+
+          contexts = []
+
+          '''input'''
+          rpkm_input = s.output_results_rpkm_dir 
+
+          '''output'''
+          rpkm_output = s.output_results_rpkm_dir  + PATHDELIM + s.sample_name + "orf_rpkm.txt"
+
+          context = Context()
+          context.name = 'COMPUTE_RPKM'
+          context.inputs = {
+                             'rpkm_input':rpkm_input
+                           }
+
+          context.outputs = {
+                             'rpkm_output': rpkm_output
+                            }
+
+          pyScript = self.configs.METAPATHWAYS_PATH + self.configs.RPKM_CALCULATION
+
+
+          cmd = "%s -i %s  -o %s --overwrite "\
+                % ( pyScript, context.inputs['rpkm_input'], context.outputs['rpkm_output'])
+                
+          context.status = self.params.get('metapaths_steps', 'RPKM_CALCULATION') 
+
+          context.commands = [cmd]  
+          contexts.append(context)
+          context.message = self._Message("RUNNING RPKM_CALCULATION")
+          return contexts
+
 
       def create_pgdb_using_pathway_tools_cmd(self, s):
           """BUILD PGDB"""
@@ -828,6 +958,7 @@ class ContextCreator:
           return contexts
 
 
+
       def __init__(self, params, configs): 
           self.params = Singleton(Params)(params)
           self.configs = Singleton(Configs)(configs)
@@ -836,10 +967,16 @@ class ContextCreator:
           pass
 
       def getContexts(self, s, stage):
-          if stage in self.stageList[self.format]:
+          stageList  = {}
+
+          for stageBlock in self.stageList[self.format]:
+            for _stage in  stageBlock:
+               stageList[_stage] = True
+
+          if stage in stageList:
               return self.factory[stage](s)
 
-      def getStageList(self):
+      def getStageLists(self):
            return self.stageList[self.format]
            
 
@@ -860,44 +997,42 @@ class ContextCreator:
            self.factory['GENBANK_FILE'] = self.create_genbank_file_cmd
            self.factory['CREATE_ANNOT_REPORTS'] = self.create_report_files_cmd
            self.factory['BUILD_PGDB'] = self.create_pgdb_using_pathway_tools_cmd
-           #self.factory['COMPUTE_RPKM'] = self.create_pgdb_using_pathway_tools_cmd
+           self.factory['MLTREEMAP_CALCULATION'] = self.create_mltreemap_cmd
+           self.factory['COMPUTE_RPKM'] = self.create_rpkm_cmd
 
            self.stageList['fasta'] = [
-                              'PREPROCESS_INPUT',
+                             ['PREPROCESS_INPUT',
                               'ORF_PREDICTION',
                               'ORF_TO_AMINO',
                               'FILTER_AMINOS',
-                              'COMPUTE_REFSCORES',
-                              'FUNC_SEARCH',
-                              'PARSE_FUNC_SEARCH',
+                              'COMPUTE_REFSCORES' ],
+                             [ 'FUNC_SEARCH' ],
+                             [ 'PARSE_FUNC_SEARCH',
                               'SCAN_rRNA',
                               'SCAN_tRNA',
                               'ANNOTATE_ORFS',
                               'PATHOLOGIC_INPUT',
                               'GENBANK_FILE',  
                               'CREATE_ANNOT_REPORTS',
-#                              'MLTREEMAP_CALCULATION',
-#                              'MLTREEMAP_IMAGEMAKER',
-                              'BUILD_PGDB'
-                           #   'COMPUTE_RPKM'
+                              'MLTREEMAP_CALCULATION',
+                              'BUILD_PGDB',
+                              'COMPUTE_RPKM']
                              ]
            
            self.stageList['gbk-unannotated'] = [
-                              'GBK_TO_FNA_FAA_GFF',
+                             [ 'GBK_TO_FNA_FAA_GFF',
                               'FILTER_AMINOS',
-                              'COMPUTE_REFSCORES',
-                              'FUNC_SEARCH',
-                              'PARSE_FUNC_SEARCH',
+                              'COMPUTE_REFSCORES' ],
+                             [ 'FUNC_SEARCH' ],
+                             [ 'PARSE_FUNC_SEARCH',
                               'SCAN_rRNA',
                               'SCAN_tRNA',
                               'ANNOTATE_ORFS',
                               'PATHOLOGIC_INPUT',
                               'GENBANK_FILE',  
                               'CREATE_ANNOT_REPORTS',
-#                              'MLTREEMAP_CALCULATION',
-#                              'MLTREEMAP_IMAGEMAKER',
-                              'BUILD_PGDB'
-                           #   'COMPUTE_RPKM'
+                             # 'MLTREEMAP_CALCULATION',
+                              'BUILD_PGDB' ]
                              ]
            
            self.stageList['gbk-annotated'] = [

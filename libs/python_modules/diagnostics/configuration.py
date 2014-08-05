@@ -90,8 +90,8 @@ class Configuration():
             'CREATE_ANNOT_REPORTS':True, 
             'STATS_rRNA':True,
             'SCAN_tRNA': False ,
-            'MLTREEMAP_IMAGEMAKER': False, 
-            'MLTREEMAP_CALCULATION': False
+            'MLTREEMAP_CALCULATION': False,
+            'COMPUTE_RPKM': True
          }
 
         self.missingErrors = { 
@@ -120,8 +120,8 @@ class Configuration():
             'CREATE_ANNOT_REPORTS':True, 
             'STATS_rRNA':True,
             'SCAN_tRNA': False ,
-            'MLTREEMAP_IMAGEMAKER': False, 
-            'MLTREEMAP_CALCULATION': False
+            'MLTREEMAP_CALCULATION': False,
+            'COMPUTE_RPKM': True
          }
 
 if __name__=="__main__":

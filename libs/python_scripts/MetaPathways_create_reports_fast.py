@@ -67,7 +67,7 @@ def createParser():
      
      
      output_options_group =  OptionGroup(parser, 'Output table Options')
-     output_options_group.add_option("--ncbi-taxonomy-map", dest="ncbi_taxonomy_map",  default=False,
+     output_options_group.add_option("--ncbi-taxonomy-map", dest="ncbi_taxonomy_map", action='append',  default=[],
                        help='add the ncbi taxonomy map ')
      
      output_options_group.add_option( "--input-cog-maps", dest="input_cog_maps",
@@ -110,7 +110,6 @@ def createParser():
 def printlist(list, lim):
     i = 0;
     for item in list:
-       print item
        i += 1
        if i > lim:
            break
@@ -218,8 +217,6 @@ def create_annotation(results_dictionary, dbname,  annotated_gff,  output_dir, T
           orfToContig[shortORFId] = contig
           
           taxonomy = None
-          # if count%10000==0 :
-          #    pass 
 
           #_results = re.search(r'refseq', opts_global.database_name, re.I)
           if shortORFId in Taxons:
@@ -228,6 +225,7 @@ def create_annotation(results_dictionary, dbname,  annotated_gff,  output_dir, T
           else:
               taxonomy = 'root'
 
+          product = re.sub(r'\[[^\[]+\]','', orf['product']).strip()
           fprintf(output_table_file, "%s", orf['id'])
           fprintf(output_table_file, "\t%s", orf['orf_length'])
           fprintf(output_table_file, "\t%s", orf['start'])
@@ -238,7 +236,7 @@ def create_annotation(results_dictionary, dbname,  annotated_gff,  output_dir, T
           fprintf(output_table_file, "\t%s", orf['ec'])
           # fprintf(output_table_file, "\t%s", str(species))
           fprintf(output_table_file, "\t%s", taxonomy)
-          fprintf(output_table_file, "\t%s\n", orf['product'])
+          fprintf(output_table_file, "\t%s\n", product)
 
           # adding taxons to the megan tree
           #if meganTree and taxonomy != '':
@@ -917,8 +915,9 @@ def main(argv, errorlogger = None,  runstatslogger = None):
 
        results_dictionary={}
        for dbname, blastoutput in zip( opts.database_name, opts.input_blastout):
-          results = re.search(r'refseq', dbname, re.I)
-          if results:
+          #results = re.search(r'refseq', dbname, re.I)
+          #if results:
+          if True:
             try:
                results_dictionary[dbname]={}
                process_parsed_blastoutput(dbname, blastParsers[dbname], opts, results_dictionary[dbname], pickorfs)
@@ -995,7 +994,7 @@ def main(argv, errorlogger = None,  runstatslogger = None):
                traceback.print_exc()
                eprintf("ERROR: %s\n", dbname)
                pass
-            print dbname + ' ' + str(len(results_dictionary[dbname]))
+           # print dbname + ' ' + str(len(results_dictionary[dbname]))
 
        eprintf("Num orfs processed  : %s\n", str(start))
 
@@ -1058,23 +1057,31 @@ def print_orf_table(results, orfToContig,  output_dir,  outputfile):
            if not orf['query'] in orf_dict:
                orf_dict[orf['query']] = {}
 
+           orf_dict[orf['query']]['contig'] = orfToContig[orfname]
+
+           product =  orf['product'].strip()
+
            _results = re.search(r'cog', dbname, re.I)
            if _results:
-              orf_dict[orf['query']][dbname] = cog_id(orf['product'])
+              orf_dict[orf['query']][dbname] = cog_id(product)
+              continue
 
            _results = re.search(r'kegg', dbname, re.I)
            if _results:
-              orf_dict[orf['query']][dbname] =  kegg_id(orf['product'])
+              orf_dict[orf['query']][dbname] =  kegg_id(product)
+              continue
+
+           _results = re.search(r'metacyc', dbname, re.I)
+           if _results:
+              orf_dict[orf['query']][dbname] =  product
+              continue
 
            _results = re.search(r'seed', dbname, re.I)
            if _results:
-              orf_dict[orf['query']][dbname] = re.sub(r'\[.*\]','', orf['product']).strip()
-             
-           _results = re.search(r'metacyc', dbname, re.I)
-           if _results:
-              orf_dict[orf['query']][dbname] =  orf['product']
+              orf_dict[orf['query']][dbname] =  product
+              continue
 
-           orf_dict[orf['query']]['contig'] = orfToContig[orfname]
+           orf_dict[orf['query']][dbname] =  product
 
     # compute the databases
     database_maps = {}

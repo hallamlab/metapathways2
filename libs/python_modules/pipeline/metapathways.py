@@ -241,7 +241,7 @@ def check_an_format_refdb(dbname, seqType,  config_settings, params, globallogge
             eprintf("          Found raw sequences for  Database %s in folder %s!\n", dbname, seqPath)
             eprintf("          Trying to format on the fly .... for %s!\n", algorithm )
             if globallogger!=None:
-               globallogger.write("ERROR\t Found raw sequences for  Database %s in folder %s!\n" %(dbname, seqPath) )
+               globallogger.write("WARNING\t Found raw sequences for  Database %s in folder %s!\n" %(dbname, seqPath) )
                globallogger.write("Trying to format on the fly .... for %s!\n" %(algorithm ) )
 
             result =format_db(executable, seqType, seqPath, formattedDBPath, algorithm)
@@ -587,7 +587,7 @@ def check_config_settings(config_settings, file, globalerrorlogger = None):
       if key in ['METAPATHWAYS_PATH' ]:
          if not path.isdir( config_settings[key]) :
             eprintf("ERROR: Path for \"%s\" is NOT set properly in configuration file \"%s\"\n", key, file)  
-            eprintf("ERROR: Currently it is set to \"%s\"\n",  config_settings[key] )  
+            eprintf("ERROR: 1.Currently it is set to \"%s\"\n",  config_settings[key] )  
 
             if globalerrorlogger!=None:
                globalerrorlogger.write("ERROR\tPath for \"%s\" is NOT set properly in configuration file \"%s\"\n"  %(key, file))  
@@ -600,7 +600,7 @@ def check_config_settings(config_settings, file, globalerrorlogger = None):
       if key in [ 'REFDBS' ]:
          if not path.isdir( config_settings[key]) :
             eprintf("ERROR: Path for \"%s\" is NOT set properly in configuration file \"%s\"\n", key, file)  
-            eprintf("ERROR: Currently it is set to \"%s\"\n", config_settings[key] )  
+            eprintf("ERROR: 2.Currently it is set to \"%s\"\n", config_settings[key] )  
             if globalerrorlogger!=None:
                 globalerrorlogger.write("ERROR\tPath for \"%s\" is NOT set properly in configuration file \"%s\"\n" %(key,file))
                 globalerrorlogger.write("Currently it is set to \"%s\"\n" %( config_settings[key]) )  
@@ -609,9 +609,9 @@ def check_config_settings(config_settings, file, globalerrorlogger = None):
 
       # make sure EXECUTABLES_DIR directories are present
       if key in [ 'EXECUTABLES_DIR']:
-         if not path.isdir( config_settings['METAPATHWAYS_PATH'] + PATHDELIM + config_settings[key]) :
+         if not path.isdir( config_settings['METAPATHWAYS_PATH'] + PATHDELIM +  config_settings[key]) :
             eprintf("ERROR: Path for \"%s\" is NOT set properly in configuration file \"%s\"\n", key, file)  
-            eprintf("ERROR: Currently it is set to \"%s\"\n", config_settings[key] )  
+            eprintf("ERROR: 3.Currently it is set to \"%s\"\n", config_settings[key] )  
             if globalerrorlogger!=None:
                globalerrorlogger.write("ERROR\tPath for \"%s\" is NOT set properly in configuration file \"%s\"\n" %(key, file))  
                globalerrorlogger.write("Currently it is set to \"%s\"\n" %( config_settings[key] )) 
@@ -622,7 +622,7 @@ def check_config_settings(config_settings, file, globalerrorlogger = None):
       if key in [ 'RESOURCES_DIR']:
          if not path.isdir( config_settings['METAPATHWAYS_PATH'] + PATHDELIM + config_settings[key]) :
             eprintf("ERROR: Path for \"%s\" is NOT set properly in configuration file \"%s\"\n", key, file)  
-            eprintf("ERROR: Currently it is set to \"%s\"\n",  config_settings['METAPATHWAYS_PATH'] + PATHDELIM + config_settings[key] )  
+            eprintf("ERROR: 4.Currently it is set to \"%s\"\n",  config_settings['METAPATHWAYS_PATH'] + PATHDELIM + config_settings[key] )  
             print  config_settings['METAPATHWAYS_PATH'], config_settings[key] 
             if globalerrorlogger!=None:
                globalerrorlogger.write("ERROR\tPath for \"%s\" is NOT set properly in configuration file \"%s\"\n" %(key, file))
@@ -634,7 +634,7 @@ def check_config_settings(config_settings, file, globalerrorlogger = None):
       if key in ['PYTHON_EXECUTABLE' , 'PATHOLOGIC_EXECUTABLE' ]:
          if not path.isfile( config_settings[key]) :
             eprintf("ERROR: Path for \"%s\" is NOT set properly in configuration file \"%s\"\n", key, file)  
-            eprintf("ERROR: Currently it is set to \"%s\"\n", config_settings[key] )  
+            eprintf("ERROR: 5.Currently it is set to \"%s\"\n", config_settings[key] )  
             if globalerrorlogger!=None:
                globalerrorlogger.write("ERROR\tPath for \"%s\" is NOT set properly in configuration file \"%s\"\n" %(key, file)) 
                globalerrorlogger.write("Currently it is set to \"%s\"\n" %( config_settings[key] ) )
@@ -645,16 +645,16 @@ def check_config_settings(config_settings, file, globalerrorlogger = None):
       if key in ['PGDB_FOLDER' ]:
           continue
       
-      # check if the desired file exis. if not, then print a message
-      if not path.isfile( config_settings['METAPATHWAYS_PATH'] +  value ) :
-          if not path.isfile( value ) :
-              eprintf("ERROR:Path for \"%s\" is NOT set properly in configuration file \"%s\"\n", key, file)  
-              eprintf("Currently it is set to \"%s\"\n", config_settings['METAPATHWAYS_PATH'] + value ) 
-              if globalerrorlogger!=None:
-                 globalerrorlogger.write("ERROR\tPath for \"%s\" is NOT set properly in configuration file \"%s\"\n" %(key, file) )
-                 globalerrorlogger.write("Currently it is set to \"%s\"\n" %(config_settings['METAPATHWAYS_PATH'] + value)) 
-              missingItems.append(key) 
-          continue
+      # check if the desired file exists. if not, then print a message
+      if not path.isfile( config_settings['METAPATHWAYS_PATH'] + PATHDELIM +  value)\
+        and  not path.isfile( config_settings['METAPATHWAYS_PATH'] + PATHDELIM + config_settings['EXECUTABLES_DIR'] + PATHDELIM + value ) :
+           eprintf("ERROR:Path for \"%s\" is NOT set properly in configuration file \"%s\"\n", key, file)  
+           eprintf("5.Currently it is set to \"%s\"\n", config_settings['METAPATHWAYS_PATH'] + value ) 
+           if globalerrorlogger!=None:
+              globalerrorlogger.write("ERROR\tPath for \"%s\" is NOT set properly in configuration file \"%s\"\n" %(key, file) )
+              globalerrorlogger.write("Currently it is set to \"%s\"\n" %(config_settings['METAPATHWAYS_PATH'] + value)) 
+           missingItems.append(key) 
+           continue
      
    stop_execution = False
    for item in missingItems:
@@ -826,16 +826,54 @@ def  copy_fna_faa_gff_orf_prediction( source_files, target_files, config_setting
 #################################################################################
 ########################### BEFORE BLAST ########################################
 #################################################################################
-def run_metapathways(s, input_file, output_dir, all_samples_output_dir, globallogger, command_line_params, params, metapaths_config, status_update_callback, config_file, run_type, config_settings = None):
+def run_metapathways(samplesData, input_file, output_dir, all_samples_output_dir, globallogger,\
+                     command_line_params, params, metapaths_config, status_update_callback,\
+                     config_file, run_type, config_settings = None, block_mode = False, runid = ""):
 
     jobcreator = JobCreator(params, config_settings)
-    jobcreator.addJobs(s)
-    s.stepslogger.printf("==============  BEGIN RUN " + s.sample_name + " ==================\n")
-    sample_name_banner = "PROCESSING INPUT " + input_file
-    eprintf('#'*len(sample_name_banner) + "\n")
-    eprintf( '\n' + sample_name_banner + '\n')
 
-    execute_tasks(s, verbose = command_line_params['verbose'])    
+    for input_file in samplesData.keys():
+      s =  samplesData[input_file]
+      jobcreator.addJobs(s, block_mode = block_mode)
+
+
+
+    if block_mode:
+       for input_file in samplesData.keys():
+         s =  samplesData[input_file]
+         s.stepslogger.printf("\n\n==============  BEGIN RUN " + s.sample_name + " " + runid + " ================\n")
+         sample_name_banner = "PROCESSING INPUT " + input_file
+         eprintf("==============  BEGIN RUN " + s.sample_name + " STEPS BLOCK 0 ================\n")
+         eprintf('#'*len(sample_name_banner) + "\n")
+         eprintf( '\n' + sample_name_banner + '\n')
+         execute_tasks(s, verbose = command_line_params['verbose'], block = 0)    
+
+
+       for input_file in samplesData.keys():
+         s =  samplesData[input_file]
+         sample_name_banner = "PROCESSING INPUT " + input_file
+         eprintf("==============  BEGIN RUN " + s.sample_name + " STEPS BLOCK 1 ================\n")
+         eprintf('#'*len(sample_name_banner) + "\n")
+         eprintf( '\n' + sample_name_banner + '\n')
+         execute_tasks(s, verbose = command_line_params['verbose'], block = 1)    
+
+       for input_file in samplesData.keys():
+         s =  samplesData[input_file]
+         sample_name_banner = "PROCESSING INPUT " + input_file
+         eprintf("==============  BEGIN RUN " + s.sample_name + " STEPS BLOCK 2 ================\n")
+         eprintf('#'*len(sample_name_banner) + "\n")
+         eprintf( '\n' + sample_name_banner + '\n')
+         execute_tasks(s, verbose = command_line_params['verbose'], block = 2)    
+
+    else:
+       for input_file in samplesData.keys():
+         s =  samplesData[input_file]
+         s.stepslogger.printf("\n\n==============  BEGIN RUN " + s.sample_name + " " + runid + "  ==================\n")
+         sample_name_banner = "PROCESSING INPUT " + input_file
+         eprintf('#'*len(sample_name_banner) + "\n")
+         eprintf( '\n' + sample_name_banner + '\n')
+         execute_tasks(s, verbose = command_line_params['verbose'], block = 0)    
+
     return
 
 

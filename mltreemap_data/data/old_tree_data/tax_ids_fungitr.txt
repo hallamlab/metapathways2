@@ -1,0 +1,60 @@
+1	Ajellomyces capsulatus NAm1
+2	Ajellomyces dermatitidis SLH14081
+3	Arthroderma benhamiae CBS 112371
+4	Arthroderma gypseum CBS 118893
+5	Arthroderma otae CBS 113480
+6	Ashbya gossypii ATCC 10895
+7	Aspergillus clavatus NRRL 1
+8	Aspergillus flavus NRRL3357
+9	Aspergillus fumigatus Af293
+10	Aspergillus nidulans FGSC A4
+11	Aspergillus niger CBS 513.88
+12	Aspergillus oryzae RIB40
+13	Aspergillus terreus NIH2624
+14	Botryotinia fuckeliana B05.10
+15	Candida dubliniensis CD36
+16	Candida glabrata CBS 138
+17	Chaetomium globosum CBS 148.51
+18	Coccidioides immitis RS
+19	Coccidioides posadasii C735 delta SOWgp
+20	Coprinopsis cinerea okayama7#130
+21	Cryptococcus gattii WM276
+22	Cryptococcus neoformans var. neoformans B-3501A
+23	Cryptococcus neoformans var. neoformans JEC21
+24	Debaryomyces hansenii CBS767
+25	Gibberella zeae PH-1
+26	Kluyveromyces lactis NRRL Y-1140
+27	Laccaria bicolor S238N-H82
+28	Lachancea thermotolerans
+29	Lodderomyces elongisporus NRRL YB-4239
+30	Magnaporthe oryzae 70-15
+31	Malassezia globosa CBS 7966
+32	Nectria haematococca mpVI 77-13-4
+33	Neosartorya fischeri NRRL 181
+34	Neurospora crassa OR74A
+35	Paracoccidioides brasiliensis Pb01
+36	Penicillium chrysogenum Wisconsin 54-1255
+37	Penicillium marneffei ATCC 18224
+38	Phaeosphaeria nodorum SN15
+39	Pichia pastoris GS115
+40	Podospora anserina S mat+
+41	Puccinia graminis f. sp. tritici CRL 75-36-700-3
+42	Pyrenophora teres f. teres 0-1
+43	Pyrenophora tritici-repentis Pt-1C-BFP
+44	Saccharomyces cerevisiae S288c
+45	Scheffersomyces stipitis CBS 6054
+46	Schizophyllum commune H4-8
+47	Schizosaccharomyces japonicus yFS275
+48	Schizosaccharomyces pombe 972h-
+49	Sclerotinia sclerotiorum 1980
+50	Sordaria macrospora k-hell
+51	Talaromyces stipitatus ATCC 10500
+52	Trichophyton rubrum CBS 118892
+53	Trichophyton verrucosum HKI 0517
+54	Tuber melanosporum Mel28
+55	Uncinocarpus reesii 1704
+56	Ustilago maydis 521
+57	Vanderwaltozyma polyspora DSM 70294
+58	Verticillium albo-atrum VaMs.102
+59	Yarrowia lipolytica
+60	Zygosaccharomyces rouxii

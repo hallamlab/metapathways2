@@ -35,7 +35,12 @@ class LCAComputation:
     tax_dbname = 'refseq'
 
     # initialize with the ncbi tree file 
-    def __init__(self, filename):
+    def __init__(self, filenames):
+       for filename in filenames:
+          self.loadtreefile(filename)
+          #print filename,  len(self.taxid_to_ptaxid.keys())
+
+    def loadtreefile(self, filename):
        taxonomy_file = open(filename, 'r')
        lines = taxonomy_file.readlines()
        taxonomy_file.close()
@@ -183,7 +188,6 @@ class LCAComputation:
              copyList(m,species)
        except:
              return None
-   
        if species:
           return species
        else:
@@ -227,7 +231,6 @@ class LCAComputation:
            for contig in  gffreader:
               for orf in  gffreader.orf_dictionary[contig]:
                  shortORFId = getShortORFId(orf['id'])
-
 
                  #print shortORFId, orf['id']
                  if not shortORFId in pickorfs:

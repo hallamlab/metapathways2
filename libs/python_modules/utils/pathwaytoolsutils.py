@@ -11,11 +11,15 @@ class PythonCyc:
     
       _organism = 'meta' 
       soc = None
+      _ptoolsExec = None
        
       
       def __init__(self):
           pass
 
+
+      def setPToolsExec(self, ptoolsExec):
+          self._ptoolsExec = ptoolsExec
 
       def setOrganism(self, organism):
           self._organism = organism
@@ -153,8 +157,10 @@ class PythonCyc:
       def call_func(self, function):
 
           self.send_query(self.wrap_query(function))
-
           result = self.retrieve_results()
+          
+          if result=='NIL':
+             return []
           return result
 
 
@@ -210,7 +216,7 @@ class PythonCyc:
          return result
 
       def startPathwayTools(self):
-         process = Process(target=startPathwayTools)
+         process = Process(target=startPathwayTools, args=(self._ptoolsExec,))
          process.start()
          time.sleep(5)
 
@@ -254,6 +260,7 @@ class PythonCyc:
              for reaction in totalrxns :
       
                 rngenes = self.genes_of_reaction(reaction,"T")
+                
                 rxngenes = []
                 for rngene in rngenes:
                     rxngenes.append(self.get_slot_value(rngene,"common-name"))
@@ -307,9 +314,8 @@ class PythonCyc:
       
           return rxnOutputStrings
 
-
-def startPathwayTools():
-    cmd = "~/pathway-tools/pathway-tools -api"
+def startPathwayTools(ptoolsExec):
+    cmd = ptoolsExec + " -api"
     status = getstatusoutput(cmd)
 
 

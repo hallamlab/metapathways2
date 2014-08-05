@@ -73,6 +73,19 @@ class SampleData():
               contexts.append( self.stages_context[name] )
         return contexts
 
+    def getContextBlocks(self):
+        contextBlocks  =[]
+
+        for block in self.stages:
+          contexts = []
+          for name in block:
+             if name in self.stages_context:
+                 contexts.append( self.stages_context[name] )
+          contextBlocks.append(contexts)
+
+        return contextBlocks
+
+
     def numJobs(self):
         return len(self.stages)
 
@@ -156,10 +169,18 @@ class SampleData():
 
         stages_context[stepName] = stagecontext
 
-    def addContexts(self, contexts):
-        for context in contexts:
-           self.stages.append(context.name)
-           self.stages_context[context.name] = context
+    def addContextBlock(self, contextBlock):
+          self.contextBlock.append(contextBlock)
+
+    def addContexts(self, contextBlock):
+        stages = []
+
+        for contexts in contextBlock:
+           for context in contexts:
+              stages.append(context.name)
+              self.stages_context[context.name] = context
+
+        self.stages.append( stages)
 
 
     def hasPToolsInput(self):

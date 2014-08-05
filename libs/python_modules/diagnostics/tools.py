@@ -146,12 +146,12 @@ class Tools():
                'MLTREEMAP_CALCULATION'  : {
                               'exec':  {'MLTREEMAP_CALCULATION': None }
                                           }, 
-               'MLTREEMAP_IMAGEMAKER'  : {
-                              'exec':  { 'MLTREEMAP_IMAGEMAKER': None }
-                                         }, 
                'BUILD_PGDB': { 
                               'exec': {'PATHOLOGIC_EXECUTABLE': None }
-                             }
+                             },
+               'COMPUTE_RPKM'  : {
+                              'exec':  {'COMPUTE_RPKM': None }
+                              }, 
            }
 
 

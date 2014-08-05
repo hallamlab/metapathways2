@@ -324,17 +324,30 @@ def checkRequiredExecutables(steps, tools, params, configs, logger = None):
 
 def executablesExist( executables, configs, logger = None ):
     missingList = []
-    for name, script in executables.iteritems():
+    names = executables.keys()
+    
+    for name in names:
+      script = executables[name]
 
-      if name!='PATHOLOGIC_EXECUTABLE' and  path.exists(configs['METAPATHWAYS_PATH'] + PATHDELIM + script):
-           pass
-      elif name=='PATHOLOGIC_EXECUTABLE' and  path.exists(script):
+      if name!='PATHOLOGIC_EXECUTABLE' and  path.exists(configs['METAPATHWAYS_PATH'] +\
+         PATHDELIM  + script):
+           executables[name] = configs['METAPATHWAYS_PATH'] + PATHDELIM + script
+           continue
+
+      if name!='PATHOLOGIC_EXECUTABLE' and  path.exists(configs['METAPATHWAYS_PATH'] +\
+         PATHDELIM + configs['EXECUTABLES_DIR'] + PATHDELIM + script):
+
+           executables[name] = configs['METAPATHWAYS_PATH'] +  PATHDELIM + configs['EXECUTABLES_DIR'] + PATHDELIM + script
+           continue
+
+      if name=='PATHOLOGIC_EXECUTABLE' and  path.exists(script):
            print "FIX ME: diagnoze"
-           pass
-      else:
-           eprintf("ERROR\tscript %s for %s not found\n",script, name)
-           logger.printf("ERROR\tscript %s for %s not found\n",script, name)
-           missingList.append(script)
+           continue
+
+      
+      eprintf("ERROR\tscript %s for %s not found\n",script, name)
+      logger.printf("ERROR\tscript %s for %s not found\n",script, name)
+      missingList.append(script)
 
     return missingList
 
