@@ -358,6 +358,7 @@ def splitFastaInput(args):
 def runBlast(args, splitFiles):
     """Runs the BLAST algorithm on each of the split input files."""
 
+    print ''
     print 'Run BLAST'
 
     # For each file containing a maximum of the specified number of sequences...

@@ -425,8 +425,7 @@ def process_sequence_file(sequence_file_name,  seq_dictionary):
 
 
 
-help = """Usage:\n      MetaPathways_create_amino_sequences.py -g gff_files -n nucleotide_sequences\n 
-                            --output-nuc output_nuc --output_amino  output_amino  --output_gff output_gff_file \n"""
+help = sys.argv[0] + """ MetaPathways_create_amino_sequences.py -g gff_files -n nucleotide_sequences --output-nuc output_nuc --output_amino  output_amino  --output_gff output_gff_file \n"""
 
 parser = None
 def createParser():

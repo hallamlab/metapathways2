@@ -63,46 +63,51 @@ script_info['script_description'] = """ takes a sequence file and performs all p
              REQUIRED: You must have a fas and an yaml file  and  a custom parameters file:"""
 script_info['script_usage'] = []
 
-usage= """./MetaPathways.py  -i input_file -o outdir  -p parameters.txt 
+
+usage=  sys.argv[0] + """  -i input_file -o outdir  -p parameters.txt 
 For more options:  ./MetaPathways.py -h"""
-parser = OptionParser(usage)
-parser.add_option("-i", "--input_file", dest="input_fp",
-                  help='the input fasta file/input dir [REQUIRED]')
-parser.add_option("-o", "--output_dir", dest="output_dir",
-                  help='the input fasta file/input dir [REQUIRED]')
-parser.add_option('-p','--parameter_fp', dest="parameter_fp",
-                   help='path to the parameter file [REQUIRED]')
-parser.add_option("-c", "--config_filer", dest="config_file",
-                  help='pipeline_configuratin file [OPTIONAL,  default : \"MetaPathways/template_config.txt\"]')
-parser.add_option('-r','--run-type', dest="run_type", default='safe',
-                   choices=['safe', 'overlay', 'overwrite','dry-run'], 
-                   help= '\n(a) \'overwrite\' -- wipes out the previous runs with the same name\n'+
-                         '\n(b)\'overlay\' -- recomputes the steps that are not present \n' +
-                         '\n(c)\'dry-run\' -- shows the steps that are going to be computed or not\n' +
-                         '\n(d)\'safe\' -- safe mode does not run on an existing run folder\n')
-#ith out of order completion \ time-stamps in the \'workflow_log.txt\' 
-parser.add_option("-v", "--verbose",
-                  action="store_true", dest="verbose", default=False,
-                  help="print lots of information on the stdout [default]")
 
-parser.add_option("-b", "--block-mode",
-                  action="store_true", dest="block_mode", default=False,
-                  help="processes the samples by blocking the stages before and after functional search [default off]")
-
-parser.add_option("-P", "--print-only",
-                  action="store_true", dest="print_only", default=False,
-                  help="print only  the commands [default False]")
-
-parser.add_option("-n", "--ncbi-header", dest="ncbi_header", 
-                  help="NCBI sequin submission parameters file" )
-
-parser.add_option("-s", "--subset", dest="sample_subset", action="append", default=[],
-                  help="Processes only samples in the list  subset specified [ -s sample1 -s sample2 ]" )
-
-parser.add_option("--runid", dest="runid",  default="",
-                  help="Any string to represent the runid [ default Empty string ]" )
-#parser.add_option("-s", "--ncbi-sbt-file", dest="ncbi_sbt", 
-#                  help="the NCBI sbt location created by the \"Create Submission Template\" form: http://www.ncbi.nlm.nih.gov/WebSub/template.cgi" )
+parser = None
+def createParser():
+    global parser
+    parser = OptionParser(usage)
+    parser.add_option("-i", "--input_file", dest="input_fp",
+                      help='the input fasta file/input dir [REQUIRED]')
+    parser.add_option("-o", "--output_dir", dest="output_dir",
+                      help='the input fasta file/input dir [REQUIRED]')
+    parser.add_option('-p','--parameter_fp', dest="parameter_fp",
+                       help='path to the parameter file [REQUIRED]')
+    parser.add_option("-c", "--config_filer", dest="config_file",
+                      help='pipeline_configuratin file [OPTIONAL,  default : \"MetaPathways/template_config.txt\"]')
+    parser.add_option('-r','--run-type', dest="run_type", default='safe',
+                       choices=['safe', 'overlay', 'overwrite','dry-run'], 
+                       help= '\n(a) \'overwrite\' -- wipes out the previous runs with the same name\n'+
+                             '\n(b)\'overlay\' -- recomputes the steps that are not present \n' +
+                             '\n(c)\'dry-run\' -- shows the steps that are going to be computed or not\n' +
+                             '\n(d)\'safe\' -- safe mode does not run on an existing run folder\n')
+    #ith out of order completion \ time-stamps in the \'workflow_log.txt\' 
+    parser.add_option("-v", "--verbose",
+                      action="store_true", dest="verbose", default=False,
+                      help="print lots of information on the stdout [default]")
+    
+    parser.add_option("-b", "--block-mode",
+                      action="store_true", dest="block_mode", default=False,
+                      help="processes the samples by blocking the stages before and after functional search [default off]")
+    
+    parser.add_option("-P", "--print-only",
+                      action="store_true", dest="print_only", default=False,
+                      help="print only  the commands [default False]")
+    
+    parser.add_option("-n", "--ncbi-header", dest="ncbi_header", 
+                      help="NCBI sequin submission parameters file" )
+    
+    parser.add_option("-s", "--subset", dest="sample_subset", action="append", default=[],
+                      help="Processes only samples in the list  subset specified [ -s sample1 -s sample2 ]" )
+    
+    parser.add_option("--runid", dest="runid",  default="",
+                      help="Any string to represent the runid [ default Empty string ]" )
+    #parser.add_option("-s", "--ncbi-sbt-file", dest="ncbi_sbt", 
+    #                  help="the NCBI sbt location created by the \"Create Submission Template\" form: http://www.ncbi.nlm.nih.gov/WebSub/template.cgi" )
 
 
 
@@ -114,7 +119,7 @@ def valid_arguments(opts, args):
     else:
        return False
 
-def remove_unspecified_samples(input_output_list, sample_subset, format):
+def remove_unspecified_samples(input_output_list, sample_subset, format, globalerrorlogger = None):
    """ keep only the samples that are specified  before processing  """
    shortened_names = {}
 
@@ -139,13 +144,11 @@ def remove_unspecified_samples(input_output_list, sample_subset, format):
       elif format =='fasta':
           shortname = re.sub('[.](fasta|fas|fna|faa|fa)$','',sample_in_subset, re.IGNORECASE) 
 
-
       if shortname==None:
          continue
 
-      shortname = re.sub(r'[.]','_',shortname) 
-      if len(shortname)!=0:
-        shortened_subset_names.append(shortname)
+      if check_for_error_in_input_file_name(shortname, globalerrorlogger=globalerrorlogger):
+         shortened_subset_names.append(shortname)
 
    samples_to_keep = {} 
 
@@ -163,10 +166,46 @@ def remove_unspecified_samples(input_output_list, sample_subset, format):
          del input_output_list[sample]
 
 
+def check_for_error_in_input_file_name(shortname, globalerrorlogger=None):
 
-def create_an_input_output_pair(input_file, output_dir, format):
+    """  creates a list of  input output pairs if input is  an input dir """
+    clean = True
+    if not re.search(r'^[a-zA-Z]',shortname):
+         eprintf("ERROR\tSample name %s must begin with an alphabet!\n",shortname)
+         if globalerrorlogger:
+            globalerrorlogger.printf("ERROR\tSample name %s must begin with an alphabet!\n",shortname)
+         clean = False
+
+    if re.search(r'[.]',shortname):
+         eprintf("ERROR\tSample name %s contains a '.' in its name!\n",shortname)
+         if globalerrorlogger:
+            globalerrorlogger.printf("ERROR\tSample name %s contains a '.' in its name!\n",shortname)
+         clean = False
+
+    if len(shortname)<2:
+         eprintf("ERROR\tSample name %s is too short!\n",shortname)
+         if globalerrorlogger:
+             globalerrorlogger.printf("ERROR\tSample name %s is too short1\n",shortname)
+         clean = False
+
+    if clean:
+         return clean
+
+    errmessage = """ Sample names before the  suffixes .fasta, .fas, .fna, .faa or .gbk, must  consist only of alphabets, digits and _; and should consist of at least two characters """
+    eprintf("ERROR\t%s\n",errmessage)
+    if globalerrorlogger:
+        globalerrorlogger.printf("ERROR\t%s\n",errmessage)
+        exit_process("ERROR\t" + errmessage + "Exiting!" + "\n")
+    return False
+
+
+def create_an_input_output_pair(input_file, output_dir, format, globalerrorlogger=None):
     """ creates an input output pair if input is just an input file """
+       
     input_output = {}
+
+    if not re.search(r'.(fasta|fas|fna|faa|gbk|gff|fa)$',input_file, re.IGNORECASE):
+       return input_output
 
     shortname = None 
     if format in ['gbk-unannotated', 'gbk-annotated']:
@@ -177,19 +216,15 @@ def create_an_input_output_pair(input_file, output_dir, format):
         shortname = re.sub('[.]gff$','',input_file, re.IGNORECASE) 
 
     shortname = re.sub(r'.*' + PATHDELIM ,'',shortname) 
-    shortname = re.sub(r'[.]','_',shortname) 
-    
-    if re.search(r'.(fasta|fas|fna|faa|gbk|gff|fa)$',input_file, re.IGNORECASE):
-       if len(shortname)>1:
-           input_output[input_file] = path.abspath(output_dir) + PATHDELIM + shortname
-       else:
-           print "WARNING : sample with one character name " + shortname + "(i.e., file \"" + input_file + "\" will be ignored"
-           print "          because prodigal creates some problem with such files"
+
+    check_for_error_in_input_file_name(shortname, globalerrorlogger=globalerrorlogger)
+
+    input_output[input_file] = path.abspath(output_dir) + PATHDELIM + shortname
 
     return input_output
 
 
-def create_input_output_pairs(input_dir, output_dir, format):
+def create_input_output_pairs(input_dir, output_dir, format, globalerrorlogger=None):
     """  creates a list of  input output pairs if input is  an input dir """
     fileslist =  listdir(input_dir)
     gbkPatt = re.compile('[.]gbk$',re.IGNORECASE) 
@@ -199,7 +234,6 @@ def create_input_output_pairs(input_dir, output_dir, format):
 
     input_files = {}
     for input_file in fileslist:
-
        shortname = None 
        if format in ['gbk-unannotated', 'gbk-annotated']:
           result =  gbkPatt.search(input_file)
@@ -214,18 +248,11 @@ def create_input_output_pairs(input_dir, output_dir, format):
        if shortname == None:
           continue
 
-
-       shortname = re.sub(r'[.]','_',shortname) 
-
        if re.search('.(fasta|fas|fna|faa|gff|gbk|fa)$',input_file, re.IGNORECASE):
-          if len(shortname)>1:
+          if check_for_error_in_input_file_name(shortname, globalerrorlogger=globalerrorlogger):
              input_files[input_file] = shortname
-          else:
-             print "WARNING : sample with one character name " + shortname + "(i.e., file \"" + input_file + "\" will be ignored"
-             print "          because prodigal creates some problem with such files"
 
     paired_input = {} 
-    
     for key, value in input_files.iteritems():
             paired_input[input_dir + PATHDELIM + key] = path.abspath(output_dir) + PATHDELIM + value
 
@@ -244,7 +271,7 @@ def sigint_handler(signum, frame):
     exit_process()
 
 def main(argv):
-
+    global parser
     (opts, args) = parser.parse_args()
     if valid_arguments(opts, args):
        print usage
@@ -312,7 +339,6 @@ def main(argv):
               "       run with the option \"-r  overwrite\" to force overwrite it."
         sys.exit(1)
 
-
         
     if verbose:
         status_update_callback = print_to_stdout
@@ -329,31 +355,32 @@ def main(argv):
         file or  a directory containing fasta and yaml file pairs
     """
 
+    globalerrorlogger = WorkflowLogger(generate_log_fp(output_dir, basefile_name= 'global_errors_warnings'), open_mode='w') 
+
     input_output_list = {}
     if path.isfile(input_fp):   
        """ check if it is a file """
-       input_output_list = create_an_input_output_pair(input_fp, output_dir, format)
+       input_output_list = create_an_input_output_pair(input_fp, output_dir, format, globalerrorlogger = globalerrorlogger)
     else:
        if path.exists(input_fp):   
           """ check if dir exists """
-          input_output_list = create_input_output_pairs(input_fp, output_dir, format)
+          input_output_list = create_input_output_pairs(input_fp, output_dir, format, globalerrorlogger=globalerrorlogger)
        else:   
           """ must be an error """
-          eprintf("No valid input sample file or directory containing samples exists .!")
-          eprintf("As provided as arguments in the -in option.!\n")
-          sys.exit(1)
+          eprintf("ERROR\tNo valid input sample file or directory containing samples exists .!")
+          eprintf("ERROR\tAs provided as arguments in the -in option.!\n")
+          exit_process("ERROR\tAs provided as arguments in the -in option.!\n")
    
     """ these are the subset of sample to process if specified
         in case of an empty subset process all the sample """
     if sample_subset:
-       remove_unspecified_samples(input_output_list, sample_subset, format)
+       remove_unspecified_samples(input_output_list, sample_subset, format, globalerrorlogger = globalerrorlogger)
 
 
+    print input_output_list
     # add check the config parameters 
     sorted_input_output_list = sorted(input_output_list.keys())
 
-
-    globalerrorlogger = WorkflowLogger(generate_log_fp(output_dir, basefile_name= 'global_errors_warnings'), open_mode='w') 
     config_settings = read_pipeline_configuration(config_file, globalerrorlogger)
 
     parameter =  Parameters()
@@ -373,56 +400,47 @@ def main(argv):
     try:
          # load the sample information 
          if len(input_output_list): 
-           for input_file in sorted_input_output_list:
-             sample_output_dir = input_output_list[input_file]
-             algorithm = get_parameter(params, 'annotation', 'algorithm', default='LAST').upper()
-
-             s = SampleData() 
-             s.setInputOutput(inputFile = input_file, sample_output_dir = sample_output_dir)
-             s.setParameter('algorithm', algorithm)
-             s.setParameter('ncbi_params_file', ncbi_sequin_params)
-             s.setParameter('ncbi_sequin_sbt', ncbi_sequin_sbt)
-             s.clearJobs()
-
-             if run_type=='overwrite' and  path.exists(sample_output_dir):
-                shutil.rmtree(sample_output_dir)
-                makedirs(sample_output_dir)
-             if not  path.exists(sample_output_dir):
-                makedirs(sample_output_dir)
-
-             s.prepareToRun()
-             samplesData[input_file] = s
+              for input_file in sorted_input_output_list:
+                sample_output_dir = input_output_list[input_file]
+                algorithm = get_parameter(params, 'annotation', 'algorithm', default='LAST').upper()
+   
+                s = SampleData() 
+                s.setInputOutput(inputFile = input_file, sample_output_dir = sample_output_dir)
+                s.setParameter('algorithm', algorithm)
+                s.setParameter('ncbi_params_file', ncbi_sequin_params)
+                s.setParameter('ncbi_sequin_sbt', ncbi_sequin_sbt)
+                s.clearJobs()
+   
+                if run_type=='overwrite' and  path.exists(sample_output_dir):
+                   shutil.rmtree(sample_output_dir)
+                   makedirs(sample_output_dir)
+                if not  path.exists(sample_output_dir):
+                   makedirs(sample_output_dir)
+   
+                s.prepareToRun()
+                samplesData[input_file] = s
+   
+              # load the sample information 
+              run_metapathways(
+                   samplesData,
+                   sample_output_dir,
+                   output_dir,
+                   globallogger = globalerrorlogger,
+                   command_line_params=command_line_params,
+                   params=params,
+                   metapaths_config=metapaths_config,
+                   status_update_callback=status_update_callback,
+                   config_file=config_file,
+                   run_type = run_type, 
+                   config_settings = config_settings,
+                   block_mode = block_mode,
+                   runid = runid
+              )
          else: 
-             eprintf("ERROR\tNo input files in the specified folder %s to process!\n",sQuote(input_fp) )
-             globalerrorlogger.printf("ERROR\tNo input files in the specified folder %s to process!\n",sQuote(input_fp) )
-
- 
-         # load the sample information 
-         run_metapathways(
-                samplesData,
-                input_file, 
-                sample_output_dir,
-                output_dir,
-                globallogger = globalerrorlogger,
-                command_line_params=command_line_params,
-                params=params,
-                metapaths_config=metapaths_config,
-                status_update_callback=status_update_callback,
-                config_file=config_file,
-                run_type = run_type, 
-                config_settings = config_settings,
-                block_mode = block_mode,
-                runid = runid
-        )
-     
-
-
-
-
-
-
-
-
+              eprintf("ERROR\tNo input files in the specified folder %s to process!\n",sQuote(input_fp) )
+              globalerrorlogger.printf("ERROR\tNo input files in the specified folder %s to process!\n",sQuote(input_fp) )
+   
+        
          # blast the files
      
          blasting_system =    get_parameter(params,  'metapaths_steps', 'BLAST_REFDB', default='yes')
@@ -454,6 +472,7 @@ def main(argv):
 
 # the main function of metapaths
 if __name__ == "__main__":
+    createParser()
     main(sys.argv[1:])    
     
 

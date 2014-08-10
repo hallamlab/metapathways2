@@ -35,7 +35,7 @@ def files_exist( files , errorlogger = None):
     for file in files:
        if not path.exists(file):
           if errorlogger:
-             errorlogger.write( 'ERROR: Could not find ptools input  file : ' +  file )
+             errorlogger.write( 'ERROR\tCould not find ptools input  file : ' +  file )
           status = False
     return not status
 
@@ -80,7 +80,7 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
 
     options, args = parser.parse_args(argv)
     if options.inputfolder ==None:
-       parser.error('Input folder for Pathologic not found')
+       parser.error('ERROR\tInput folder for Pathologic not found')
     else:
       # required files to be able to build ePGDB
       files = [ 
@@ -91,7 +91,15 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
               ]
 
       if files_exist( files , errorlogger = errorlogger):
-        exit_process("ERROR: Cannot find all inputs for Pathologic in folder %s : "  %(options.inputfolder) )
+        exit_process("ERROR\tCannot find all inputs for Pathologic in folder %s : "  %(options.inputfolder) )
+
+    # is there a pathwaytools executable installed
+    if not path.exists(options.ptoolsExec):
+       eprintf("ERROR\tPathwayTools executable %s not found!\n", options.ptoolsExec)
+       if errorlogger:
+          errorlogger.printf("ERROR\tPathwayTools executable %s not found!\n",  options.ptoolsExec)
+       exit_process("ERROR\tPathwayTools executable %s not found!\n" %(options.ptoolsExec))
+
 
     # command to build the ePGDB
     command = "%s -patho %s"  %(options.ptoolsExec, options.inputfolder)
@@ -111,10 +119,13 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
 
 
     if status!=0:
+       eprintf("ERROR\tFailed to run Pathologic on input %s : \n" %(options.inputfolder))
+       eprintf("INFO\tKill any other PathwayTools instance running on the machine and try again\n")
        if errorlogger:
-          errorlogger.write("ERROR: Failed to run Pathologic on input %s : " %(options.inputfolder))
+          errorlogger.write("ERROR\tFailed to run Pathologic on input %s : " %(options.inputfolder))
+          errorlogger.write("INFO\tKill any other PathwayTools instance running on the machine and try again")
           errorlogger.write("     : " + command)
-       exit_process("ERROR: Failed to run Pathologic on input %s : "  %(options.inputfolder) )
+       exit_process("ERROR\tFailed to run Pathologic on input %s : "  %(options.inputfolder) )
     
     try:
         pythonCyc = PythonCyc()
@@ -131,7 +142,11 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
 
         reaction_list_file.close()
     except:
-        errorlogger.write("ERROR: Failed to run extract pathways for %s : " %(options.sample_name))
+        eprintf("ERROR\tFailed to run extract pathways for %s : \n" %(options.sample_name))
+        eprintf("INFO\tKill any other PathwayTools instance running on the machine and try again")
+        if errorlogger:
+            errorlogger.write("ERROR\tFailed to run extract pathways for %s : " %(options.sample_name))
+            errorlogger.write("INFO\tKill any other PathwayTools instance running on the machine and try again\n")
         pass 
 
 def runPathologicCommand(runcommand = None):

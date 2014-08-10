@@ -28,8 +28,6 @@ class PythonCyc:
           self.soc = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
           self.soc.connect("/tmp/ptools-socket" )
 
-
-
       def tokenize(self,string):
           LPAREN = '\(';
           RPAREN = '\)';
@@ -216,6 +214,12 @@ class PythonCyc:
          return result
 
       def startPathwayTools(self):
+         try:
+            self.stopPathwayTools()
+            time.sleep(5)
+         except:
+            pass
+
          process = Process(target=startPathwayTools, args=(self._ptoolsExec,))
          process.start()
          time.sleep(5)

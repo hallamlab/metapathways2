@@ -28,7 +28,7 @@ PATHDELIM = pathDelim()
 
 
 
-usage= """ Usage: ./MetaPathway_filter_input.py  -i file.fna  --min_length N --log_file logfile.log """ +\
+usage= sys.argv[0] + """ -i file.fna  --min_length N --log_file logfile.log """ +\
               """ -o outfasta  [ -M map file ]"""
 
 parser = None

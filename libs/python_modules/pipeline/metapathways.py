@@ -826,7 +826,7 @@ def  copy_fna_faa_gff_orf_prediction( source_files, target_files, config_setting
 #################################################################################
 ########################### BEFORE BLAST ########################################
 #################################################################################
-def run_metapathways(samplesData, input_file, output_dir, all_samples_output_dir, globallogger,\
+def run_metapathways(samplesData, output_dir, all_samples_output_dir, globallogger,\
                      command_line_params, params, metapaths_config, status_update_callback,\
                      config_file, run_type, config_settings = None, block_mode = False, runid = ""):
 

@@ -240,14 +240,23 @@ class ContextCreator:
           context.status = self.params.get('metapaths_steps','ORF_PREDICTION')
           translation_table = self.params.get('orf_prediction', 'translation_table')
 
-          options = " -m -p meta -f gff -g " + translation_table
+          pyScript = self.configs.METAPATHWAYS_PATH + self.configs.ORF_PREDICTION
 
-          pyScript = self.configs.METAPATHWAYS_PATH + PATHDELIM + self.configs.EXECUTABLES_DIR + PATHDELIM + self.configs.ORF_PREDICTION
+          executable = self.configs.METAPATHWAYS_PATH + PATHDELIM +\
+                       self.configs.EXECUTABLES_DIR + PATHDELIM + self.configs.PRODIGAL_EXECUTABLE
           
-          cmd = "%s %s -i %s -o %s" %( pyScript, options, context.inputs['input_file'],\
-                context.outputs['output_gff'] ) 
+          cmd = [ 
+                    pyScript,
+                    "--prod_exec", executable,
+                    "--prod_m",
+                    "--prod_p", 'meta',
+                    "--prod_f", "gff",
+                    "--prod_g", translation_table,
+                    "--prod_input", context.inputs['input_file'],
+                    "--prod_output", context.outputs['output_gff']
+                ]
 
-          context.commands = [cmd]
+          context.commands = [ ' '.join(cmd)]
           context.message = self._Message("ORF PREDICTION")
           contexts.append(context)
           return contexts

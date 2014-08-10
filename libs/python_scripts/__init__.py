@@ -1,4 +1,4 @@
-import libs.python_scripts.MetaPathways_MLTreeMap_hits
+import libs.python_scripts.MetaPathways_orf_prediction
 import libs.python_scripts.MetaPathways_annotate_fast
 import libs.python_scripts.MetaPathways_create_amino_sequences
 import libs.python_scripts.MetaPathways_create_genbank_ptinput_sequin
