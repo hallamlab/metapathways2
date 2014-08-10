@@ -1,0 +1,96 @@
+##V.1   do not remove this line
+# MetaPathways v1.0 
+# Kishori M. Konwar, Niels W. Hanson
+# Parameter File
+
+INPUT:format fasta
+# e.g. fasta gbk-annotated gbk-unannotated gff-annotated gff-unannotated
+
+# Quality Control  parameters 
+quality_control:min_length 180
+quality_control:delete_replicates yes
+
+# ORF prediction parameters 
+orf_prediction:algorithm prodigal
+orf_prediction:min_length 60
+orf_prediction:translation_table 21
+
+# ORF annotation parameters
+annotation:algorithm LAST
+# e.g. blast or last
+
+#annotation:dbs COG_2013-12-27,kegg-pep-2011-06-18,refseq-nr-2014-01-18,metacyc-v4-2011-07-03,seed-2014-01-30 
+annotation:dbs metacyc-v4-2011-07-03,MDM_SAG_proteins,COG_2013-12-27
+# e.g. annotation:dbs    cog,kegg,refseq,metacyc
+annotation:min_bsr 0.4
+annotation:max_evalue 0.000001
+annotation:min_score 20
+annotation:min_length 60
+annotation:max_hits 11
+
+# rRNA annotation parameters LSURef_115_tax_silva
+rRNA:refdbs GREENGENES_gg16S-2012-11-06,LSURef_115_tax_silva,SSURef_NR99_115_tax_silva
+
+rRNA:max_evalue 0.000001
+rRNA:min_identity 20
+rRNA:min_bitscore 50
+
+# pathway tools parameters
+ptools_settings:taxonomic_pruning no
+
+# grid settings
+
+# pipeline execution flags
+# e.g. yes, skip, redo
+metapaths_steps:PREPROCESS_INPUT yes
+metapaths_steps:ORF_PREDICTION yes
+metapaths_steps:ORF_TO_AMINO yes
+metapaths_steps:FILTER_AMINOS yes
+metapaths_steps:COMPUTE_REFSCORES yes
+metapaths_steps:FUNC_SEARCH yes
+metapaths_steps:PARSE_FUNC_SEARCH yes
+metapaths_steps:SCAN_rRNA yes
+metapaths_steps:SCAN_tRNA yes
+metapaths_steps:ANNOTATE_ORFS yes
+metapaths_steps:PATHOLOGIC_INPUT yes
+metapaths_steps:GENBANK_FILE yes
+metapaths_steps:CREATE_ANNOT_REPORTS yes
+metapaths_steps:MLTREEMAP_CALCULATION yes
+metapaths_steps:BUILD_PGDB yes
+metapaths_steps:COMPUTE_RPKM yes
+
+# grid settings
+# template for adding grid
+# N is a digit, and should be unique for each grid
+# note the settings below are commented out
+
+#grid_engineN:server myserver
+#grid_engineN:os linux
+#grid_engineN:bit bit64
+#grid_engineN:optional_string 
+#grid_engineN:sshKey 
+#grid_engineN:user who
+#grid_engineN:max_parallel_jobs 3
+#grid_engineN:name 
+
+
+
+grid_engine0:server bugaboo.westgrid.ca
+grid_engine0:os linux
+grid_engine0:enabled no
+grid_engine0:optional_string PBS -l walltime=10:00:00  -l pmem=10000mb
+grid_engine0:bit bit64
+grid_engine0:sshKey 
+grid_engine0:user kishori
+grid_engine0:max_parallel_jobs 3
+grid_engine0:name 
+
+grid_engine1:server orcinus.westgrid.ca
+grid_engine1:os linux
+grid_engine1:enabled yes
+grid_engine1:optional_string PBS -l walltime=10:00:00  -l pmem=10000mb
+grid_engine1:bit bit64
+grid_engine1:sshKey 
+grid_engine1:user kishori
+grid_engine1:max_parallel_jobs 3
+grid_engine1:name 

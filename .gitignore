@@ -1,5 +1,5 @@
-*template_config.txt
-*template_param.txt
+#template_config.txt
+#template_param.txt
 .gitignore
 *.pyc
 MetaPathways2
