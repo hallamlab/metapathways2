@@ -6,7 +6,7 @@
 # Paths for the Python, Perl and Pathway Tools
 PYTHON_EXECUTABLE '/usr/bin/python'
 PGDB_FOLDER '/Users/kishori/ptools-local/pgdbs/user'
-METAPATHWAYS_PATH '/Users/kishori/MetaPathways/MetaPathways_Python'
+METAPATHWAYS_PATH '/Users/kishori/metaPathways2'
 
 # Replace with your current
 PATHOLOGIC_EXECUTABLE '/Users/kishori/pathway-tools/pathway-tools'
@@ -18,7 +18,7 @@ REFDBS '/Users/sgeadmin/MetaPathways/databases'
 FORMATDB_EXECUTABLE  'makeblastdb'
 BLASTP_EXECUTABLE  'blastp'
 BLASTN_EXECUTABLE  'blastn'
-EXECUTABLES_DIR  'executables/mac/bit64'
+EXECUTABLES_DIR  'executables/Darwin'
 LASTDB_EXECUTABLE  'lastdb'
 LAST_EXECUTABLE  'lastal'
 PRODIGAL_EXECUTABLE 'prodigal' 

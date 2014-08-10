@@ -83,8 +83,8 @@ def createParser():
                        choices=['safe', 'overlay', 'overwrite','dry-run'], 
                        help= '\n(a) \'overwrite\' -- wipes out the previous runs with the same name\n'+
                              '\n(b)\'overlay\' -- recomputes the steps that are not present \n' +
-                             '\n(c)\'dry-run\' -- shows the steps that are going to be computed or not\n' +
                              '\n(d)\'safe\' -- safe mode does not run on an existing run folder\n')
+
     #ith out of order completion \ time-stamps in the \'workflow_log.txt\' 
     parser.add_option("-v", "--verbose",
                       action="store_true", dest="verbose", default=False,
@@ -329,7 +329,7 @@ def main(argv):
 
     
     try:
-       if run_type in ['overlay'] and not path.exists(output_dir):
+       if run_type in ['overlay', 'safe'] and not path.exists(output_dir):
              makedirs(output_dir)
     except OSError:
         print ""
