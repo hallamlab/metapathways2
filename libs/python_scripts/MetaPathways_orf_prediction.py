@@ -17,7 +17,7 @@ try:
 
 except:
      print """ Could not load some user defined  module functions"""
-     print """ Make sure your typed \"source MetaPathwaysrc\""""
+     print """ Make sure your typed 'source MetaPathwaysrc'"""
      print """ """
      print traceback.print_exc(10)
      sys.exit(3)
@@ -123,7 +123,7 @@ def  _execute_prodigal(options):
 
 def MetaPathways_orf_prediction(argv, extra_command = None, errorlogger = None, runstatslogger =None): 
     if errorlogger != None:
-       errorlogger.write("#STEP\tBUILD_PGDB\n")
+       errorlogger.write("#STEP\tORF_PREDICTION\n")
     createParser()
     main(argv, errorlogger = errorlogger, runcommand= extra_command, runstatslogger = runstatslogger)
     return (0,'')

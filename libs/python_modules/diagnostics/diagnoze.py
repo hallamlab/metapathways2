@@ -158,14 +158,15 @@ def createMapFile(seqFilePath, dbMapFile):
 
 def formatDB(tools, db, refdbspath, seqType, dbType, algorithm, configs, logger = None):
      """ Formats the sequences for the specified algorithm """
-     formatdb_executable = configs['METAPATHWAYS_PATH'] + PATHDELIM + tools['FUNC_SEARCH']['exec']['BLAST']['FORMATDB_EXECUTABLE']
+     EXECUTABLES_DIR = configs['METAPATHWAYS_PATH'] + PATHDELIM + configs['EXECUTABLES_DIR'] 
+     formatdb_executable = EXECUTABLES_DIR + PATHDELIM + tools['FUNC_SEARCH']['exec']['BLAST']['FORMATDB_EXECUTABLE']
      if seqType=='nucl':
-            formatdb_executable = configs['METAPATHWAYS_PATH'] + PATHDELIM + tools['FUNC_SEARCH']['exec']['BLAST']['FORMATDB_EXECUTABLE']
+            formatdb_executable = EXECUTABLES_DIR + tools['FUNC_SEARCH']['exec']['BLAST']['FORMATDB_EXECUTABLE']
      if seqType=='prot':
         if algorithm=='LAST':
-            formatdb_executable = configs['METAPATHWAYS_PATH'] + PATHDELIM + tools['FUNC_SEARCH']['exec']['LAST']['LASTDB_EXECUTABLE']
+            formatdb_executable = EXECUTABLES_DIR + PATHDELIM + tools['FUNC_SEARCH']['exec']['LAST']['LASTDB_EXECUTABLE']
         if algorithm=='BLAST':
-            formatdb_executable = configs['METAPATHWAYS_PATH'] + PATHDELIM + tools['FUNC_SEARCH']['exec']['BLAST']['FORMATDB_EXECUTABLE']
+            formatdb_executable = EXECUTABLES_DIR + PATHDELIM + tools['FUNC_SEARCH']['exec']['BLAST']['FORMATDB_EXECUTABLE']
 
      formatted_db = refdbspath + PATHDELIM + dbType + PATHDELIM + 'formatted'  + PATHDELIM + db
      raw_sequence_file = refdbspath + PATHDELIM + dbType + PATHDELIM + db
@@ -190,6 +191,7 @@ def formatDB(tools, db, refdbspath, seqType, dbType, algorithm, configs, logger 
            rename(tempFile, file);
      except:
         return False
+
 
      if result[0]==0:
         eprintf("INFO\tFormatted database %s successfully for %s\n", sQuote(db), sQuote(algorithm) )

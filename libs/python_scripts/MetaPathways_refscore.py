@@ -19,7 +19,7 @@ try:
      from libs.python_modules.utils.sysutil import getstatusoutput, pathDelim
 except:
      print """ Could not load some user defined  module functions"""
-     print """ Make sure your typed \"source MetaPathwaysrc\""""
+     print """ Make sure your typed 'source MetaPathwaysrc'"""
      print """ """
      sys.exit(3)
 

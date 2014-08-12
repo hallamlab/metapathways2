@@ -1,0 +1,42 @@
+#!/bin/bash
+
+echo "Checking for Python and Perl:"
+
+PYTHON_LOC=`which python`
+if [ ! -e $PYTHON_LOC ] 
+then
+   echo "ERROR:"
+   echo "You do not seem to have Python installed."
+   echo "Please install it or make sure it is added to your unix PATH variable."
+else
+   echo "Python found in  ${PYTHON_LOC}"
+   echo "Please set variable PYTHON_EXECUTABLE in file template_config.txt as:"
+   echo "PYTHON_EXECUTABLE  ${PYTHON_LOC}" 
+fi
+
+echo ""
+
+PERL_LOC=`which perl`
+if [ ! -e $PERL_LOC ] 
+then
+   echo "ERROR:"
+   echo "You do not seem to have Perl installed."
+   echo "Please install it or make sure it is added to your unix PATH variable."
+else
+   echo "Perl found in  ${PERL_LOC}"
+   echo "Please set variable PERL_EXECUTABLE in file template_config.txt as:"
+   echo "PERL_EXECUTABLE  ${PERL_LOC}" 
+fi
+echo ""
+echo "Adding installation folder of MetaPathways to PYTHONPATH"
+echo "Your MetaPathways is installed in :"
+echo "Please set variable METAPATHWAYS_PATH in file template_config.txt as:"
+CURRDIR=`pwd`
+cd `dirname ${BASH_SOURCE[0]}`
+METAPATH=`pwd`
+METAPATHLIB=$METAPATH/libs
+PYTHONPATH=${METAPATHLIB}:$PYTHONPATH
+cd $CURRDIR
+export PYTHONPATH
+echo "METAPATHWAYS_PATH  "${METAPATH}
+echo ""

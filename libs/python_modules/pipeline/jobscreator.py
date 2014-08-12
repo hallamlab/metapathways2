@@ -11,11 +11,12 @@ __status__ = "Release"
 """Contains general utility code for the metapaths project"""
 
 try:
-    import os, re
+    import os, re, sys
 
     from shutil import rmtree
     from optparse import make_option
     from os import path, _exit
+  
 
     from libs.python_modules.utils.metapathways_utils import *
     from libs.python_modules.utils.sysutil import pathDelim
@@ -351,7 +352,7 @@ class ContextCreator:
 
           cmd = None
           if s.algorithm == 'BLAST':
-              pyScript      = self.configs.METAPATHWAYS_PATH + PATHDELIM + self.configs.EXECUTABLES_DIR + PATHDELIM + self.configs.COMPUTE_REFSCORES
+              pyScript      = self.configs.METAPATHWAYS_PATH + PATHDELIM +  self.configs.COMPUTE_REFSCORES
               formatterExec = self.configs.METAPATHWAYS_PATH + PATHDELIM + self.configs.EXECUTABLES_DIR + PATHDELIM + self.configs.FORMATDB_EXECUTABLE
               searchExec =   self.configs.METAPATHWAYS_PATH + PATHDELIM + self.configs.EXECUTABLES_DIR + PATHDELIM + self.configs.BLASTP_EXECUTABLE
               cmd = "%s  -F %s -B %s -o %s -i %s -a  %s"\
@@ -400,16 +401,21 @@ class ContextCreator:
       
               cmd = None
               if s.algorithm == 'BLAST':
-                 searchExec =   self.configs.METAPATHWAYS_PATH + PATHDELIM + self.configs.EXECUTABLES_DIR + PATHDELIM + self.configs.BLASTP_EXECUTABLE
-                 cmd="%s -num_threads 16  -max_target_seqs %s  -outfmt 6  -db %s -query  %s -evalue  %s  -out %s"\
-                      %( searchExec, max_hits, refDbFullName, context.inputs['input_filtered_faa'],\
-                        max_evalue, context.outputs['blastoutput']) 
+                 pyScript      = self.configs.METAPATHWAYS_PATH + PATHDELIM +  self.configs.FUNC_SEARCH
+                 searchExec =   self.configs.METAPATHWAYS_PATH + PATHDELIM + self.configs.EXECUTABLES_DIR +\
+                                 PATHDELIM + self.configs.BLASTP_EXECUTABLE
+
+                 cmd="%s --algorithm %s --blast_executable %s --blast_num_threads 16  --blast_max_target_seqs %s  --blast_outfmt 6  --blast_db %s --blast_query  %s --blast_evalue  %s  --blast_out %s" %( pyScript , s.algorithm,  searchExec, str(max_hits), refDbFullName, context.inputs['input_filtered_faa'], str(max_evalue), context.outputs['blastoutput']) 
+
                  context.message = self._Message("BLASTING AMINO SEQS AGAINST " + db)
    
               if s.algorithm == 'LAST':
-                  searchExec =   self.configs.METAPATHWAYS_PATH + PATHDELIM + self.configs.EXECUTABLES_DIR + PATHDELIM + self.configs.LAST_EXECUTABLE
-                  cmd="%s -o %s -f 0 %s %s"\
-                       %( searchExec, blastoutput, refDbFullName, input_filtered_faa) 
+                  pyScript      = self.configs.METAPATHWAYS_PATH + PATHDELIM +  self.configs.FUNC_SEARCH
+                  searchExec =   self.configs.METAPATHWAYS_PATH + PATHDELIM + self.configs.EXECUTABLES_DIR +\
+                                 PATHDELIM + self.configs.LAST_EXECUTABLE
+                  cmd= "%s --algorithm %s --last_executable %s --last_o %s --last_f 0 --last_db %s --last_query %s" \
+                       %(pyScript, s.algorithm ,  searchExec, blastoutput, refDbFullName, input_filtered_faa) 
+
                   context.message = self._Message("LASTING AMINO SEQS AGAINST " + db)
               
               context.status = self.params.get('metapaths_steps','FUNC_SEARCH')
@@ -558,10 +564,10 @@ class ContextCreator:
            context.outputs = { 'tRNA_stats_output':tRNA_stats_output, 'tRNA_fasta_output': tRNA_fasta_output}
 
 
-
-           executable = self.configs.METAPATHWAYS_PATH + PATHDELIM + self.configs.EXECUTABLES_DIR + PATHDELIM +  self.configs.SCAN_tRNA
-           cmd= "%s -o %s -F %s  -i %s -T %s  -D %s"\
-                %(executable, context.outputs['tRNA_stats_output'], context.outputs['tRNA_fasta_output'],\
+           pyScript = self.configs.METAPATHWAYS_PATH + PATHDELIM +   self.configs.SCAN_tRNA
+           executable = self.configs.METAPATHWAYS_PATH + PATHDELIM + self.configs.EXECUTABLES_DIR + PATHDELIM +  self.configs.SCAN_tRNA_EXECUTABLE
+           cmd= "%s --executable %s -o %s -F %s  -i %s -T %s  -D %s"\
+                %(pyScript, executable, context.outputs['tRNA_stats_output'], context.outputs['tRNA_fasta_output'],\
                 context.inputs['input_fasta'], context.inputs['TPCsignal'], context.inputs['Dsignal'])
 
            context.commands = [ cmd ]

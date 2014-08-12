@@ -377,7 +377,6 @@ def main(argv):
        remove_unspecified_samples(input_output_list, sample_subset, format, globalerrorlogger = globalerrorlogger)
 
 
-    print input_output_list
     # add check the config parameters 
     sorted_input_output_list = sorted(input_output_list.keys())
 

@@ -94,15 +94,6 @@ def format_db(formatdb_executable, seqType, raw_sequence_file, formatted_db,  al
         return False
 
 
-def create_quality_check_cmd(min_length, type,  log, contig_lengths_file, input, output, mapping, config_settings):
-    cmd = "%s  --min_length %d --log_file %s  -i %s -o  %s -M %s -t %s -L %s" %((config_settings['METAPATHWAYS_PATH'] + config_settings['PREPROCESS_FASTA']), min_length, log, input,  output,  mapping, type,   contig_lengths_file) 
-    #cmd = "%s  --min_length %d --log_file %s  -i %s -o  %s -M %s" %((config_settings['METAPATHWAYS_PATH'] + config_settings['PREPROCESS_FASTA']), min_length, log, input,  output, mapping) 
-    return cmd
-
-
-def create_orf_prediction_cmd(options, log, input, output, config_settings):
-    cmd = "%s %s -i %s -o %s" %((config_settings['METAPATHWAYS_PATH'] + config_settings['ORF_PREDICTION']), options, input, output) 
-    return cmd
 
 # convert an input gbk file to fna faa and gff file
 def  convert_gbk_to_fna_faa_gff(input_gbk, output_fna, output_faa, output_gff, config_settings):
@@ -117,49 +108,6 @@ def  convert_gff_to_fna_faa_gff(inputs, outputs,  config_settings):
        cmd += ' --source ' + source + ' --target ' + target
     return cmd
 
-
-#converts the orfs into 
-#def create_orf_converter_cmd(options, input, output, config_settings):
-#    cmd = "%s  %s  %s" %((config_settings['METAPATHWAYS_PATH'] + config_settings['ORF_CONVERTER']), options,  input) 
-#    return cmd
-
-def create_aa_orf_sequences_cmd(input_gff, input_fasta, output_fna, output_faa, output_gff,config_settings):
-    cmd = "%s -g  %s  -n %s --output_nuc %s --output_amino %s --output_gff %s" %((config_settings['METAPATHWAYS_PATH'] + config_settings['GFF_TO_FASTA']), input_gff, input_fasta, output_fna, output_faa, output_gff) 
-    return cmd
-
-# create genbank files
-def create_genebank_file_cmd(output, input_orf, input_fas, sample_name, config_settings) :
-    cmd = "%s  --out %s --orphelia %s --fasta %s  --sample-name %s"\
-           %((config_settings['METAPATHWAYS_PATH'] + config_settings['CREATE_GENBANK']), output, input_orf, input_fas, sample_name) 
-    return cmd
-
-# extract from the genbank files a fasta file
-def create_genebank_2_fasta_cmd(options, input, output, config_settings):
-    cmd = "%s %s --o %s %s" %((config_settings['METAPATHWAYS_PATH'] + config_settings['GENBANK_TO_FASTA']), options, output, input) 
-    return cmd
-
-def create_create_filtered_amino_acid_sequences_cmd(input, type, output, orf_lengths_file,  logfile, min_length, config_settings):
-    cmd = "%s  --min_length %d --log_file %s  -i %s -o  %s -L %s -t %s" %((config_settings['METAPATHWAYS_PATH'] + config_settings['PREPROCESS_FASTA']), min_length, logfile, input,  output, orf_lengths_file, type) 
-    return cmd 
-
-#compute refscores
-def create_refscores_compute_cmd(input, output, config_settings, algorithm):
-    if algorithm == 'BLAST':
-       cmd = "%s  -F %s -B %s -o %s -i %s -a  %s" %((config_settings['METAPATHWAYS_PATH'] + config_settings['COMPUTE_REFSCORE']), \
-             (config_settings['METAPATHWAYS_PATH'] + config_settings['FORMATDB_EXECUTABLE']), \
-             (config_settings['METAPATHWAYS_PATH'] + config_settings['BLASTP_EXECUTABLE']), \
-              output, input, algorithm) 
-
-    elif algorithm == 'LAST':
-       cmd = "%s  -F %s -B %s -o %s -i %s -a %s" %((config_settings['METAPATHWAYS_PATH'] + config_settings['COMPUTE_REFSCORE']), \
-             (config_settings['METAPATHWAYS_PATH'] + config_settings['LASTDB_EXECUTABLE']), \
-             (config_settings['METAPATHWAYS_PATH'] + config_settings['LAST_EXECUTABLE']), \
-              output, input, algorithm) 
-    else:
-        eprintf("Unknown choice for annotation algorithm : " + "\"" + algorithm + "\"" + "\n Please check your parameter file\n")
-        exit_process("Unknown choice for annotation algorithm : " + "\"" + algorithm + "\"" + "\n Please check your parameter file\n")
-
-    return cmd
 
 def formatted_db_exists(dbname, suffixes):
     for suffix in suffixes:
@@ -297,191 +245,6 @@ def  make_sure_map_file_exists(config_settings, dbname, globallogger = None):
 
     return dbmapFile
 
-# creates the command to blast the sample orf sequences against the reference databas.for the 
-# purpose of annotation
-def create_blastp_against_refdb_cmd(input, output, output_dir, sample_name,
-        dbfilename, config_settings, params,  run_command, algorithm, db_type, globallogger = None): 
-    max_evalue = float(get_parameter(params, 'annotation', 'max_evalue', default=0.000001))
-    system =    get_parameter(params,  'metapaths_steps', 'BLAST_REFDB', default='yes')
-    max_hits =    get_parameter(params,  'annotation', 'max_hits', default=5)
-
-
-    dbname = get_refdb_name(dbfilename);
-    if run_command:
-         check_an_format_refdb(dbfilename, 'prot',  config_settings, params, globallogger = globallogger)
-
-    if system=='grid':
-       batch_size = get_parameter(params,  'grid_engine', 'batch_size', default=500)
-       max_concurrent_batches = get_parameter(params,  'grid_engine', 'max_concurrent_batches', default=500)
-       user = get_parameter(params,  'grid_engine', 'user', default='')
-       server = get_parameter(params,  'grid_engine', 'server', default='')
-
-       mem = get_parameter(params,  'grid_engine', 'RAM', default='10gb')
-       walltime= get_parameter(params,  'grid_engine', 'walltime', default='10:10:10')
-
-       cmd = {'sample_name':output_dir,  'dbnames':[dbname], 'database_files':[dbfilename],\
-               'run_type':'overlay', 'batch_size':batch_size,'max_parallel_jobs':max_concurrent_batches,\
-               'mem':mem, 'walltime':walltime,\
-               'user':user, 'server':server, 'algorithm': algorithm } 
-    else:
-       if algorithm == 'BLAST':
-          cmd="%s -num_threads 16  -max_target_seqs %s  -outfmt 6  -db %s -query  %s -evalue  %f  -out %s"\
-            %((config_settings['METAPATHWAYS_PATH'] + config_settings['BLASTP_EXECUTABLE']), max_hits,\
-             config_settings['REFDBS'] + PATHDELIM + db_type + PATHDELIM + 'formatted' + PATHDELIM + dbfilename, input, max_evalue, output) 
-       if algorithm == 'LAST':
-          cmd="%s -o %s -f 0 %s %s"\
-            %((config_settings['METAPATHWAYS_PATH'] + config_settings['LAST_EXECUTABLE']), \
-              output, config_settings['REFDBS'] + PATHDELIM + db_type + PATHDELIM + 'formatted' + PATHDELIM + dbfilename, input) 
-    return cmd
-
-
-# Command for pars[s.ng the blast flie snd create the parse blast files
-#     input -- blastoutput
-#     output -- parseed files
-#     refscorefile   -- refscore file
-#     min_bsr   -- minimum bsr ratio for accepting into annotation
-#     max_evalue  -- max evalue
-#     min_score   -- min score
-#     min_length  -- min_length in amino acids, typcically 100 amino acids.ould be minimum
-#     dbmane      -- name of the refrence databases
-def create_parse_blast_cmd(input, refscorefile, dbname, dbmapfile,  config_settings, params, algorithm): 
-    min_bsr = float(get_parameter(params, 'annotation', 'min_bsr', default=0.4))
-    min_score = float(get_parameter(params, 'annotation', 'min_score', default=0.0))
-    min_length = float(get_parameter(params, 'annotation', 'min_length', default=100))
-    max_evalue = float(get_parameter(params, 'annotation', 'max_evalue', default=1000))
-
-    cmd="%s -d %s  -b %s -m %s  -r  %s  --min_bsr %f  --min_score %f --min_length %f --max_evalue %f"\
-         %((config_settings['METAPATHWAYS_PATH'] + config_settings['PARSE_BLAST']), dbname, input, dbmapfile,  refscorefile, min_bsr, min_score, min_length, max_evalue);
-
-    if algorithm == 'LAST':
-       cmd = cmd + ' --algorithm LAST'
-
-    if algorithm == 'BLAST':
-       cmd = cmd + ' --algorithm BLAST'
-
-    return cmd
-
-# this function creates the command that is required to make the annotated genbank file
-def create_annotate_genebank_cmd(sample_name, mapping_txt, input_unannotated_gff, output_annotated_gff,\
-           blast_results_dir,  options, refdbs, output_comparative_annotation,\
-           config_settings, algorithm):
-    cmd="%s --input_gff  %s -o %s  %s --output-comparative-annotation %s \
-            --algorithm %s" %((config_settings['METAPATHWAYS_PATH'] +
-                config_settings['ANNOTATE']),input_unannotated_gff,\
-                output_annotated_gff,  options, output_comparative_annotation,\
-                algorithm)
-
-    for refdb in refdbs:
-        if algorithm == "LAST":
-            cmd = cmd + " -b " + blast_results_dir + PATHDELIM + sample_name + "." + refdb+ "." + algorithm + "out.parsed.txt -d " + refdb + " -w 1 "
-        else:
-            cmd = cmd + " -b " + blast_results_dir + PATHDELIM + sample_name + "." + refdb+ "." + algorithm + "out.parsed.txt -d " + refdb + " -w 1 "
-
-    cmd = cmd + " -m " +  mapping_txt
-    return cmd
-
-def create_genbank_ptinput_sequin_cmd(input_annotated_gff, nucleotide_fasta, amino_fasta, outputs, config_settings, ncbi_params_file, ncbi_sequin_sbt):
-    cmd="%s -g %s -n %s -p %s " %((config_settings['METAPATHWAYS_PATH'] + config_settings['GENBANK_FILE']), input_annotated_gff, nucleotide_fasta, amino_fasta) ; 
-
-    if 'gbk' in outputs:
-       cmd += ' --out-gbk ' + outputs['gbk']
-
-    if ncbi_params_file and  'sequin' in outputs:
-       cmd += ' --out-sequin ' + outputs['sequin']
-       cmd += ' --sequin-params-file ' + ncbi_params_file
-       cmd += ' --ncbi-sbt-file ' +  ncbi_sequin_sbt
-
-    if 'ptinput' in outputs:
-       cmd += ' --out-ptinput ' + outputs['ptinput']
-
-
-    return cmd
-
-def  create_report_files_cmd(dbs, input_dir, input_annotated_gff,  sample_name, output_dir, config_settings, algorithm, verbose):
-    db_argument_string = ''
-    for db in dbs:
-        dbname = get_refdb_name(db)
-        db_argument_string += ' -d ' + dbname
-        db_argument_string += ' -b ' + input_dir + sample_name +'.' + dbname
-        if algorithm == "LAST":
-            db_argument_string += '.' + algorithm + 'out.parsed.txt'
-        else:
-            db_argument_string += '.' + algorithm + 'out.parsed.txt'
-    basefun = config_settings['REFDBS'] + PATHDELIM + 'functional_categories' + PATHDELIM
-    basencbi = config_settings['REFDBS'] + PATHDELIM + 'ncbi_tree' + PATHDELIM
-    # construct command        
-    #cmd="%s %s --input-annotated-gff %s  --input-kegg-maps  %s  --input-cog-maps %s --output-dir %s --ncbi-taxonomy-map %s --seed2ncbi-file %s"\
-    cmd="%s %s --input-annotated-gff %s  --input-kegg-maps  %s  --input-cog-maps %s --input-seed-maps %s --output-dir %s --ncbi-taxonomy-map %s "\
-           %((config_settings['METAPATHWAYS_PATH'] + config_settings['CREATE_REPORT_FILES']),\
-              db_argument_string, input_annotated_gff,\
-              basefun + 'KO_classification.txt', basefun + 'COG_categories.txt',  basefun + 'SEED_subsystems.txt',  output_dir,\
-               basencbi + 'ncbi_taxonomy_tree.txt')
-    if verbose:
-       cmd += " -v"
-    return cmd
-
-
-def create_genbank_2_sequin_cmd(input_gbk_file, output_sequin_file, config_settings):
-    cmd="%s -i %s -o %s" %((config_settings['METAPATHWAYS_PATH'] + config_settings['GENBANK_2_SEQUIN']),input_gbk_file, output_sequin_file); 
-    return cmd
-
-
-def create_reduce_genebank_cmd(input_gbk_file, output_reduced_gbk_file, config_settings):
-    cmd="%s -i %s -o %s" %((config_settings['METAPATHWAYS_PATH'] + config_settings['REDUCE_ANNOTATED_FILE']),input_gbk_file, output_reduced_gbk_file ); 
-    return cmd
-
-#creates the fasta and the pf files to be processed by pathologic and  a subsequent step will 
-# create the PGDB
-def create_fasta_and_pf_files_cmd(sample_name, input_reduced_annotated_gbk_file_pat, output_fasta_pf_dir, config_settings):
-    cmd="%s -s %s -p %s -a %s" %((config_settings['METAPATHWAYS_PATH'] + config_settings['PATHOLOGIC_INPUT']), sample_name, output_fasta_pf_dir, input_reduced_annotated_gbk_file_pat)
-    return cmd
-
-def create_create_genetic_elements_cmd(output_fasta_pf_dir, config_settings):
-    cmd="%s -p %s" %((config_settings['METAPATHWAYS_PATH'] + config_settings['CREATE_GENETIC_ELEMENTS']),output_fasta_pf_dir)
-    return cmd
-
-# this function creates an organism file for pathway tools
-def create_create_organism_params_cmd(yaml_file, output_fasta_pf_dir, pgdb_ID, config_settings):
-    cmd="%s --yaml-file %s --ptools-dir %s %s" %((config_settings['METAPATHWAYS_PATH'] + config_settings['CREATE_ORGANISM_PARAM']), yaml_file, output_fasta_pf_dir, pgdb_ID)
-    return cmd
-
-# this is where the command for PGDB creation is called, by using 
-def create_pgdb_using_pathway_tools_cmd(output_fasta_pf_dir, taxonomic_pruning_flag, config_settings):
-    cmd="%s -patho %s"  %(config_settings['PATHOLOGIC_EXECUTABLE'], output_fasta_pf_dir +  PATHDELIM)
-    if taxonomic_pruning_flag=='no':
-        cmd= cmd + " -no-taxonomic-pruning "
-        #cmd= cmd + " -no-taxonomic-pruning -no-cel-overview -no-web-cel-ov"
-    cmd= cmd + " -no-web-cel-overview"
-    return cmd
- 
-
-def create_scan_rRNA_seqs_cmd(input_fasta, output_blast, refdb, config_settings,params, command_Status, db_type, globallogger = None):
-
-    if command_Status:
-       check_an_format_refdb(refdb, 'nucl',  config_settings, params, globallogger = globallogger)
-    else:
-       s.exit(0)
-
-
-    cmd="%s -outfmt 6 -num_threads 16  -query %s -out %s -db %s -max_target_seqs 5"%((config_settings['METAPATHWAYS_PATH'] + config_settings['BLASTN_EXECUTABLE']),input_fasta,output_blast, config_settings['REFDBS'] + PATHDELIM + db_type + PATHDELIM + 'formatted' + PATHDELIM + refdb)
-    return cmd
-
-
-# create the command to do rRNA scan statististics
-def create_rRNA_scan_statistics(blastoutput, refdbname, bscore_cutoff, eval_cutoff, identity_cutoff, config_settings, rRNA_stat_results):
-    cmd= "%s -o %s -b %s -e %s -s %s"  %((config_settings['METAPATHWAYS_PATH'] + config_settings['SCAN_rRNA']), rRNA_stat_results, bscore_cutoff, eval_cutoff, identity_cutoff)
-
-    cmd =  cmd +  " -i "  + blastoutput + " -d " + config_settings['REFDBS'] + "/taxonomic/" +  refdbname 
-
-    return cmd
-
-# create the command to do tRNA scan statististics
-def create_tRNA_scan_statistics(in_file,stat_file, fasta_file,  config_settings):
-    cmd= "%s -o %s -F %s  -i %s -T %s  -D %s"  %((config_settings['METAPATHWAYS_PATH'] + config_settings['SCAN_tRNA']) ,\
-           stat_file, fasta_file, in_file,\
-          (config_settings['METAPATHWAYS_PATH'] + config_settings['RESOURCES_DIR'])+ PATHDELIM + 'TPCsignal',\
-          (config_settings['METAPATHWAYS_PATH'] + config_settings['RESOURCES_DIR'])+ PATHDELIM + 'Dsignal')
-    return cmd
 
 # create the command to make the MLTreeMap Images
 def create_MLTreeMap_Imagemaker(mltreemap_image_output, mltreemap_final_outputs, config_settings):
@@ -491,13 +254,6 @@ def create_MLTreeMap_Imagemaker(mltreemap_image_output, mltreemap_final_outputs,
     cmd= "%s -i %s -o %s -m a"  %(executable_path, mltreemap_final_outputs, mltreemap_image_output) 
     return cmd
 
-# create the command to do mltreemap calculations
-def create_MLTreeMap_Calculations(mltreemap_input_file, mltreemap_output_dir, config_settings):
-    executable_path = config_settings['MLTREEMAP_CALCULATION']
-    if not path.isfile( executable_path):
-        executable_path = config_settings['METAPATHWAYS_PATH'] + executable_path
-    cmd= "%s -i %s -o %s -e %s"  %(executable_path, mltreemap_input_file, mltreemap_output_dir, config_settings['EXECUTABLES_DIR'] ) 
-    return cmd
 
 # gather mltreemap calculations 
 def create_MLTreeMap_Hits(mltreemap_output_dir, output_folder, config_settings):

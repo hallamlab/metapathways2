@@ -22,7 +22,7 @@ try:
      from libs.python_modules.utils.utils import *
 except:
      print """ Could not load some user defined  module functions"""
-     print """ Make sure your typed \"source MetaPathwaysrc\""""
+     print """ Make sure your typed 'source MetaPathwaysrc'"""
      print """ """
      sys.exit(3)
 
@@ -515,7 +515,10 @@ def cog_id(product):
        cog_id=results.group(0)
     return cog_id
     
-
+def seed_id(product):
+    seed_id = re.sub(r'\[[^\[]+\]', '', product)
+    return seed_id
+    
 def kegg_id(product):
     results = re.search(r'K[0-9][0-9][0-9][0-9][0-9]', product)
     kegg_id = ''
@@ -1078,7 +1081,7 @@ def print_orf_table(results, orfToContig,  output_dir,  outputfile):
 
            _results = re.search(r'seed', dbname, re.I)
            if _results:
-              orf_dict[orf['query']][dbname] =  product
+              orf_dict[orf['query']][dbname] =  seed_id(product)
               continue
 
            orf_dict[orf['query']][dbname] =  product
