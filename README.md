@@ -8,4 +8,10 @@ The development of high-throughput sequencing technologies over the past decade 
 
 Here we present MetaPathways v2.0 incorporating a graphical user interface (GUI) and refined task management methods. The MetaPathways GUI provides an intuitive display for setup and process monitoring and supports interactive data visualization and sub-setting via a custom Knowledge Engine data structure. A master-worker model is adopted for task management allowing users to scavenge computational results from a number of worker grids in an ad hoc, asynchronous, distributed network that dramatically increases fault tolerance. This model facilitates the use of EC2 instances extending ePGDB construction to the Amazon Elastic Cloud.
 
+## Installation
+
+MetaPathways v2.0 requires Python 2.6 or greater and [Pathway Tools](http://bioinformatics.ai.sri.com/ptools/) developed by SRI International for full functionality.
+
+The MetaPathways Python codebase as well as the GUI code is self-contained in this GitHub distro.
+
 Please see the [MetaPathways v2.0 wiki](https://github.com/kishori82/metapathways2/wiki) for more installation and usage information.
