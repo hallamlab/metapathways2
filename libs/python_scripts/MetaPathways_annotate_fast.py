@@ -19,17 +19,28 @@ try:
      from libs.python_modules.utils.sysutil import getstatusoutput
 except:
      print """ Could not load some user defined  module functions"""
-     print """ Make sure your typed \"source MetaPathwaysrc\""""
+     print """ Make sure your typed 'source MetaPathwaysrc'"""
      print """ """
      sys.exit(3)
 
 
-usage= """./MetapathWays_annotate.py -d dbname1 -b parsed_blastout_for_database1 -w weight_for_database1 [-d dbname2 -b parsed_blastout_for_database2 -w weight_for_database2 ] [ --rRNA_16S  16SrRNA-stats-table ] [ --tRNA tRNA-stats-table ]"""
+usage=  sys.argv[0] + """ -d dbname1 -b parsed_blastout_for_database1 -w weight_for_database1 [-d dbname2 -b parsed_blastout_for_database2 -w weight_for_database2 ] [ --rRNA_16S  16SrRNA-stats-table ] [ --tRNA tRNA-stats-table ]"""
 parser = None
 
 def createParser():
      global parser
-     parser = OptionParser(usage)
+     epilog = """Based on the parsed homology search results against reference protein databases, 
+               tRNA scan results and matches against the LSU and SSU rRNA sequence databases
+               annotations for individual ORFs are created.
+               The functional annotation is done by synthesizing  the annotations from the 
+               reference databases, after removing redundant texts and also making sure 
+               the annotations from different reference databases are in agreement with each other.
+               The taxonomic annotation is done by applying the LCA (lowest common ancestor rule) 
+               on the hits from the RefSeq NR protein database."""
+
+     epilog = re.sub(r'\s+',' ', epilog)
+     parser = OptionParser(usage = usage, epilog = epilog)
+
      parser.add_option("-b", "--blastoutput", dest="input_blastout", action='append', default=[],
                        help='blastout files in TSV format [at least 1 REQUIRED]')
      parser.add_option("-a", "--algorithm", dest="algorithm", default="BLAST", help="algorithm BLAST or LAST" )
@@ -822,6 +833,7 @@ def main(argv, errorlogger =None, runstatslogger = None):
 
 def MetaPathways_annotate_fast(argv, errorlogger = None, runstatslogger = None):       
     createParser()
+    errorlogger.write("#STEP\tANNOTATE_ORFS\n")
     main(argv, errorlogger = errorlogger, runstatslogger = runstatslogger)
     return (0,'')
 

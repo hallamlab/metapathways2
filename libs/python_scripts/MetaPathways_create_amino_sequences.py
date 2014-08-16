@@ -12,7 +12,7 @@ try:
      import logging.handlers
 except:
      print """ Could not load some user defined  module functions"""
-     print """ Make sure your typed \"source MetaPathwaysrc\""""
+     print """ Make sure your typed 'source MetaPathwaysrc'"""
      print """ """
      sys.exit(3)
 
@@ -425,14 +425,18 @@ def process_sequence_file(sequence_file_name,  seq_dictionary):
 
 
 
-help = sys.argv[0] + """ MetaPathways_create_amino_sequences.py -g gff_files -n nucleotide_sequences --output-nuc output_nuc --output_amino  output_amino  --output_gff output_gff_file \n"""
+usage = sys.argv[0] + """ -g gff_files -n nucleotide_sequences --output-nuc output_nuc --output_amino  output_amino  --output_gff output_gff_file"""
 
 parser = None
 def createParser():
     # Parse options (many!)
     # TODO: Create option groups
     global parser
-    parser = optparse.OptionParser(help)
+
+    epilog = """The GFF files produced by the gene prediction algorithm, say prodigal, in the ORF Prediction step are used to translate into the amino acid sequences and gff files that contains more detailed information such as orf_length, strand, start and end positions, contig_length, etc. In the pipeline the resulting file is in the orf_prediction folder with the extension .faa """
+
+    epilog = re.sub(r'\s+', ' ', epilog)
+    parser = optparse.OptionParser(usage = usage, epilog = epilog)
     # Input options
 
     input_group = optparse.OptionGroup(parser, 'input options')
@@ -443,16 +447,16 @@ def createParser():
 
     input_group.add_option('-n', '--nucleotide', dest='nucleotide_sequences',
                            metavar='NUCLEOTIDE_SEQUENCE', 
-                           help='Nucleotide sequences')
+                           help='nucleotide sequences input file ')
 
     input_group.add_option('--output_amino', dest='output_amino',
-                           metavar='OUTPUT', help='Amino Acid file')
+                           metavar='OUTPUT', help='nmino acid output file')
 
     input_group.add_option('--output_nuc', dest='output_nuc',
-                           metavar='OUTPUT', help='Nucleotide Sequence file')
+                           metavar='OUTPUT', help='nucleotide Sequence file')
 
     input_group.add_option('--output_gff', dest='output_gff',
-                           metavar='OUTPUT', help='Amino Acid file')
+                           metavar='OUTPUT', help='output file in gff format')
 
 
     parser.add_option_group(input_group)

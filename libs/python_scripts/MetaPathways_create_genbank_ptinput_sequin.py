@@ -22,7 +22,7 @@ try:
     from libs.python_modules.parsers.parse  import parse_parameter_file
 except:
     print """ Could not load some user defined  module functions"""
-    print """ Make sure your typed \"source MetaPathwaysrc\""""
+    print """ Make sure your typed 'source MetaPathwaysrc'"""
     print """ """
     sys.exit(3)
 
@@ -115,7 +115,6 @@ def get_sequence_name(line):
 
 
 note = """GFF File Format
-    
 Fields
 
 Fields must be tab-separated. Also, all but the final field in each feature line must contain a value; "empty" columns should be denoted with a '.'
@@ -648,20 +647,24 @@ def process_sequence_file(sequence_file_name,  seq_dictionary):
      #print blast_file + ' ' + tax_maps + ' ' + database
 
 
-help = """Usage:\n   MetaPathways_create_genbank_ptinput_sequin.py  -g gff_files -n nucleotide_sequences -p protein_sequences [--out-gbk gbkfile --out-sequin sequinfile --out-ptinput ptinputdir]\n"""
+usage =  sys.argv[0] + """ -g gff_files -n nucleotide_sequences -p protein_sequences [--out-gbk gbkfile --out-sequin sequinfile --out-ptinput ptinputdir]\n"""
 
 parser = None
 
 def createParser():
     global parser
-    parser = optparse.OptionParser(usage=help)
+    epilog = """This script has three functions : (i) The functional and taxonomic annotations created for the individual ORFs are used to create the inputs required by the Pathway-Tools's Pathologic algorithm to build the ePGDBs. The input consists of 4 files that contains functional annotations and sequences with relevant information, this information is used by Pathologic to create the ePGDBs. (ii) It can create a genbank file for the ORFs and their annotations, (iii) An option is added where it can create a sequin file, which is required for sometimes for sequence submission to NCBI data repository, such as trace archive"""
+    epilog = re.sub(r'\s+', ' ', epilog)
+
+    parser = optparse.OptionParser(usage=usage, epilog = epilog)
+
     # Input options
 
     input_group = optparse.OptionGroup(parser, 'input options')
 
     input_group.add_option('-g', '--gff', dest='gff_file',
                            metavar='GFF_FILE', 
-                           help='GFF files to convert to genbank format')
+                           help='GFF files, with annotations,  to convert to genbank format')
 
     input_group.add_option('-n', '--nucleotide', dest='nucleotide_sequences',
                            metavar='NUCLEOTIDE_SEQUENCE', 
@@ -701,6 +704,8 @@ def main(argv, errorlogger = None, runstatslogger = None):
     # Parse options (many!)
     # TODO: Create option groups
     # filtering options
+
+
     global parser
     options, args = parser.parse_args(argv)
 

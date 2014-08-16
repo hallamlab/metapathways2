@@ -15,7 +15,7 @@ try:
 
 except:
      print """ Could not load some user defined  module functions"""
-     print """ Make sure your typed \"source MetaPathwaysrc\""""
+     print """ Make sure your typed 'source MetaPathwaysrc'"""
      print """ """
      print traceback.print_exc(10)
      sys.exit(3)
@@ -41,12 +41,17 @@ def files_exist( files , errorlogger = None):
 
 
 
-help = sys.argv[0] + """ -i input_folder """
+usage = sys.argv[0] + """ -i input_folder -p pgdb_dir --ptoolsExec pathwaytools_executable """
 parser = None
 def createParser():
     global parser
 
-    parser = optparse.OptionParser(usage=help)
+    epilog = """The pathway prediction algorithm, Pathologic in the Pathway Tools software, is run with the folder ptools as the input. The result of this step is an ePGDB (environmental pathway genome database).
+The resulting ePGDB is in the ~/ptools-local/pgdbs/user folder. They can be viewed using the Pathway Tools software."""
+
+    epilog = re.sub(r'\s+', ' ', epilog)
+
+    parser = optparse.OptionParser(usage=usage, epilog = epilog)
 
     # Input options
 

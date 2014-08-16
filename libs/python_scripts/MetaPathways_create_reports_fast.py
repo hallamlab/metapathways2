@@ -27,13 +27,17 @@ except:
      sys.exit(3)
 
 
-usage= """./MetapathWays_annotate.py -d dbname1 -b parsed_blastout_for_database1 [-d dbname2 -b parsed_blastout_for_database2 ] --input-annotated-gff input.gff  """
+usage= sys.argv[0] + """ -d dbname1 -b parsed_blastout_for_database1 [-d dbname2 -b parsed_blastout_for_database2 ] --input-annotated-gff input.gff  """
 PATHDELIM = pathDelim()
 
 parser=None
 def createParser():
      global parser
-     parser = OptionParser(usage)
+
+     epilog = """Report tables summarizing and listing the functional and taxonomic annotation for all the ORFs in a sample are computed.The results are dropped in the folder <output_dir>"""
+     epilog = re.sub(r'\s+', ' ',epilog)
+
+     parser = OptionParser(usage = usage, epilog = epilog)
      parser.add_option("-b", "--blastoutput", dest="input_blastout", action='append', default=[],
                        help='blastout files in TSV format [at least 1 REQUIRED]')
      
@@ -1141,7 +1145,7 @@ def print_orf_table(results, orfToContig,  output_dir,  outputfile):
 
 def MetaPathways_create_reports_fast(argv, errorlogger =  None, runstatslogger = None):       
     createParser()
-    errorlogger.write("#STEP\tPARSE BLAST\n")
+    errorlogger.write("#STEP\tCREATE_ANNOT_REPORTS\n")
     main(argv,errorlogger= errorlogger, runstatslogger = runstatslogger )
     return (0,'')
 

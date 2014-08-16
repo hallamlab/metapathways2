@@ -161,7 +161,7 @@ def formatDB(tools, db, refdbspath, seqType, dbType, algorithm, configs, logger 
      EXECUTABLES_DIR = configs['METAPATHWAYS_PATH'] + PATHDELIM + configs['EXECUTABLES_DIR'] 
      formatdb_executable = EXECUTABLES_DIR + PATHDELIM + tools['FUNC_SEARCH']['exec']['BLAST']['FORMATDB_EXECUTABLE']
      if seqType=='nucl':
-            formatdb_executable = EXECUTABLES_DIR + tools['FUNC_SEARCH']['exec']['BLAST']['FORMATDB_EXECUTABLE']
+            formatdb_executable = EXECUTABLES_DIR + PATHDELIM + tools['FUNC_SEARCH']['exec']['BLAST']['FORMATDB_EXECUTABLE'] 
      if seqType=='prot':
         if algorithm=='LAST':
             formatdb_executable = EXECUTABLES_DIR + PATHDELIM + tools['FUNC_SEARCH']['exec']['LAST']['LASTDB_EXECUTABLE']

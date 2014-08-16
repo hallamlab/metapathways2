@@ -42,20 +42,24 @@ def files_exist( files , errorlogger = None):
     return not status
 
 
-help = sys.argv[0] + """ -i input -o output [algorithm dependent options]"""
+usage = sys.argv[0] + """ -i input -o output [algorithm dependent options]"""
 
 parser = None
 def createParser():
     global parser
     epilog = """This script is used for running a homology search algorithm such as BLAST or LAST
-              on a set of query amino acide sequences against a target of  reference sequences.
+              on a set of query amino acid sequences against a target of  reference protein sequences.
               Currently it supports the BLASTP and LAST algorithm. Any other homology search algorithm 
               can be added by first adding the new algorithm name in upper caseusing in to the 
-              choices parameter in the algorithm option of this script and then add a new OptionGroup
-              for passing the paremters in to and add a new function  as in """
+              choices parameter in the algorithm option of this script.
+              The results are put in a tabular form in the folder blast_results, with individual files 
+               for each of the databases. The files are named as "<samplename>.<dbname>.<algorithm>out"
+              In the case of large number of amino acid sequences, this step of the computation can be 
+               also done using multiple grids (to use batch processing system) """
+
     epilog = re.sub(r'\s+',' ', epilog)
 
-    parser = OptionParser(usage=help, epilog=epilog)
+    parser = OptionParser(usage=usage, epilog=epilog)
 
     # Input options
 
