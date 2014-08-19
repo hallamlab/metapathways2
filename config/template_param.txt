@@ -16,10 +16,10 @@ orf_prediction:min_length 60
 orf_prediction:translation_table 11
 
 # ORF annotation parameters
-annotation:algorithm LAST
+annotation:algorithm BLAST
 # e.g. blast or last
 
-#annotation:dbs COG_2013-12-27,kegg-pep-2011-06-18,refseq-nr-2014-01-18,metacyc-v4-2011-07-03,seed-2014-01-30 
+#annotation:dbs COG_2013-12-27,18,refseq-nr-2014-01-18,metacyc-v4-2011-07-03,seed-2014-01-30 
 annotation:dbs metacyc-v4-2011-07-03,MDM_SAG_proteins,COG_2013-12-27
 # e.g. annotation:dbs    cog,kegg,refseq,metacyc
 annotation:min_bsr 0.4
@@ -42,22 +42,22 @@ ptools_settings:taxonomic_pruning no
 
 # pipeline execution flags
 # e.g. yes, skip, redo
-metapaths_steps:PREPROCESS_INPUT skip
-metapaths_steps:ORF_PREDICTION skip
-metapaths_steps:ORF_TO_AMINO skip
-metapaths_steps:FILTER_AMINOS skip
-metapaths_steps:COMPUTE_REFSCORES skip
-metapaths_steps:FUNC_SEARCH skip
-metapaths_steps:PARSE_FUNC_SEARCH skip
-metapaths_steps:SCAN_rRNA skip
-metapaths_steps:SCAN_tRNA skip
-metapaths_steps:ANNOTATE_ORFS skip
-metapaths_steps:PATHOLOGIC_INPUT skip
-metapaths_steps:GENBANK_FILE skip
-metapaths_steps:CREATE_ANNOT_REPORTS redo
-metapaths_steps:MLTREEMAP_CALCULATION skip
-metapaths_steps:BUILD_PGDB skip
-metapaths_steps:COMPUTE_RPKM skip
+metapaths_steps:PREPROCESS_INPUT yes
+metapaths_steps:ORF_PREDICTION yes
+metapaths_steps:ORF_TO_AMINO yes
+metapaths_steps:FILTER_AMINOS yes
+metapaths_steps:COMPUTE_REFSCORES yes
+metapaths_steps:FUNC_SEARCH yes
+metapaths_steps:PARSE_FUNC_SEARCH yes
+metapaths_steps:SCAN_rRNA yes
+metapaths_steps:SCAN_tRNA yes
+metapaths_steps:ANNOTATE_ORFS yes
+metapaths_steps:PATHOLOGIC_INPUT yes
+metapaths_steps:GENBANK_FILE yes
+metapaths_steps:CREATE_ANNOT_REPORTS yes 
+metapaths_steps:MLTREEMAP_CALCULATION yes
+metapaths_steps:BUILD_PGDB yes
+metapaths_steps:COMPUTE_RPKM yes
 
 # grid settings
 # template for adding grid
