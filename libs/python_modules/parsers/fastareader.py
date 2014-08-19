@@ -15,7 +15,7 @@ class FastaRecord():
 
 
 class FastaReader():
-    """Parses a GenBank record from a string or file."""
+    """Parses a fasta record from a string or file."""
     stop = False
     START_PATTERN = re.compile(r'^>')
     name = None
@@ -30,23 +30,20 @@ class FastaReader():
     def __iter__(self):
         return self
 
- 
     def next(self):
         if self.stop:
           raise StopIteration
-
+        
         try:
            if not self.name: 
                self.name = self.file.readline().strip()
-           line = self.file.readline().strip()
+           line = self.file.readline()
         except:
            line = None
-
 
         if not line:
            self.stop = True
            raise StopIteration
-
 
         fragments = []
         while line and not self.START_PATTERN.search(line):
