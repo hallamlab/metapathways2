@@ -14,4 +14,6 @@ MetaPathways v2.0 requires Python 2.6 or greater and [Pathway Tools](http://bioi
 
 The MetaPathways Python codebase as well as the GUI code is self-contained in this GitHub distro.
 
-Please see the [MetaPathways v2.0 wiki](https://github.com/kishori82/metapathways2/wiki) for more installation and usage information.
+Please see the [MetaPathways v2.0 wiki](https://github.com/hallamlab/metapathways2/wiki) for more installation and usage information.
+
+A template [MetaPathways_DB](https://www.dropbox.com/s/ye3kpve041e0r39/MetaPathways_DBs.zip?dl=0) contains starter protein and taxonomic databases
