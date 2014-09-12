@@ -1,7 +1,7 @@
 from __future__ import division
 
 __author__ = "Kishori M Konwar Niels W Hanson"
-__copyright__ = "Copyright 2013, MetaPathways"
+__copyright__ = "Copyright 2014, MetaPathways"
 __credits__ = [""]
 __version__ = "1.0"
 __maintainer__ = "Kishori M Konwar Niels W Hanson"
@@ -59,12 +59,16 @@ metapaths_config = """template_config.txt""";
 
 script_info={}
 script_info['brief_description'] = """A workflow script for making PGDBs from metagenomic sequences"""
-script_info['script_description'] = """ takes a sequence file and performs all processing steps through building the OTU table.
-             REQUIRED: You must have a fas and an yaml file  and  a custom parameters file:"""
+script_info['script_description'] = \
+    """ This script starts a MetaPathways pipeline run. It requires an input directory of fasta or genbank files
+    containing sequences to process, an output directory for results to be placed. It also requires the
+    configuration files, template_config.txt and template_param.txt in the config/ directory, to be updated with the
+    location of resources on your system.
+    """
 script_info['script_usage'] = []
 
 
-usage=  sys.argv[0] + """  -i input_file -o outdir  -p parameters.txt 
+usage=  sys.argv[0] + """ -i input_dir -o output_dir -p parameters.txt
 For more options:  ./MetaPathways.py -h"""
 
 parser = None

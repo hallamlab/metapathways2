@@ -13,12 +13,12 @@ PATHOLOGIC_EXECUTABLE '/home/nhanson/pathway-tools/pathway-tools'
 
 REFDBS '/home/nhanson/MetaPathways_DBs'
 
-# Executables: replace 'mac' to your platform linux, mac, win
-# Bit type - bit32 or bit64 
+# Check the executables/ directory your operating system
+# e.g., Mac = Darwin
 FORMATDB_EXECUTABLE  'makeblastdb'
 BLASTP_EXECUTABLE  'blastp'
 BLASTN_EXECUTABLE  'blastn'
-EXECUTABLES_DIR  'executables/Unix'
+EXECUTABLES_DIR  'executables/Darwin'
 LASTDB_EXECUTABLE  'lastdb'
 LAST_EXECUTABLE  'lastal'
 PRODIGAL_EXECUTABLE 'prodigal' 
