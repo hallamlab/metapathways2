@@ -20,7 +20,7 @@ try:
      from libs.python_modules.parsers.fastareader  import FastaReader
 except:
      print """ Could not load some user defined  module functions"""
-     print """ Make sure your typed \"source MetaPathwaysrc\""""
+     print """ Make sure your typed 'source MetaPathwaysrc'"""
      print """ """
      sys.exit(3)
 
@@ -34,11 +34,29 @@ usage= sys.argv[0] + """ -i file.fna  --min_length N --log_file logfile.log """ 
 parser = None
 def createParser():
     global parser
-    parser = OptionParser(usage)
+    epilog = """
+This script filters both nucleotide and amino acid sequences.   In the case
+of nucleotide sequences it filters out the contigs based on the minimum
+length, presence of ambiguous nucleotide positions. Contigs with ambiguous
+sequences are split into, separate contigs, at the regions where ambiguous
+sequences appear. The resulting conigs are filtered out if they are below the
+minimum length threshold.  The resulting filtered sequences are made available
+into the folder 'preprocessed'   In the case of amino acid sequences in the
+folder orf_prediction produced by the GFF to Amino step are filtered by
+length. Unless the user changes, the default minimum length is 60 amino acid
+sequences. The resulting sequences are put in the folder orf_prediction in a
+file names "samplename".qced.faa. These amino acid sequences can be used in
+ the downstream process of annotating them functionally and taxonomically
+(using LCA rule)"""
+
+    epilog = re.sub(r'[ \t\f\v]+',' ', epilog)
+
+    parser = OptionParser(usage=usage, epilog=epilog)
+
     parser.add_option("-i", "--input_file", dest="input_fasta",
-                      help='the input fasta file [REQUIRED]')
+                      help='the input fasta filename [REQUIRED]')
     parser.add_option("-o", "--output_file", dest="output_fasta",
-                      help='the output fasta file [REQUIRED]')
+                      help='the output fasta filename [REQUIRED]')
     parser.add_option("-L", "--lengths_file", dest="lengths_file",
                       help='the output file that the lengths [REQUIRED]')
     parser.add_option("-m", "--min_length", type='int', dest="min_length",
@@ -46,9 +64,9 @@ def createParser():
     parser.add_option("-l", "--log_file", dest="log_file",  
                       help='file name to write the statsitics and log into')
     parser.add_option("-M", "--map_file", dest="map_file", type='str',  
-                      help='file name to store the sequence  name maps')
-    parser.add_option("-t", "--type", dest="seqtype", type='str', default ='nucleotide', 
-                      help='the type of sequences, such as, nucleotide/amino')
+                      help='file name to store the sequence name maps')
+    parser.add_option("-t", "--type", dest="seqtype", type='str', default ='nucleotide',
+                      help='the type of sequences,  choices are [ nucleotide, amino]')
 
 
 def valid_arguments(opts, args):

@@ -84,6 +84,7 @@ class Parameters():
                         'format':{ 'fasta':True,
                                    'gbk-annotated': True,
                                    'gbk-unannotated':True, 
+                                   'fasta-amino':True, 
                                  } 
                       },
 

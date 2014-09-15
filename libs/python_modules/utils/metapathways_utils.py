@@ -729,6 +729,39 @@ def contract_key_value_file(fileName):
           fprintf(file, "%s\t%s\n",key, value)
      file.close()
 
+
+class FastaRecord(object):
+    def __init__(self, name, sequence):
+        self.name = name
+        self.sequence = sequence
+
+#    return FastaRecord(title, sequence)
+
+def read_fasta_records(input_file):
+    records = []
+    sequence=""
+    name=""
+    while 1:
+         line = input_file.readline()
+         if line == "": 
+            if sequence!="" and name!="":
+               records.append(FastaRecord(name, sequence))
+            return  records
+
+         if line=='\n':
+            continue
+
+         line = line.rstrip()
+         if  line.startswith(">") :
+            if sequence!="" and name!="":
+               records.append(FastaRecord(name, sequence))
+
+            name = line.rstrip()
+            sequence ="" 
+         else:
+            sequence = sequence + line.rstrip()
+    return records
+
      
 class WorkflowLogger(object):
     

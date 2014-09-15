@@ -11,7 +11,7 @@ try:
    from libs.python_modules.utils.sysutil import getstatusoutput
 except:
      print """ Could not load some user defined  module functions"""
-     print """ Make sure your typed \"source MetaPathwaysrc\""""
+     print """ Make sure your typed 'source MetaPathwaysrc'"""
      print """ """
      print traceback.print_exc(10)
      sys.exit(3)
@@ -197,15 +197,15 @@ def process_blastout_file(blast_file, database, table, errorlogger = None):
 
      #print blast_file + ' ' + tax_maps + ' ' + database
 
-help = """
-rRNA_stats_table.py -i x.blastout [y.blastout] -d  xdatabase [ydatabase]  -m xtax_maps [ ytax_maps ] -o outputfile -b n -e 0.xxx -s N
-  Collect the rRNA scan statistics from the Silva or Greenegene.
-"""
+usage = sys.argv[0] + """py -i x.blastout [y.blastout] -d  xdatabase [ydatabase]  -m xtax_maps [ ytax_maps ] -o outputfile -b n -e 0.ddd -s N """
 parser = None
 def createParser():
     global parser
 
-    parser = optparse.OptionParser(usage=help)
+    epilog = """The input nucleotide sequences are BLASTed against the selected rRNA databases such as  SSU or LSU Silva sequence databases and SSU Greengene database. The hits with high bit scores are flagged as rRNA and the resulting taxonomy from the databases are assigned.  The results from this step are put in the results/rRNA folder, with one tsv file for each rRNA database."""
+    epilog = re.sub(r'\s+',' ', epilog)
+
+    parser = optparse.OptionParser(usage=usage, epilog = epilog)
 
     # Input options
 

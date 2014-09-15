@@ -20,19 +20,24 @@ try:
      from libs.python_modules.utils.sysutil import getstatusoutput
 except:
      print """ Could not load some user defined  module functions"""
-     print """ Make sure your typed \"source MetaPathwaysrc\""""
+     print """ Make sure your typed 'source MetaPathwaysrc'"""
      print """ """
      sys.exit(3)
 
 
-usage= """./MetapathWays_parse_blast.py -d dbname1 -b blastout_for_database1 -m map_for_database1 [-d dbname2 -b blastout_for_database2 -m map_for_database2 ] """
+usage= sys.argv[0] +" -d dbname1 -b blastout_for_database1 -m map_for_database1 [-d dbname2 -b blastout_for_database2 -m map_for_database2 ] """
 
 
 parser = None
 
 def createParser():
     global parser
-    parser = OptionParser(usage)
+
+    epilog = """This script parses BLAST/LAST search results of the amino acid sequences against the reference protein databases, in a tabular format. In the context of MetaPathways these files are available in the in the folder blast_results. The tabular results are put in individual files, one for each of the databases and algorithms combinations. This script parses these results  and uses the hits based on the specified cutoffs for the evalue, bit score ratio, etc the parsed results are put in file named according to the format
+<samplename><dbname><algorithm>out.parsed.txt. These parsed files are in a tabular format and each row contains information about the hits in terms of start, end, query name, match name, bit score ratio, etc.""" 
+
+
+    parser = OptionParser(usage, epilog= epilog)
     parser.add_option("-b", "--blastoutput", dest="input_blastout", action='append', default=[],
                       help='the input blastout files [at least 1 REQUIRED]')
     parser.add_option("-d", "--dbasename", dest="database_name", action='append', default=[],

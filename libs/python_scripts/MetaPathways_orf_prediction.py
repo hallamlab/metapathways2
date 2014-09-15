@@ -42,13 +42,17 @@ def files_exist( files , errorlogger = None):
     return not status
 
 
-help = sys.argv[0] + """ -i input -o output [algorithm dependent options]"""
+usage = sys.argv[0] + """ --algorithm <algorithm> [algorithm dependent options]"""
 
 parser = None
 def createParser():
     global parser
 
-    parser = OptionParser(usage=help)
+    epilog = """The preprocessed nucleotide sequences (contigs) are used as input to a gene prediction algorithm, currently prodigal, to detect the gene coding regions.  The output of the prodigal run is a set of untranslated ORFs and the same ORFs translated (into amino acid sequences). The resulting files are available in the 'orf_prediction' folder. The translation is done based on the translation table id provided by the user, by default it 11"""
+
+    epilog = re.sub(r'\s+',' ', epilog)
+ 
+    parser = OptionParser(usage=usage, epilog=epilog)
 
     # Input options
 
@@ -58,22 +62,22 @@ def createParser():
     prodigal_group =  OptionGroup(parser, 'Prodigal parameters')
 
     prodigal_group.add_option('--prod_input', dest='prod_input', default=None,
-                           help='prodigal input')
+                           help='the input sequences  <inputfile>')
 
     prodigal_group.add_option('--prod_output', dest='prod_output', default=None,
-                           help='prodigal output')
+                           help='the output <outfile>')
 
     prodigal_group.add_option('--prod_p', dest='prod_p', default=None,
-                           help='prodigal p flag')
+                           help='Select procedure (single or meta).  Default is single')
 
-    prodigal_group.add_option('--prod_f', dest='prod_f', default=None,
-                           help='prodigal f flag')
+    prodigal_group.add_option('--prod_f', dest='prod_f', default='gff',
+                           help='Select output format (gbk, gff, or sco).  default is gff')
 
-    prodigal_group.add_option('--prod_g', dest='prod_g', default=None,
-                           help='prodigal g flag')
+    prodigal_group.add_option('--prod_g', dest='prod_g', default='11',
+                           help='Specify a translation table to use (default 11)')
 
     prodigal_group.add_option('--prod_m', dest='prod_m', action='store_true', default=False,
-                           help='prodigal m flag')
+                           help='Treat runs of n\'s as masked sequence and do not build genes across them')
 
     prodigal_group.add_option('--prod_exec', dest='prod_exec', default=None,
                            help='prodigal executable')

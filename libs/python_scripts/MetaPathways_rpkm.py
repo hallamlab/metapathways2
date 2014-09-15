@@ -1,268 +1,231 @@
 #!/usr/bin/python
-# File created on 27 Jan 2012.
-from __future__ import division
 
-__author__ = "Kishori M Konwar"
-__copyright__ = "Copyright 2013, MetaPathways"
-__credits__ = ["r"]
-__version__ = "1.0"
-__maintainer__ = "Kishori M Konwar"
-__status__ = "Release"
+"""This script run the pathologic """
 
 try:
-     import os, re
-     from os import makedirs, sys, remove
-     from sys import path
-     from optparse import OptionParser
+   import optparse, sys, re, csv, traceback
+   from os import path, _exit
+   import logging.handlers
+   from glob import glob
 
-     from libs.python_modules.utils.metapathways_utils  import parse_command_line_parameters, fprintf
-     from libs.python_modules.utils.sysutil import getstatusoutput, pathDelim
+   from libs.python_modules.utils.sysutil import pathDelim
+   from libs.python_modules.utils.metapathways_utils  import fprintf, printf, eprintf,  exit_process
+   from libs.python_modules.utils.sysutil import getstatusoutput
+
+   from libs.python_modules.utils.pathwaytoolsutils import *
+
 except:
      print """ Could not load some user defined  module functions"""
-     print """ Make sure your typed \"source MetaPathwaysrc\""""
+     print """ Make sure your typed 'source MetaPathwaysrc'"""
      print """ """
+     print traceback.print_exc(10)
      sys.exit(3)
 
-PATHDELIM = pathDelim()
+PATHDELIM=pathDelim()
 
-usage= """./run_pgdb_pipeline.py -i input_fasta_file -o output_file [-B blast_executable -F formatdb_executable] """
+
+
+def fprintf(file, fmt, *args):
+    file.write(fmt % args)
+
+def printf(fmt, *args):
+    sys.stdout.write(fmt % args)
+
+def files_exist( files , errorlogger = None):
+    status = True    
+    for file in files:
+       if not path.exists(file):
+          if errorlogger:
+             errorlogger.write( 'ERROR\tCould not find ptools input  file : ' +  file )
+          status = False
+    return not status
+
+
+
+usage = sys.argv[0] + """ -c <contigs> -o <output> -r <reads>  -O <orfgff> --rpkmExec <rpkmexec> """
 parser = None
 def createParser():
     global parser
-    parser = OptionParser(usage)
-    parser.add_option("-i", "--input_file", dest="input_fasta",
-                      help='the input fasta file [REQUIRED]')
-    parser.add_option("-o", "--output_file", dest="output_file",
-                      help='the output fasta file [REQUIRED]')
-    parser.add_option("-B", "--BLAST_EXEUTABLE", dest="blast_executable",
-                      help='the BLAST executable  [REQUIRED]')
-    parser.add_option("-F", "--FORMAT_EXECUTABLE", dest="formatdb_executable",
-                      help='the FORMATDB executable file [REQUIRED]')
-    parser.add_option("-a", "--algorithm", dest="algorithm", choices = ['BLAST', 'LAST'], default = "BLAST", 
-                      help='the algorithm used for computing homology [DEFAULT: BLAST]')
+
+    epilog = """This script computes the RPKM values for each ORF, from the BWA 
+                recruits. 
+             """
+
+    epilog = re.sub(r'\s+', ' ', epilog)
+
+    parser = optparse.OptionParser(usage=usage, epilog = epilog)
+
+    # Input options
 
 
-def check_arguments(opts, args):
-    if opts.input_fasta == None or opts.output_file == None:
-       return True
-    else:
-       return False
+    parser.add_option('-c', '--contigs', dest='contigs', default=None,
+                           help='the contigs file')
 
-class FastaRecord(object):
-    def __init__(self, name, sequence):
-        self.name = name
-        self.sequence = sequence
+    parser.add_option('-o', '--output', dest='output', default=None,
+                           help='orfwise RPKM file')
 
-#    return FastaRecord(title, sequence)
+    parser.add_option('-r', '--rpkmdir', dest='rpkmdir', default=None,
+                           help='list of sam files that contains the read recruitments')
 
-def read_fasta_records(input_file):
-    records = []
-    sequence=""
-    name=""
-    while 1:
-         line = input_file.readline()
-         if line == "": 
-            if sequence!="" and name!="":
-               records.append(FastaRecord(name, sequence))
-            return  records
+    parser.add_option('-O', '--orfgff', dest='orfgff', default=None,
+                           help='folder of the PGDB')
 
-         if line=='\n':
-            continue
-
-         line = line.rstrip()
-         if  line.startswith(">") :
-            if sequence!="" and name!="":
-               records.append(FastaRecord(name, sequence))
-
-            name = line.rstrip()
-            sequence =""
-         else:
-            sequence = sequence + line.rstrip()
-    return records
-
-def format_db_blast(formatdb_executable, seq_subset_file):
-    cmd='%s -dbtype prot -in %s' %(formatdb_executable, seq_subset_file.name)
-    result= getstatusoutput(cmd)
-    
-
-def format_db_last(formatdb_executable, seq_subset_file):
-    dirname = os.path.dirname(seq_subset_file.name)     
-    cmd='%s -p -c %s  %s' %(formatdb_executable, dirname + PATHDELIM + 'subset_db', seq_subset_file.name)
-    result= getstatusoutput(cmd)
-    
-
-def blast_against_itself(blast_executable, seq_subset_file, blast_table_out):
-    cmd='%s -outfmt 6 -db  %s -query %s -out  %s' %(blast_executable,  seq_subset_file.name, seq_subset_file.name, blast_table_out)
-    result= getstatusoutput(cmd)
-
-def last_against_itself(last_executable, seq_subset_file, last_table_out):
-    dirname = os.path.dirname(seq_subset_file.name)     
-    cmd='%s -o %s -f 0 %s %s' %(last_executable,  last_table_out, dirname + PATHDELIM + 'subset_db',  seq_subset_file.name)
-    result= getstatusoutput(cmd)
-
-
-def add_last_refscore_to_file(blast_table_out, refscore_file, allNames):
-    commentPATTERN = re.compile(r'^#')
-
-    infile = open( blast_table_out,'r')
-    refscores = {}
-    lines = infile.readlines()
-    for line in lines:
-       if commentPATTERN.match(line):
-          continue
-       line=line.rstrip()
-       fields = line.split('\t')
-       if len(fields) != 12:
-          print 'Error in the blastout file'
-          sys.exit(1)
-       if fields[6].rstrip()==fields[1].rstrip():
-      #    fprintf(refscore_file, "%s\t%s\n",fields[0], fields[11])
-          refscores[fields[1]]=fields[0]
-
-    for key, value in refscores.iteritems():
-       allNames[key] = True
-       fprintf(refscore_file, "%s\t%s\n",key, value)
-
-    infile.close()
+    parser.add_option('--rpkmExec', dest='rpkmExec', default=None,
+                           help='RPKM Executable')
 
 
 
-def add_blast_refscore_to_file(blast_table_out, refscore_file, allNames):
-    infile = open( blast_table_out,'r')
-    refscores = {}
-    lines = infile.readlines()
-    for line in lines:
-       line=line.rstrip()
-       fields = line.split('\t')
-       if len(fields) != 12:
-          print 'Error in the blastout file'
-          sys.exit(1)
-       if fields[0].rstrip()==fields[1].rstrip():
-      #    fprintf(refscore_file, "%s\t%s\n",fields[0], fields[11])
-          refscores[fields[0]]=fields[11]
-
-    for key, value in refscores.iteritems():
-       allNames[key] = True
-       fprintf(refscore_file, "%s\t%s\n",key, value)
-
-    infile.close()
-        
-
-# compute the refscores
-def compute_refscores(formatdb_executable, blast_executable,seq_subset_file, refscore_file, allNames, algorithm):
-    if algorithm =='LAST':
-        format_db_last(formatdb_executable, seq_subset_file)
-        last_table_out = seq_subset_file.name + ".lastout"
-        last_against_itself(blast_executable, seq_subset_file, last_table_out)
-        add_last_refscore_to_file(last_table_out,refscore_file, allNames)
-
-    if algorithm =='BLAST':
-       format_db_blast(formatdb_executable, seq_subset_file)
-       blast_table_out = seq_subset_file.name + ".blastout"
-       blast_against_itself(blast_executable, seq_subset_file, blast_table_out)
-       add_blast_refscore_to_file(blast_table_out,refscore_file, allNames)
 
 
-    return None
-
-def remove_blast_index_files(filename):
-    prefixes = [ 'blastout', 'phr', 'pin', 'psq' ] 
-    for prefix in prefixes:
-       try:
-          remove(filename +"." + prefix)
-       except IOError:
-          pass
-
-
-def remove_last_index_files(filename):
-    prefixes = [ 'des', 'sds', 'suf', 'bck',  'ssp', 'tis' ]
-
-    remove( filename+ '.lastout')
-    dirname = os.path.dirname(filename)     
-    remove( dirname + PATHDELIM + 'subset_db0' +'.prj')
-    for prefix in prefixes:
-       try:
-          remove(dirname + PATHDELIM + 'subset_db0.' + prefix)
-       except IOError:
-          pass
-
-
-
-# the main function
-SIZE = 1000
-
-def main(argv, errorlogger = None, runstatslogger = None): 
+def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
     global parser
-    (opts, args) = parser.parse_args(argv)
-    if check_arguments(opts, args):
-       print usage
-       sys.exit(0)
 
-    input_fasta = opts.input_fasta
-    output_file = opts.output_file
-    blast_executable = opts.blast_executable
-    formatdb_executable = opts.formatdb_executable
-    algorithm = opts.algorithm
- 
-    # input file to blast with itself to commpute refscore
-    infile = open(input_fasta,'r')
+    options, args = parser.parse_args(argv)
+    if options.contigs ==None:
+       parser.error('ERROR\tThe contigs file is missing')
+
+    if options.rpkmExec ==None:
+       parser.error('ERROR\tThe RPKM executable is missing')
+
+    if options.rpkmdir ==None:
+       parser.error('ERROR\tThe RPKM directory')
+
+    # is there a pathwaytools executable installed
+    if not path.exists(options.rpkmExec):
+       eprintf("ERROR\tRPKM executable %s not found!\n", options.rpkmExec)
+       if errorlogger:
+          errorlogger.printf("ERROR\tRPKM executable %s not found!\n",  options.rpkmExec)
+       exit_process("ERROR\tRPKM executable %s not found!\n" %(options.rpkmExec))
+
+
+    # command to build the ePGDB
+    command = "%s -c %s"  %(options.rpkmExec, options.contigs)
+    command += " --multireads --format sam-2" 
+    if options.output:
+       command += " -o %s" %(options.output)
+
+    if options.orfgff:
+       command += " -O %s" %(options.orfgff)
+
+
+    samfiles = glob(options.rpkmdir + PATHDELIM + '/*.sam')
+
+    for samfile in samfiles:
+        command += " -r " + samfile
+
+    print command
+
+    try:
+       status  = runRPKMCommand(runcommand = command) 
+    except:
+       status = 1
+       pass
+
+    if status!=0:
+       eprintf("ERROR\tFailed to run RPKM \n")
+       exit_process("ERROR\tFailed to run RPKM" )
+
+
+def runRPKMCommand(runcommand = None):
+    if runcommand == None:
+      return False
+    result = getstatusoutput(runcommand)
+    return result[0]
+
+
+# this is the portion of the code that fixes the name
+
+def split_attributes(str, attributes):
+     rawattributes = re.split(';', str)
+     for attribStr in rawattributes:
+        insert_attribute(attributes, attribStr)
+
+     return attributes
+
+
+# this is the function that fixes the name
+def  fix_pgdb_input_files(pgdb_folder, pgdbs = []):
+     pgdb_list = glob(pgdb_folder + '/*/input/organism.dat')     
+
+     for pgdb_organism_file in pgdb_list:
+        process_organism_file(pgdb_organism_file)
+
+
+def fixLine(line, id):
+     fields = line.split('\t')
+     if len(fields)==2:
+        return fields[0]+'\t' + id
+     
+
+def getID(line):
+     fields = line.split('\t')
+     if len(fields)==2:
+        return fields[1]
+     
+def process_organism_file(filel):
+     patternsToFix = [ re.compile(r'NAME\tunclassified sequences'), re.compile(r'ABBREV-NAME\tu. sequences') ]
+     patternID =  re.compile(r'^ID\t.*')
+     try:
+         orgfile = open(filel,'r')
+     except IOError:
+         print "ERROR : Cannot open organism file" + str(filel)
+         return 
+
+     lines = orgfile.readlines()
+     newlines = []
+
+     needsFixing = False
+
+     id = None
+     for line in lines:
+         line = line.strip()
+         if len(line)==0:
+            continue
+         flag = False
+
+         result = patternID.search(line)
+         if result:   
+             id = getID(line)
+          
+         for patternToFix in patternsToFix:
+             result = patternToFix.search(line)
+             if result and id:
+                 newline = fixLine(line, id)
+                 newlines.append(newline)
+                 flag= True
+                 needsFixing = True
+
+         if flag==False:
+            newlines.append(line)
+
+     orgfile.close()
+     if needsFixing:
+       write_new_file(newlines, filel)
+
+
+def write_new_file(lines, output_file):
+    
+    print "Fixing file " + output_file 
+    try:
+       outputfile = open(output_file,'w')
+       pass
+    except IOError:
+         print "ERROR :Cannot open output file "  + output_file
    
-    #this file has the refscores of the entire file
-    outfile = open(output_file, 'w') 
+    for line in lines:
+       fprintf(outputfile, "%s\n", line)
 
-    count = 0
-
-    allNames= dict()
-    for record in read_fasta_records(infile):
-        if count % SIZE == 0:
-            if count > 0:
-              seq_subset_file.close()
-              compute_refscores(formatdb_executable, blast_executable,seq_subset_file, outfile, allNames, algorithm);
-
-              # now remove the old file
-              if algorithm == 'BLAST' :
-                 remove_blast_index_files(seq_subset_file.name)
-
-              if algorithm == 'LAST' :
-                 remove_last_index_files(seq_subset_file.name)
-
-              remove(seq_subset_file.name)
-
-            seq_subset_file = open(output_file +'.tmp.'+ str(count) +'.fasta','w')
-        allNames[record.name.replace(">","")] = False;    
-        fprintf(seq_subset_file, "%s\n", record.name)
-        fprintf(seq_subset_file, "%s\n", record.sequence)
-
-        count = count + 1
-
-    #print str(count) + "   "  + "going to blast last sequence "
-    if (count) % SIZE != 0:
-       #print str(count) + "   "  + "last sequence "
-       seq_subset_file.close()
-       compute_refscores(formatdb_executable, blast_executable,seq_subset_file, outfile, allNames, algorithm);
-       remove(seq_subset_file.name)
-       if algorithm == 'BLAST' :
-          remove_blast_index_files(seq_subset_file.name)
-       if algorithm == 'LAST' :
-          remove_last_index_files(seq_subset_file.name)
+    outputfile.close()
 
 
-    #print count
-    for key in allNames:
-        if allNames[key] ==False:
-           fprintf(outfile, "%s\t%s\n",key, 1000000)
-
-    outfile.close()
-
-def MetaPathways_refscore(argv, errorlogger = None, runstatslogger = None):
-    createParser( )
-    if errorlogger:
-       errorlogger.write("#STEP\tCOMPUTE_REFSCORE\n")
-    main(argv, errorlogger = errorlogger, runstatslogger = runstatslogger)
+def MetaPathways_run_pathologic(argv, extra_command = None, errorlogger = None, runstatslogger =None): 
+    if errorlogger != None:
+       errorlogger.write("#STEP\tBUILD_PGDB\n")
+    createParser()
+    main(argv, errorlogger = errorlogger, runcommand= extra_command, runstatslogger = runstatslogger)
     return (0,'')
 
-# the main function of metapaths
-if __name__ == "__main__":
+if __name__ == '__main__':
     createParser()
     main(sys.argv[1:])
 

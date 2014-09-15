@@ -6,12 +6,12 @@
 # Paths for the Python, Perl and Pathway Tools
 PYTHON_EXECUTABLE '/usr/bin/python'
 PGDB_FOLDER '/Users/kishori/ptools-local/pgdbs/user'
-METAPATHWAYS_PATH '/Users/kishori/MetaPathways_Python'
+METAPATHWAYS_PATH '/Users/kishori/MetaPathways2.3/MetaPathways_Python'
 
 # Replace with your current
 PATHOLOGIC_EXECUTABLE '/Users/kishori/pathway-tools/pathway-tools'
 
-REFDBS '/Users/kishori/MetaPathways_DBs'
+REFDBS '/Users/sgeadmin/MetaPathways/databases'
 
 # Executables: replace 'mac' to your platform linux, mac, win
 # Bit type - bit32 or bit64 
@@ -24,6 +24,7 @@ LAST_EXECUTABLE  'lastal'
 PRODIGAL_EXECUTABLE 'prodigal' 
 RESOURCES_DIR           'resources/'
 SCAN_tRNA_EXECUTABLE      'trnascan-1.4' 
+RPKM_EXECUTABLE      'rpkm' 
 
 # This is the folder where the scripts folder of the MetaPathways  pipeline 
 # # is installed
@@ -31,6 +32,7 @@ SCAN_tRNA_EXECUTABLE      'trnascan-1.4'
 GBK_TO_FNA_FAA_GFF   'libs/python_scripts/MetaPathways_parse_genbank.py'
 GFF_TO_FNA_FAA_GFF   'libs/python_scripts/MetaPathways_input_gff.py'
 PREPROCESS_INPUT          'libs/python_scripts/MetaPathways_filter_input.py'
+PREPROCESS_AMINOS    'libs/python_scripts/MetaPathways_preprocess_amino_input.py'
 ORF_PREDICTION          'libs/python_scripts/MetaPathways_orf_prediction.py'
 ORF_TO_AMINO 'libs/python_scripts/MetaPathways_create_amino_sequences.py'
 COMPUTE_REFSCORES 'libs/python_scripts/MetaPathways_refscore.py' 

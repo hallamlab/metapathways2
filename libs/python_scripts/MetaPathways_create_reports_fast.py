@@ -27,13 +27,17 @@ except:
      sys.exit(3)
 
 
-usage= """./MetapathWays_annotate.py -d dbname1 -b parsed_blastout_for_database1 [-d dbname2 -b parsed_blastout_for_database2 ] --input-annotated-gff input.gff  """
+usage= sys.argv[0] + """ -d dbname1 -b parsed_blastout_for_database1 [-d dbname2 -b parsed_blastout_for_database2 ] --input-annotated-gff input.gff  """
 PATHDELIM = pathDelim()
 
 parser=None
 def createParser():
      global parser
-     parser = OptionParser(usage)
+
+     epilog = """Report tables summarizing and listing the functional and taxonomic annotation for all the ORFs in a sample are computed.The results are dropped in the folder <output_dir>"""
+     epilog = re.sub(r'\s+', ' ',epilog)
+
+     parser = OptionParser(usage = usage, epilog = epilog)
      parser.add_option("-b", "--blastoutput", dest="input_blastout", action='append', default=[],
                        help='blastout files in TSV format [at least 1 REQUIRED]')
      
@@ -78,6 +82,9 @@ def createParser():
      
      output_options_group.add_option( "--input-kegg-maps", dest="input_kegg_maps",
                       help='input kegg maps file')
+
+     output_options_group.add_option( "--input-cazy-maps", dest="input_cazy_maps",
+                      help='input cazy maps file')
      
      output_options_group.add_option( "--input-seed-maps", dest="input_seed_maps",
                       help='input seed maps file')
@@ -519,7 +526,18 @@ def seed_id(product):
     seed_id = re.sub(r'\[[^\[]+\]', '', product)
     return seed_id
     
+
+def cazy_id(product):
+    """ Strips out the protein id for CAZY from the product"""
+    results = re.search(r'\[\[([^\[]+)\]\]', product)
+    cazy_id = ''
+    if results:
+       cazy_id=results.group(1)
+    return cazy_id
+
+
 def kegg_id(product):
+    """ Strips out the KO id from the product"""
     results = re.search(r'K[0-9][0-9][0-9][0-9][0-9]', product)
     kegg_id = ''
     if results:
@@ -552,6 +570,8 @@ def create_table(results,  std_dbname, output_dir, hierarchical_map, field_to_de
               kegg =  kegg_id(orf['product'])
               if kegg in orthology_count:
                  orthology_count[kegg]+=1
+
+
 
    # print orthology_count.keys()
     add_counts_to_hierarchical_map(hierarchical_map[std_dbname], orthology_count)
@@ -866,7 +886,7 @@ def main(argv, errorlogger = None,  runstatslogger = None):
        sys.exit(0)
 
 
-    db_to_map_Maps =  {'cog':opts.input_cog_maps, 'seed':opts.input_seed_maps, 'kegg':opts.input_kegg_maps}
+    db_to_map_Maps =  {'cog':opts.input_cog_maps, 'seed':opts.input_seed_maps, 'kegg':opts.input_kegg_maps, 'cazy':opts.input_cazy_maps}
 
 
     results_dictionary={}
@@ -959,8 +979,12 @@ def main(argv, errorlogger = None,  runstatslogger = None):
       if results:
           short_to_long_dbnames['kegg'] = dbname
 
-    standard_dbs = ['cog', 'seed', 'kegg']
-    standard_db_maps = [opts.input_cog_maps, opts.input_seed_maps, opts.input_kegg_maps]
+      results = re.search(r'^cazy', dbname, re.IGNORECASE)
+      if results:
+          short_to_long_dbnames['cazy'] = dbname
+
+    standard_dbs = ['cog', 'seed', 'kegg', 'cazy']
+    standard_db_maps = [opts.input_cog_maps, opts.input_seed_maps, opts.input_kegg_maps, opts.input_cazy_maps]
     field_to_description = {}
     hierarchical_map = {}
 
@@ -972,6 +996,7 @@ def main(argv, errorlogger = None,  runstatslogger = None):
     for dbname in standard_dbs:
        if dbname in short_to_long_dbnames:
           try:
+
             read_map_file(db_to_map_Maps[dbname], field_to_description[dbname], hierarchical_map[dbname])
           except:
             raise 
@@ -1074,6 +1099,11 @@ def print_orf_table(results, orfToContig,  output_dir,  outputfile):
               orf_dict[orf['query']][dbname] =  kegg_id(product)
               continue
 
+           _results = re.search(r'cazy', dbname, re.I)
+           if _results:
+              orf_dict[orf['query']][dbname] =  cazy_id(product)
+              continue
+
            _results = re.search(r'metacyc', dbname, re.I)
            if _results:
               orf_dict[orf['query']][dbname] =  product
@@ -1096,6 +1126,10 @@ def print_orf_table(results, orfToContig,  output_dir,  outputfile):
        _results = re.search(r'kegg', dbname, re.I)
        if _results:
          database_maps['kegg'] = dbname
+
+       _results = re.search(r'cazy', dbname, re.I)
+       if _results:
+         database_maps['cazy'] = dbname
 
        _results = re.search(r'seed', dbname, re.I)
        if _results:
@@ -1132,16 +1166,21 @@ def print_orf_table(results, orfToContig,  output_dir,  outputfile):
        else:
           seedFn = ""
 
+       if 'cazy' in database_maps and database_maps['cazy'] in orf_dict[orfn]:
+          cazyFn = orf_dict[orfn][database_maps['cazy']]
+       else:
+          cazyFn= ""
+
        if not sampleName:
          sampleName = getSampleNameFromContig(orf_dict[orfn]['contig']) 
 
        orfName = sampleName + "_" + orfn 
-       fprintf(outputfile, "%s\n", orfName + "\t" + orf_dict[orfn]['contig'] + '\t' + cogFn + '\t' + keggFn +'\t' + seedFn + '\t' + metacycPwy)
+       fprintf(outputfile, "%s\n", orfName + "\t" + orf_dict[orfn]['contig'] + '\t' + cogFn + '\t' + keggFn +'\t' + seedFn + '\t' + cazyFn + '\t'+ metacycPwy)
 
 
 def MetaPathways_create_reports_fast(argv, errorlogger =  None, runstatslogger = None):       
     createParser()
-    errorlogger.write("#STEP\tPARSE BLAST\n")
+    errorlogger.write("#STEP\tCREATE_ANNOT_REPORTS\n")
     main(argv,errorlogger= errorlogger, runstatslogger = runstatslogger )
     return (0,'')
 

@@ -22,7 +22,7 @@ try:
     from libs.python_modules.parsers.parse  import parse_parameter_file
 except:
     print """ Could not load some user defined  module functions"""
-    print """ Make sure your typed \"source MetaPathwaysrc\""""
+    print """ Make sure your typed 'source MetaPathwaysrc'"""
     print """ """
     sys.exit(3)
 
@@ -115,7 +115,6 @@ def get_sequence_name(line):
 
 
 note = """GFF File Format
-    
 Fields
 
 Fields must be tab-separated. Also, all but the final field in each feature line must contain a value; "empty" columns should be denoted with a '.'
@@ -174,13 +173,17 @@ def process_gff_file(gff_file_name, output_filenames, nucleotide_seq_dict, prote
 # this function creates the pathway tools input files
 def  write_ptinput_files(output_dir_name, contig_dict, sample_name, nucleotide_seq_dict, protein_seq_dict):
 
+     useFasta = False
      try:
         #print output_dir_name
         removeDir(output_dir_name)
         #print output_dir_name
         makedirs(output_dir_name)
         genetic_elementsfile = open(output_dir_name + "/.tmp.genetic-elements.dat", 'w')
-        zerofastafile = open(output_dir_name + "/.tmp.0.fasta", 'w')
+
+        if  useFasta:
+          zerofastafile = open(output_dir_name + "/.tmp.0.fasta", 'w')
+
         zeropffile = open(output_dir_name + "/tmp.0.pf", 'w')
         organism_paramsfile = open(output_dir_name + "/.tmp.organism-params.dat", 'w')
      except:
@@ -195,7 +198,10 @@ def  write_ptinput_files(output_dir_name, contig_dict, sample_name, nucleotide_s
      endbase = 0
      fastaStr =""
      cumulFastaLength=0
-     fprintf(zerofastafile, ">0\n")
+
+     if useFasta:
+        fprintf(zerofastafile, ">0\n")
+
      for key in contig_dict:
         first = True
         if count %10000 == 0:
@@ -266,12 +272,17 @@ def  write_ptinput_files(output_dir_name, contig_dict, sample_name, nucleotide_s
         fastaStr+=(wrap("",0,62, dna_seq)+'\n')
         cumulFastaLength += len(dna_seq)
 
-        fprintf(zerofastafile, "%s",  fastaStr)
-        fastaStr=""
+        if useFasta:
+           fprintf(zerofastafile, "%s",  fastaStr)
+           fastaStr=""
 
-     zerofastafile.close()
+     if useFasta:
+        zerofastafile.close()
+
      zeropffile.close()
-     rename(output_dir_name + "/.tmp.0.fasta", output_dir_name + "/0.fasta")
+     if useFasta:
+       rename(output_dir_name + "/.tmp.0.fasta", output_dir_name + "/0.fasta")
+
      rename(output_dir_name + "/tmp.0.pf", output_dir_name + "/0.pf")
 
      # Niels: removing annotated.gff from sample_name
@@ -302,7 +313,8 @@ def  write_ptinput_files(output_dir_name, contig_dict, sample_name, nucleotide_s
      fprintf(genetic_elementsfile,"NAME\t0\n")
      fprintf(genetic_elementsfile,"TYPE\t:READ/CONTIG\n")
      fprintf(genetic_elementsfile,"ANNOT-FILE\t0.pf\n")
-     fprintf(genetic_elementsfile,"SEQ-FILE\t0.fasta\n")
+     if useFasta:
+       fprintf(genetic_elementsfile,"SEQ-FILE\t0.fasta\n")
      fprintf(genetic_elementsfile,"//")
      genetic_elementsfile.close()
      rename(output_dir_name + "/.tmp.genetic-elements.dat", output_dir_name + "/genetic-elements.dat")
@@ -648,20 +660,24 @@ def process_sequence_file(sequence_file_name,  seq_dictionary):
      #print blast_file + ' ' + tax_maps + ' ' + database
 
 
-help = """Usage:\n   MetaPathways_create_genbank_ptinput_sequin.py  -g gff_files -n nucleotide_sequences -p protein_sequences [--out-gbk gbkfile --out-sequin sequinfile --out-ptinput ptinputdir]\n"""
+usage =  sys.argv[0] + """ -g gff_files -n nucleotide_sequences -p protein_sequences [--out-gbk gbkfile --out-sequin sequinfile --out-ptinput ptinputdir]\n"""
 
 parser = None
 
 def createParser():
     global parser
-    parser = optparse.OptionParser(usage=help)
+    epilog = """This script has three functions : (i) The functional and taxonomic annotations created for the individual ORFs are used to create the inputs required by the Pathway-Tools's Pathologic algorithm to build the ePGDBs. The input consists of 4 files that contains functional annotations and sequences with relevant information, this information is used by Pathologic to create the ePGDBs. (ii) It can create a genbank file for the ORFs and their annotations, (iii) An option is added where it can create a sequin file, which is required for sometimes for sequence submission to NCBI data repository, such as trace archive"""
+    epilog = re.sub(r'\s+', ' ', epilog)
+
+    parser = optparse.OptionParser(usage=usage, epilog = epilog)
+
     # Input options
 
     input_group = optparse.OptionGroup(parser, 'input options')
 
     input_group.add_option('-g', '--gff', dest='gff_file',
                            metavar='GFF_FILE', 
-                           help='GFF files to convert to genbank format')
+                           help='GFF files, with annotations,  to convert to genbank format')
 
     input_group.add_option('-n', '--nucleotide', dest='nucleotide_sequences',
                            metavar='NUCLEOTIDE_SEQUENCE', 
@@ -701,6 +717,8 @@ def main(argv, errorlogger = None, runstatslogger = None):
     # Parse options (many!)
     # TODO: Create option groups
     # filtering options
+
+
     global parser
     options, args = parser.parse_args(argv)
 

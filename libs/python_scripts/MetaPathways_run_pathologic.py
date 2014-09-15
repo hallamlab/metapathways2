@@ -6,6 +6,7 @@ try:
    import optparse, sys, re, csv, traceback
    from os import path, _exit
    import logging.handlers
+   from glob import glob
 
    from libs.python_modules.utils.sysutil import pathDelim
    from libs.python_modules.utils.metapathways_utils  import fprintf, printf, eprintf,  exit_process
@@ -15,7 +16,7 @@ try:
 
 except:
      print """ Could not load some user defined  module functions"""
-     print """ Make sure your typed \"source MetaPathwaysrc\""""
+     print """ Make sure your typed 'source MetaPathwaysrc'"""
      print """ """
      print traceback.print_exc(10)
      sys.exit(3)
@@ -41,12 +42,17 @@ def files_exist( files , errorlogger = None):
 
 
 
-help = sys.argv[0] + """ -i input_folder """
+usage = sys.argv[0] + """ -i input_folder -p pgdb_dir --ptoolsExec pathwaytools_executable """
 parser = None
 def createParser():
     global parser
 
-    parser = optparse.OptionParser(usage=help)
+    epilog = """The pathway prediction algorithm, Pathologic in the Pathway Tools software, is run with the folder ptools as the input. The result of this step is an ePGDB (environmental pathway genome database).
+The resulting ePGDB is in the ~/ptools-local/pgdbs/user folder. They can be viewed using the Pathway Tools software."""
+
+    epilog = re.sub(r'\s+', ' ', epilog)
+
+    parser = optparse.OptionParser(usage=usage, epilog = epilog)
 
     # Input options
 
@@ -85,7 +91,7 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
       # required files to be able to build ePGDB
       files = [ 
                 options.inputfolder + PATHDELIM + '0.pf',
-                options.inputfolder + PATHDELIM + '0.fasta',
+              #  options.inputfolder + PATHDELIM + '0.fasta',
                 options.inputfolder + PATHDELIM + 'genetic-elements.dat',  
                 options.inputfolder + PATHDELIM + 'organism-params.dat'
               ]
@@ -114,8 +120,11 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
     status =0
 
     
+    fix_pgdb_input_files(options.pgdbdir, pgdbs = [])
+
     if not path.exists(options.pgdbdir): 
       status  = runPathologicCommand(runcommand = command) 
+      fix_pgdb_input_files(options.pgdbdir, pgdbs = [])
 
 
     if status!=0:
@@ -149,11 +158,97 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
             errorlogger.write("INFO\tKill any other PathwayTools instance running on the machine and try again\n")
         pass 
 
+
 def runPathologicCommand(runcommand = None):
     if runcommand == None:
       return False
     result = getstatusoutput(runcommand)
     return result[0]
+
+
+# this is the portion of the code that fixes the name
+
+def split_attributes(str, attributes):
+     rawattributes = re.split(';', str)
+     for attribStr in rawattributes:
+        insert_attribute(attributes, attribStr)
+
+     return attributes
+
+
+# this is the function that fixes the name
+def  fix_pgdb_input_files(pgdb_folder, pgdbs = []):
+     pgdb_list = glob(pgdb_folder + '/*/input/organism.dat')     
+
+     for pgdb_organism_file in pgdb_list:
+        process_organism_file(pgdb_organism_file)
+
+
+def fixLine(line, id):
+     fields = line.split('\t')
+     if len(fields)==2:
+        return fields[0]+'\t' + id
+     
+
+def getID(line):
+     fields = line.split('\t')
+     if len(fields)==2:
+        return fields[1]
+     
+def process_organism_file(filel):
+     patternsToFix = [ re.compile(r'NAME\tunclassified sequences'), re.compile(r'ABBREV-NAME\tu. sequences') ]
+     patternID =  re.compile(r'^ID\t.*')
+     try:
+         orgfile = open(filel,'r')
+     except IOError:
+         print "ERROR : Cannot open organism file" + str(filel)
+         return 
+
+     lines = orgfile.readlines()
+     newlines = []
+
+     needsFixing = False
+
+     id = None
+     for line in lines:
+         line = line.strip()
+         if len(line)==0:
+            continue
+         flag = False
+
+         result = patternID.search(line)
+         if result:   
+             id = getID(line)
+          
+         for patternToFix in patternsToFix:
+             result = patternToFix.search(line)
+             if result and id:
+                 newline = fixLine(line, id)
+                 newlines.append(newline)
+                 flag= True
+                 needsFixing = True
+
+         if flag==False:
+            newlines.append(line)
+
+     orgfile.close()
+     if needsFixing:
+       write_new_file(newlines, filel)
+
+
+def write_new_file(lines, output_file):
+    
+    print "Fixing file " + output_file 
+    try:
+       outputfile = open(output_file,'w')
+       pass
+    except IOError:
+         print "ERROR :Cannot open output file "  + output_file
+   
+    for line in lines:
+       fprintf(outputfile, "%s\n", line)
+
+    outputfile.close()
 
 
 def MetaPathways_run_pathologic(argv, extra_command = None, errorlogger = None, runstatslogger =None): 

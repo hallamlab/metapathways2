@@ -53,7 +53,8 @@ class JobCreator():
             for stage in stageList: 
                if stage in self.params['metapaths_steps'] or\
                   stage == 'GBK_TO_FNA_FAA_GFF' or\
-                  stage == 'GBK_TO_FNA_FAA_GFF_ANNOT':
+                  stage == 'GBK_TO_FNA_FAA_GFF_ANNOT' or\
+                  stage == 'PREPROCESS_AMINOS':
                   #if self.params['INPUT']['format'] =='gbk-unannotated':
                   #  if stage=='PREPROCESS_INPUT':
                   #    stage = 'GBK_TO_FNA_FAA_GFF'
@@ -151,6 +152,56 @@ class ContextCreator:
                  )
 
           context.message = self._Message("PREPROCESSING THE INPUT")
+          context.commands = [cmd]
+          contexts.append(context)
+          return contexts
+
+
+      def create_preprocess_input_aminos_cmd(self, s):
+          """ PREPROCESS_AMINOS """
+          contexts = []
+         
+          '''inputs'''
+          input_file = s.input_file 
+
+
+          '''outputs'''
+          output_fasta = s.preprocessed_dir + PATHDELIM + s.sample_name + ".fasta"
+          mapping_file =  s.preprocessed_dir + PATHDELIM + s.sample_name + ".mapping.txt"
+          nuc_stats_file = s.output_run_statistics_dir + PATHDELIM + s.sample_name + ".nuc.stats" 
+          contig_lengths_file = s.output_run_statistics_dir + PATHDELIM + s.sample_name + ".contig.lengths.txt"
+
+          output_faa = s.orf_prediction_dir + PATHDELIM +  s.sample_name + ".faa"
+          output_fna = s.orf_prediction_dir + PATHDELIM +  s.sample_name + ".fna"
+          output_gff = s.orf_prediction_dir + PATHDELIM +  s.sample_name + ".unannot.gff"
+
+          '''params'''
+
+          context = Context()
+          context.name = 'PREPROCESS_AMINOS'
+          context.inputs = { 'input_file' : input_file }
+
+          context.outputs = { 
+                              'output_fasta': output_fasta, 'output_faa': output_faa,\
+                              'output_fna': output_fna, 'output_gff': output_gff,\
+                              'mapping_file': mapping_file,\
+                              'nuc_stats_file' : nuc_stats_file,\
+                              'contig_lengths_file' : contig_lengths_file\
+                            }
+
+          context.status = self.params.get('metapaths_steps','PREPROCESS_INPUT')
+
+          pyScript = self.configs.METAPATHWAYS_PATH + self.configs.PREPROCESS_AMINOS
+
+          cmd = "%s --log_file %s  -i %s  -M %s  -L %s --fasta %s --faa %s --fna %s --gff %s"\
+               %( pyScript,  context.outputs['nuc_stats_file'],\
+                   context.inputs['input_file'], context.outputs['mapping_file'],\
+                   context.outputs['contig_lengths_file'],\
+                   context.outputs['output_fasta'], context.outputs['output_faa'],\
+                   context.outputs['output_fna'],context.outputs['output_gff']
+                 )
+
+          context.message = self._Message("PREPROCESSING THE AMINOS INPUT")
           context.commands = [cmd]
           contexts.append(context)
           return contexts
@@ -717,9 +768,9 @@ class ContextCreator:
                              'input_nucleotide_fasta':input_nucleotide_fasta,
                              'input_amino_acid_fasta':input_amino_acid_fasta
                            }
+          #  'output_fasta_pf_dir_fasta':s.output_fasta_pf_dir + PATHDELIM +  '0.fasta',
           context.outputs = {
             'output_fasta_pf_dir':s.output_fasta_pf_dir,
-            'output_fasta_pf_dir_fasta':s.output_fasta_pf_dir + PATHDELIM +  '0.fasta',
             'output_fasta_pf_dir_pf':s.output_fasta_pf_dir + PATHDELIM +  '0.pf',
             'output_fasta_pf_dir_genetic':s.output_fasta_pf_dir + PATHDELIM + 'genetic-elements.dat',
             'output_fasta_pf_dir_organism':s.output_fasta_pf_dir + PATHDELIM +  'organism-params.dat'
@@ -899,14 +950,21 @@ class ContextCreator:
 
           '''input'''
           rpkm_input = s.output_results_rpkm_dir 
+          output_gff = s.orf_prediction_dir + PATHDELIM +  s.sample_name + ".unannot.gff"
+          output_fas = s.preprocessed_dir + PATHDELIM + s.sample_name + ".fasta"
+          rpkmExec = self.configs.METAPATHWAYS_PATH + PATHDELIM + self.configs.EXECUTABLES_DIR +\
+                     PATHDELIM + self.configs.RPKM_EXECUTABLE
 
           '''output'''
-          rpkm_output = s.output_results_rpkm_dir  + PATHDELIM + s.sample_name + "orf_rpkm.txt"
+          rpkm_output = s.output_results_rpkm_dir  + PATHDELIM + s.sample_name + ".orf_rpkm.txt"
 
           context = Context()
           context.name = 'COMPUTE_RPKM'
           context.inputs = {
-                             'rpkm_input':rpkm_input
+                             'rpkm_input':rpkm_input,
+                             'output_gff': output_gff,
+                             'output_fas':output_fas,
+                             'rpkmExec': rpkmExec
                            }
 
           context.outputs = {
@@ -916,8 +974,10 @@ class ContextCreator:
           pyScript = self.configs.METAPATHWAYS_PATH + self.configs.RPKM_CALCULATION
 
 
-          cmd = "%s -i %s  -o %s --overwrite "\
-                % ( pyScript, context.inputs['rpkm_input'], context.outputs['rpkm_output'])
+          cmd = "%s -c %s  --rpkmExec %s --rpkmdir %s -O %s -o %s"\
+                % (pyScript, context.inputs['output_fas'], context.inputs['rpkmExec'],\
+                   context.inputs['rpkm_input'], context.inputs['output_gff'],\
+                 context.outputs['rpkm_output'])
                 
           context.status = self.params.get('metapaths_steps', 'RPKM_CALCULATION') 
 
@@ -999,6 +1059,7 @@ class ContextCreator:
            self.factory['GBK_TO_FNA_FAA_GFF'] = self.convert_gbk_to_fna_faa_gff_unannotated
            self.factory['GBK_TO_FNA_FAA_GFF_ANNOT'] = self.convert_gbk_to_fna_faa_gff_annotated
            self.factory['PREPROCESS_INPUT'] = self.create_quality_check_cmd
+           self.factory['PREPROCESS_AMINOS'] = self.create_preprocess_input_aminos_cmd
            self.factory['ORF_PREDICTION'] = self.create_orf_prediction_cmd
            self.factory['ORF_TO_AMINO'] = self.create_aa_orf_sequences_cmd
            self.factory['FILTER_AMINOS'] = self.create_create_filtered_amino_acid_sequences_cmd
@@ -1015,6 +1076,20 @@ class ContextCreator:
            self.factory['MLTREEMAP_CALCULATION'] = self.create_mltreemap_cmd
            self.factory['COMPUTE_RPKM'] = self.create_rpkm_cmd
 
+           self.stageList['fasta-amino'] = [
+                             ['PREPROCESS_AMINOS',
+                              'FILTER_AMINOS',
+                              'COMPUTE_REFSCORES' ],
+                             [ 'FUNC_SEARCH' ],
+                             [ 'PARSE_FUNC_SEARCH',
+                              'ANNOTATE_ORFS',
+                              'PATHOLOGIC_INPUT',
+                              'GENBANK_FILE',  
+                              'CREATE_ANNOT_REPORTS',
+                             # 'MLTREEMAP_CALCULATION',
+                              'BUILD_PGDB' ]
+                             ]
+           
            self.stageList['fasta'] = [
                              ['PREPROCESS_INPUT',
                               'ORF_PREDICTION',

@@ -67,8 +67,11 @@ class Autovivify(dict):
 parser =  None
 def createParser(): 
     global parser
+    epilog = "MLTreeMap step searches for a set of 40 universally present COGs as marker genes and taxonomically identifies some sequences in the Tree of Life."
+    epilog = re.sub(r'\s+', ' ', epilog)
     """Returns the parser to interpret user options."""
-    parser = OptionParser(description='TK Takes a sequence(s) and, using a Maximum Likelihood algorithm, attempts to place it in an appropriate reference tree.')
+
+    parser = OptionParser(description=epilog)
     parser.add_option('-i', '--input', dest='input', help='your sequence input file')
     parser.add_option('-b', '--bootstraps', dest='bootstraps', default=0, type=int, help='the number of Bootstrap replicates')
     parser.add_option('-c', '--cluster', dest='cluster', default=0, choices=[0,'s'], help='use a computer cluster? (0 = no cluster; s = sun grid)')

@@ -3,7 +3,7 @@ from __future__ import division
 __author__ = "Kishori M Konwar Niels W Hanson"
 __copyright__ = "Copyright 2013, MetaPathways"
 __credits__ = [""]
-__version__ = "1.0"
+__version__ = "2.3"
 __maintainer__ = "Kishori M Konwar Niels W Hanson"
 __status__ = "Release"
 
@@ -127,7 +127,7 @@ def remove_unspecified_samples(input_output_list, sample_subset, format, globale
       shortname = None 
       if format in ['gbk-unannotated', 'gbk-annotated']:
           shortname = re.sub('[.]gbk$','',input_file, re.IGNORECASE) 
-      elif format =='fasta':
+      elif format in ['fasta', 'fasta-amino']:
           shortname = re.sub('[.](fasta|fas|fna|faa|fa)$','',input_file, re.IGNORECASE) 
 
       if shortname==None:
@@ -141,7 +141,7 @@ def remove_unspecified_samples(input_output_list, sample_subset, format, globale
       shortname = None 
       if format in ['gbk-unannotated', 'gbk-annotated']:
           shortname = re.sub('[.]gbk$','',sample_in_subset, re.IGNORECASE) 
-      elif format =='fasta':
+      elif format in ['fasta', 'fasta-amino']:
           shortname = re.sub('[.](fasta|fas|fna|faa|fa)$','',sample_in_subset, re.IGNORECASE) 
 
       if shortname==None:
@@ -210,7 +210,7 @@ def create_an_input_output_pair(input_file, output_dir, format, globalerrorlogge
     shortname = None 
     if format in ['gbk-unannotated', 'gbk-annotated']:
         shortname = re.sub('[.]gbk$','',input_file, re.IGNORECASE) 
-    elif format =='fasta':
+    elif format in ['fasta', 'fasta-amino']:
         shortname = re.sub('[.](fasta|fas|fna|faa|fa)$','',input_file, re.IGNORECASE) 
     else:
         shortname = re.sub('[.]gff$','',input_file, re.IGNORECASE) 
@@ -240,7 +240,7 @@ def create_input_output_pairs(input_dir, output_dir, format, globalerrorlogger=N
           if result:
              shortname = re.sub('[.]gbk$','',input_file, re.IGNORECASE) 
 
-       elif format in [ 'fasta' ]:
+       elif format in [ 'fasta', 'fasta-amino' ]:
           result =  fastaPatt.search(input_file)
           if result:
              shortname = re.sub('[.](fasta|fas|fna|faa|fa)$','',input_file, re.IGNORECASE) 

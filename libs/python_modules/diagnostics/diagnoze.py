@@ -161,7 +161,7 @@ def formatDB(tools, db, refdbspath, seqType, dbType, algorithm, configs, logger 
      EXECUTABLES_DIR = configs['METAPATHWAYS_PATH'] + PATHDELIM + configs['EXECUTABLES_DIR'] 
      formatdb_executable = EXECUTABLES_DIR + PATHDELIM + tools['FUNC_SEARCH']['exec']['BLAST']['FORMATDB_EXECUTABLE']
      if seqType=='nucl':
-            formatdb_executable = EXECUTABLES_DIR + tools['FUNC_SEARCH']['exec']['BLAST']['FORMATDB_EXECUTABLE']
+            formatdb_executable = EXECUTABLES_DIR + PATHDELIM + tools['FUNC_SEARCH']['exec']['BLAST']['FORMATDB_EXECUTABLE'] 
      if seqType=='prot':
         if algorithm=='LAST':
             formatdb_executable = EXECUTABLES_DIR + PATHDELIM + tools['FUNC_SEARCH']['exec']['LAST']['LASTDB_EXECUTABLE']
@@ -409,7 +409,6 @@ def _checkParams(params, paramsAccept, logger = None, errors= None):
      This is initialed by the checkParams() function 
      store the erros in the erros dictionary 
      """
-
     """ if not level to go deeper  then the leaves of the dict are reached"""
 
     if not type(params) is dict and  type(paramsAccept) is dict:
@@ -418,8 +417,8 @@ def _checkParams(params, paramsAccept, logger = None, errors= None):
            if (not params in paramsAccept) and len(paramsAccept.keys())!=0:
                errors[params] = False
                choices = ', '.join(paramsAccept.keys()) 
-               eprintf("ERROR\tValue for key %s is not set propertly must be one of %s\n", sQuote(params), sQuote(choices) )
-               logger.printf("ERROR\tValue for key %s is not set propertly must be one of %s\n", sQuote(params), sQuote(choices) )
+               eprintf("ERROR\tValue for key %s, in param file,  is not set propertly must be one of %s \t %s\n", sQuote(params), sQuote(choices), __name__)
+               logger.printf("ERROR\tValue for key %s, in param file,  is not set propertly must be one of %s\t%s\n", sQuote(params), sQuote(choices),  __name__)
         except:
                pass
         return

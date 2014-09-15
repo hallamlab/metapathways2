@@ -79,7 +79,7 @@ def createParser():
 def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
     global parser
     options, args = parser.parse_args(argv)
-    _execute_tRNA_Scan(options)
+    return _execute_tRNA_Scan(options)
 
 
 def  _execute_tRNA_Scan(options):
@@ -102,19 +102,19 @@ def  _execute_tRNA_Scan(options):
     
     if options.trna_F:
        args += [ "-F",  options.trna_F]
-    
     result = getstatusoutput(' '.join(args) )
-    return result[0]
+
+    return result
     
 
-def MetaPathways_func_search(argv, extra_command = None, errorlogger = None, runstatslogger =None): 
+def MetaPathways_tRNA_scan(argv, extra_command = None, errorlogger = None, runstatslogger =None): 
     if errorlogger != None:
        errorlogger.write("#STEP\ttRNA_SCAN\n")
     createParser()
-    main(argv, errorlogger = errorlogger, runcommand= extra_command, runstatslogger = runstatslogger)
-    return (0,'')
+    result = main(argv, errorlogger = errorlogger, runcommand= extra_command, runstatslogger = runstatslogger)
+    return (result[0],'')
 
 if __name__ == '__main__':
     createParser()
-    main(sys.argv[1:])
+    result = main(sys.argv[1:])
 
