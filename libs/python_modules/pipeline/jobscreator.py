@@ -949,7 +949,7 @@ class ContextCreator:
           contexts = []
 
           '''input'''
-          rpkm_input = s.output_results_rpkm_dir 
+          rpkm_input = s.rpkm_input_dir 
           output_gff = s.orf_prediction_dir + PATHDELIM +  s.sample_name + ".unannot.gff"
           output_fas = s.preprocessed_dir + PATHDELIM + s.sample_name + ".fasta"
           rpkmExec = self.configs.METAPATHWAYS_PATH + PATHDELIM + self.configs.EXECUTABLES_DIR +\
@@ -957,6 +957,7 @@ class ContextCreator:
 
           '''output'''
           rpkm_output = s.output_results_rpkm_dir  + PATHDELIM + s.sample_name + ".orf_rpkm.txt"
+          stats_file = s.output_results_rpkm_dir  + PATHDELIM + s.sample_name + ".orf_rpkm_stats.txt"
 
           context = Context()
           context.name = 'COMPUTE_RPKM'
@@ -964,22 +965,23 @@ class ContextCreator:
                              'rpkm_input':rpkm_input,
                              'output_gff': output_gff,
                              'output_fas':output_fas,
-                             'rpkmExec': rpkmExec
+                             'rpkmExec': rpkmExec,
                            }
 
           context.outputs = {
-                             'rpkm_output': rpkm_output
+                             'rpkm_output': rpkm_output,
+                             'stats_file': stats_file
                             }
 
           pyScript = self.configs.METAPATHWAYS_PATH + self.configs.RPKM_CALCULATION
 
 
-          cmd = "%s -c %s  --rpkmExec %s --rpkmdir %s -O %s -o %s"\
+          cmd = "%s -c %s  --rpkmExec %s --rpkmdir %s -O %s -o %s --sample_name %s --stats %s"\
                 % (pyScript, context.inputs['output_fas'], context.inputs['rpkmExec'],\
                    context.inputs['rpkm_input'], context.inputs['output_gff'],\
-                 context.outputs['rpkm_output'])
+                 context.outputs['rpkm_output'], s.sample_name, context.outputs['stats_file'])
                 
-          context.status = self.params.get('metapaths_steps', 'RPKM_CALCULATION') 
+          context.status = self.params.get('metapaths_steps', 'COMPUTE_RPKM') 
 
           context.commands = [cmd]  
           contexts.append(context)

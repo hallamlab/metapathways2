@@ -9,3 +9,6 @@ executables/*
 output
 regtests/output
 .DS_Store
+
+config/template_param_niels.txt
+config/template_config_niels.txt

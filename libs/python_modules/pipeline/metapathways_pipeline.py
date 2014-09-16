@@ -82,7 +82,7 @@ def execute_tasks(s, verbose = False, block = 0):
     contextBlock = contextBlocks[block]
 
     for c in contextBlock:
-        #print c.name, c.status, 'status'
+        print c.name, c.status, 'status'
         if c.status=='stop':
            print "Stopping!"
            s.stepslogger.write('%s\t%s\n' %(c.name, "STOPPED"))
@@ -92,6 +92,7 @@ def execute_tasks(s, verbose = False, block = 0):
              eprintf("\n\n\nEXECUTED COMMAND : %s\n", ', '.join(c.commands) )
 
         eprintf("%s" %(c.message))
+
 
         if c.status in ['redo']:
             c.removeOutput(s)
@@ -103,6 +104,7 @@ def execute_tasks(s, verbose = False, block = 0):
                   s.stepslogger.write('%s\t%s\n' %( c.name, "SUCCESS"))
                else:
                   eprintf('..... Failed!\n')
+                  eprintf('%s result \n',  result )
                   s.stepslogger.write('%s\t%s\n' %( c.name, "FAILED"))
             else:
                eprintf('..... Skipping [NO INPUT]!\n')
@@ -132,19 +134,12 @@ def execute_tasks(s, verbose = False, block = 0):
         elif c.status=='grid':
            blastgrid(c.commands[0])
 
-
-
 def execute(s, c):
-       
-       if len(c.commands) == 2:
-             result = execute_pipeline_stage(c.commands[0], extra_command =  c.commands[1], errorlogger= s.errorlogger, runstatslogger = s.runstatslogger )
-       else:
-             result = execute_pipeline_stage(c.commands[0], errorlogger= s.errorlogger, runstatslogger = s.runstatslogger)
-       return result
-
-
-
-
+     if len(c.commands) == 2:
+       result=execute_pipeline_stage(c.commands[0], extra_command =  c.commands[1], errorlogger= s.errorlogger, runstatslogger = s.runstatslogger )
+     else:
+       result=execute_pipeline_stage(c.commands[0], errorlogger= s.errorlogger, runstatslogger = s.runstatslogger)
+     return result
 
 def print_to_stdout(s):
     print s

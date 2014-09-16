@@ -104,6 +104,8 @@ class SampleData():
         self.sample_name = path.basename(self.sample_name)
         self.sample_name = re.sub('[.]','_',self.sample_name)
 
+        self.rpkm_input_dir  = path.dirname(inputFile) + PATHDELIM  + "rpkmreads" 
+
         self.output_dir = sample_output_dir
 
         self.preprocessed_dir = self.output_dir + PATHDELIM + "preprocessed" + PATHDELIM
@@ -116,7 +118,7 @@ class SampleData():
         self.output_results_annotation_table_dir  = self.output_results +  PATHDELIM + "annotation_table"  + PATHDELIM
         self.output_results_megan_dir  = self.output_results + PATHDELIM + "megan"  + PATHDELIM
         self.output_results_sequin_dir  = self.output_results + PATHDELIM + "sequin"  + PATHDELIM
-        self.output_results_rpkm_dir  = self.output_results + PATHDELIM + "rpkm"  + PATHDELIM
+        self.output_results_rpkm_dir  = self.output_results+ PATHDELIM  + "rpkm" 
         self.output_results_mltreemap_dir  = self.output_results +  PATHDELIM + "mltreemap"  + PATHDELIM
         self.mltreemap_image_output = self.output_results_mltreemap_dir  + PATHDELIM + "tables_and_figures" + PATHDELIM 
         self.output_fasta_pf_dir=  self.output_dir + PATHDELIM + "ptools" + PATHDELIM

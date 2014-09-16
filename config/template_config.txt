@@ -13,8 +13,8 @@ PATHOLOGIC_EXECUTABLE '/Users/kishori/pathway-tools/pathway-tools'
 
 REFDBS '/Users/sgeadmin/MetaPathways/databases'
 
-# Executables: replace 'mac' to your platform linux, mac, win
-# Bit type - bit32 or bit64 
+# Check the executables/ directory your operating system
+# e.g., Mac = Darwin
 FORMATDB_EXECUTABLE  'makeblastdb'
 BLASTP_EXECUTABLE  'blastp'
 BLASTN_EXECUTABLE  'blastn'
@@ -32,7 +32,6 @@ RPKM_EXECUTABLE      'rpkm'
 GBK_TO_FNA_FAA_GFF   'libs/python_scripts/MetaPathways_parse_genbank.py'
 GFF_TO_FNA_FAA_GFF   'libs/python_scripts/MetaPathways_input_gff.py'
 PREPROCESS_INPUT          'libs/python_scripts/MetaPathways_filter_input.py'
-PREPROCESS_AMINOS    'libs/python_scripts/MetaPathways_preprocess_amino_input.py'
 ORF_PREDICTION          'libs/python_scripts/MetaPathways_orf_prediction.py'
 ORF_TO_AMINO 'libs/python_scripts/MetaPathways_create_amino_sequences.py'
 COMPUTE_REFSCORES 'libs/python_scripts/MetaPathways_refscore.py' 
@@ -45,5 +44,4 @@ RUN_PATHOLOGIC 'libs/python_scripts/MetaPathways_run_pathologic.py'
 SCAN_rRNA 'libs/python_scripts/MetaPathways_rRNA_stats_calculator.py'
 SCAN_tRNA 'libs/python_scripts/MetaPathways_tRNA_scan.py'
 MLTREEMAP_CALCULATION 'libs/python_scripts/MetaPathways_mltreemap.py' 
-RPKM_CALCULATION 'libs/python_scripts/MetaPathways_rpkm.py' 
 RPKM_CALCULATION 'libs/python_scripts/MetaPathways_rpkm.py' 

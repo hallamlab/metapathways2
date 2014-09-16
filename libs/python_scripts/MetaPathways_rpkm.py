@@ -21,7 +21,8 @@ except:
      print traceback.print_exc(10)
      sys.exit(3)
 
-PATHDELIM=pathDelim()
+
+PATHDELIM= pathDelim()
 
 
 
@@ -64,16 +65,38 @@ def createParser():
     parser.add_option('-o', '--output', dest='output', default=None,
                            help='orfwise RPKM file')
 
+    parser.add_option('--stats', dest='stats', default=None,
+                           help='output stats for ORFs  into file')
+
     parser.add_option('-r', '--rpkmdir', dest='rpkmdir', default=None,
                            help='list of sam files that contains the read recruitments')
 
     parser.add_option('-O', '--orfgff', dest='orfgff', default=None,
                            help='folder of the PGDB')
 
+    parser.add_option('-s', '--sample_name', dest='sample_name', default=None,
+                           help='name of the sample')
+
     parser.add_option('--rpkmExec', dest='rpkmExec', default=None,
                            help='RPKM Executable')
 
 
+def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
+    global parser
+
+    options, args = parser.parse_args(argv)
+
+    parser.add_option('-r', '--rpkmdir', dest='rpkmdir', default=None,
+                           help='list of sam files that contains the read recruitments')
+
+    parser.add_option('-O', '--orfgff', dest='orfgff', default=None,
+                           help='folder of the PGDB')
+
+    parser.add_option('-s', '--sample_name', dest='sample_name', default=None,
+                           help='name of the sample')
+
+    parser.add_option('--rpkmExec', dest='rpkmExec', default=None,
+                           help='RPKM Executable')
 
 
 
@@ -90,6 +113,10 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
     if options.rpkmdir ==None:
        parser.error('ERROR\tThe RPKM directory')
 
+    if options.sample_name ==None:
+       parser.error('ERROR\tThe sample name is missing')
+
+
     # is there a pathwaytools executable installed
     if not path.exists(options.rpkmExec):
        eprintf("ERROR\tRPKM executable %s not found!\n", options.rpkmExec)
@@ -102,18 +129,23 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
     command = "%s -c %s"  %(options.rpkmExec, options.contigs)
     command += " --multireads --format sam-2" 
     if options.output:
-       command += " -o %s" %(options.output)
+       command += " --ORF-RPKM %s" %(options.output)
+       command += " --stats %s" %(options.stats)
 
     if options.orfgff:
        command += " -O %s" %(options.orfgff)
 
 
-    samfiles = glob(options.rpkmdir + PATHDELIM + '/*.sam')
+    samfiles = []
+    if path.exists(options.rpkmdir):
+       samfiles = glob(options.rpkmdir + PATHDELIM + options.sample_name + '*.sam')
+    
+    if not samfiles:
+       return 
 
     for samfile in samfiles:
         command += " -r " + samfile
 
-    print command
 
     try:
        status  = runRPKMCommand(runcommand = command) 
@@ -129,6 +161,7 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
 def runRPKMCommand(runcommand = None):
     if runcommand == None:
       return False
+
     result = getstatusoutput(runcommand)
     return result[0]
 
@@ -173,7 +206,6 @@ def process_organism_file(filel):
 
      lines = orgfile.readlines()
      newlines = []
-
      needsFixing = False
 
      id = None
@@ -218,9 +250,9 @@ def write_new_file(lines, output_file):
     outputfile.close()
 
 
-def MetaPathways_run_pathologic(argv, extra_command = None, errorlogger = None, runstatslogger =None): 
+def MetaPathways_rpkm(argv, extra_command = None, errorlogger = None, runstatslogger =None): 
     if errorlogger != None:
-       errorlogger.write("#STEP\tBUILD_PGDB\n")
+       errorlogger.write("#STEP\tRPKM_CALCULATION\n")
     createParser()
     main(argv, errorlogger = errorlogger, runcommand= extra_command, runstatslogger = runstatslogger)
     return (0,'')

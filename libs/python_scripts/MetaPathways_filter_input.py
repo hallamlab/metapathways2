@@ -222,7 +222,7 @@ def main(argv, errorlogger = None, runstatslogger = None):
     for record in fastareader:
         seqname = record.name
         seq = record.sequence
-        length = len(seq) 
+        length = len(seq)
         
         index = int(len(seq) / 50);
         if index >= 30:
@@ -272,7 +272,7 @@ def main(argv, errorlogger = None, runstatslogger = None):
                stats[MAX_LENGTH][AFTER] = seqlen
 
     fprintf(lengthsfile,"%s\n",lengths_str);
-
+    
     if stats[NUMSEQ][BEFORE] > 0 :
       stats[AVG_LENGTH][BEFORE]  = stats[AVG_LENGTH][BEFORE]/stats[NUMSEQ][BEFORE]
     else:
