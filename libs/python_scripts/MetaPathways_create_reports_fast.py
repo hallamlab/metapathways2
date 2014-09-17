@@ -920,7 +920,7 @@ def main(argv, errorlogger = None,  runstatslogger = None):
         blastParsers[dbname].setMaxErrorsLimit(5)
         blastParsers[dbname].setErrorAndWarningLogger(errorlogger)
 
-    #this part of the code computes the occurence of each of the taxons
+    # this part of the code computes the occurence of each of the taxons
     # which is use in the later stage is used to evaluate the min support
     # as used in the MEGAN software
 
@@ -964,7 +964,7 @@ def main(argv, errorlogger = None,  runstatslogger = None):
     start = 0
     outputfile = open( opts.output_dir +'/ORF_annotation_table.txt', 'w')
 
-    
+
     short_to_long_dbnames = {}
     for dbname in opts.database_name: 
       results = re.search(r'^seed', dbname,  re.IGNORECASE)
