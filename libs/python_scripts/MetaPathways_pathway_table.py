@@ -15,6 +15,8 @@ try:
     from sys import path
     import re
     import operator
+    import math
+    import pickle
     from threading import Thread
     from time import sleep
     from optparse import OptionParser, OptionGroup
@@ -23,7 +25,6 @@ try:
     # from libs.python_modules.utils.metapaths_utils  import parse_command_line_parameters, fprintf, printf
     from libs.python_modules.utils.pathwaytoolsutils import PythonCyc
     from libs.python_modules.utils.sysutil import getstatusoutput
-
 except:
     print """ Could not load some user defined  module functions"""
     print """ Make sure your typed \"source MetaPathwaysrc\""""
@@ -64,6 +65,7 @@ def createParser():
         help='minimum number of reads that must be assigned to a taxon for ' + \
              'that taxon to be present otherwise move up the tree until there ' +
              'is a taxon that meets the requirement')
+    wtd_options_group.add_option("--megan-map", dest="megan_map", help="MEGANs prefered mapping NCBI IDs" )
 
 def check_arguments(opts, args):
     # standard options
@@ -93,6 +95,36 @@ def start_pathway_tools_api_mode(pathway_tools_exe):
     command = pathway_tools_exe + " -api"
     result = getstatusoutput(command)
 
+def cleanup(string):
+    """
+    Cleans up pathway long-names for presentation.
+    :param string:
+    :return:
+    """
+    string = re.sub("|", "", string) # vertical bar
+    string = re.sub("<[^<]+?>", '', string) # HTML tags
+    string = re.sub("\'", "", string) # remove quotes
+
+    return string
+
+def get_preferred_taxa_name(taxa_id, megan_map, id_to_name):
+    """
+    Helper function to format NCBI IDs into preferred names
+    :param taxa_id: taxa id to translate
+    :param megan_map: preferred megan mapping hash
+    :param id_to_name: local ncbi tree hash
+    :return: "perferred name (id)"
+    """
+    taxa_id = str(taxa_id)
+    if taxa_id in megan_map:
+        taxa = megan_map[ taxa_id ] + " (" + taxa_id + ")"
+    elif taxa_id in id_to_name:
+        taxa = id_to_name[ taxa_id ] + " (" + taxa_id + ")"
+    else:
+        taxa = "Unknown" + " (" + taxa_id + ")"
+
+    return taxa
+
 # the main function
 def main(argv):
     global parser
@@ -102,21 +134,53 @@ def main(argv):
         print usage
         sys.exit(0)
 
-    if opts.wtd and not os.path.isfile("/tmp/expected_taxa.txt"):
-        # get expected taxonomic range(s)
-        print 'Get Expected Taxonomic Range'
-        cyc = PythonCyc()
-        cyc.setOrganism('meta')
-        cyc.setPToolsExec(opts.pathway_tools)
-        cyc.startPathwayTools()
+    # place to store list of expected taxonomic range(s)
+    serialized_metacyc_taxa_ranges = "/tmp/metacyc_pwy_taxa_range.pk"
 
-        pwys = cyc.getAllPathways()
+    if opts.wtd and not os.path.isfile(serialized_metacyc_taxa_ranges):
+        # get MetaCyc's expected taxonomic range(s) and serialize for later use in /tmp
+        try:
+            print 'Getting MetaCyc Expected Taxonomic Range(s)'
 
-        pwy_taxa_range = {} # hash from pwy to expected taxonomic range(s)
-        for pwy in pwys:
-            pwy_taxa_range[pwy] = cyc.getExpectedTaxonomicRange(pwy)
+            # connect to Pathway Tools
+            cyc = PythonCyc()
+            cyc.setOrganism('meta')
+            cyc.setPToolsExec(opts.pathway_tools)
+            cyc.startPathwayTools()
 
-        cyc.stopPathwayTools()
+            pwys = cyc.getAllPathways()
+
+            pwy_taxa_range = {} # hash from pwy to expected taxonomic range(s)
+            pwy_taxa_range_pk = open(serialized_metacyc_taxa_ranges ,"w")
+
+            # get expected taxonomic ranges for each pathway
+            for pwy in pwys:
+                my_expected_taxonomic_range = cyc.getExpectedTaxonomicRange(pwy)
+                pwy_taxa_range[pwy] = my_expected_taxonomic_range
+
+            # write the pathway
+            pickle.dump(pwy_taxa_range, pwy_taxa_range_pk)
+            pwy_taxa_range_pk.close()
+
+            # close Pathway Tools
+            cyc.stopPathwayTools()
+        except:
+            print """
+            Problem connecting to Pathway Tools. Check the /tmp/ptools-socket file.
+            """
+    else:
+        # read expected taxonomic range from serialized file
+        exepected_taxa_in = open(serialized_metacyc_taxa_ranges ,"r")
+        pwy_taxa_range = pickle.load(exepected_taxa_in)
+
+    # create mapping of preferred NCBI to MEGAN taxonomy
+    megan_map = {}
+    if opts.megan_map:
+        with open(opts.megan_map) as megan_map_file:
+            for line in megan_map_file:
+                fields = line.split("\t")
+                fields = map(str.strip, fields)
+                megan_map[ fields[0] ] = fields[1]
 
     # get ORF to taxa map from annotation_table
     print "Getting ORF to Taxa Map from AnnotationTable"
@@ -128,19 +192,26 @@ def main(argv):
 
     # get pathway ORFs and Rxns
     pwy_to_orfs = {}
+    pwy_to_long = {}
     pwy_to_rxns = {}
-    cyc = PythonCyc()
-    cyc.setOrganism(opts.pgdb_name)
-    cyc.setPToolsExec(opts.pathway_tools)
-    cyc.startPathwayTools()
-    pwys = cyc.getAllPathways()
-    for pwy in pwys:
-        genes = cyc.getPathwayORFs(pwy)
-        rxns = cyc.getPathwayReactionInfo(pwy)
-        pwy_to_orfs[pwy] = genes
-        pwy_to_rxns[pwy] = rxns
+    try:
+        cyc = PythonCyc()
+        cyc.setOrganism(opts.pgdb_name)
+        cyc.setPToolsExec(opts.pathway_tools)
+        cyc.startPathwayTools()
+        pwys = cyc.getAllPathways()
+        for pwy in pwys:
+            genes = cyc.getPathwayORFs(pwy)
+            rxns = cyc.getPathwayReactionInfo(pwy)
+            pwy_to_orfs[pwy] = genes
+            pwy_to_long[pwy] = cleanup(cyc.get_slot_value(pwy, "common-name"))
+            pwy_to_rxns[pwy] = rxns
 
-    cyc.stopPathwayTools()
+        cyc.stopPathwayTools()
+    except:
+        print """
+        Problem connecting to Pathway Tools. Check the /tmp/ptools-socket file.
+        """
 
     # get LCA per pathway
     pwy_lca = {}
@@ -162,9 +233,9 @@ def main(argv):
         pwy_lca[pwy] = [pwy_lca_id, lca.translateIdToName(pwy_lca_id)]
 
     # calculate weighted taxonomic distance
-
+    pwy_to_wtd = {}
     for pwy in pwy_lca:
-        min_taxa = "1"
+
         C = [] # list of distances
         C_taxa = [] # list of parallel observed-expected taxa pairs
         C_pos = [] # list of non-negative distances
@@ -191,6 +262,7 @@ def main(argv):
                     continue
         else:
             # no expected taxonomy, set to root
+            min_taxa = "1"
             dist = lca.wtd(min_taxa, pwy_lca[pwy][0])
             # add distance respective lists
             C.append(dist) # add distance
@@ -202,20 +274,52 @@ def main(argv):
                 C_neg.append(dist)  # add to negative list
                 C_neg_taxa.append([ min_taxa, pwy_lca[pwy][0] ])
 
+        # find index with max distance (closest to expected taxonomy)
         max_index, max_dist = max(enumerate(C), key=operator.itemgetter(1))
         max_taxa = C_taxa[max_index]
 
-        # alternative min-magnitude
-        if len(C_pos) > 0:
-            min_mag_index, min_mag_dist = min(enumerate(C_pos), key=operator.itemgetter(1))
-            min_mag_taxa = C_pos_taxa[min_mag_index]
-        else:
-            min_mag_index, min_mag_dist = max(enumerate(C_neg), key=operator.itemgetter(1))
-            min_mag_taxa = C_neg_taxa[min_mag_index]
+        # remap to preferred names
+        observed = get_preferred_taxa_name(max_taxa[1], megan_map, lca.id_to_name)
+        expected = get_preferred_taxa_name(max_taxa[0], megan_map, lca.id_to_name)
 
-    # write-out pathway table
+        pwy_to_wtd[pwy] = [ max_dist, observed, expected ]
 
+    # write out pathway table
+    try:
+        out = open(opts.table_out, "w")
+    except:
+        print "Had problems opening file: " + opts.table_out
 
+    # write appropreate header
+    if opts.wtd:
+        header = "SAMPLE\tPWY_NAME\tPWY_COMMON_NAME\tNUM_REACTIONS\tNUM_COVERED_REACTIONS\tORF_COUNT\tWTD\tOBSERVED\tEXPECTED\tORFS\n"
+    else:
+        header = "SAMPLE\tPWY_NAME\tPWY_COMMON_NAME\tNUM_REACTIONS\tNUM_COVERED_REACTIONS\tORF_COUNT\tORFS\n"
+    out.write(header)
+
+    sample = opts.pgdb_name # sample name
+    for pwy in pwy_to_orfs:
+        # generate output line
+        line = []
+        line.append(sample) # sample name
+        line.append(pwy) # pathway name
+        line.append(pwy_to_long[pwy]) # pathway longname
+        line.append(pwy_to_rxns[pwy][0]) # pathway num reactions
+        line.append(pwy_to_rxns[pwy][1]) # pathway covered reactions
+        line.append(len(pwy_to_orfs[pwy])) # num orfs
+        if opts.wtd:
+            line.append(pwy_to_wtd[pwy][0]) # wtd
+            line.append(pwy_to_wtd[pwy][1]) # wtd observed taxa
+            line.append(pwy_to_wtd[pwy][2]) # wtd expected taxa
+        line.append("[" + ",".join(pwy_to_orfs[pwy]) + "]") # list of ORFs
+
+        line = map(str, line) # cast all to string
+
+        out.write("\t".join(line) + "\n") # write out line
+    try:
+        out.close() # close file
+    except:
+        print "Had problems closing file: " + opts.table_out
 
 if __name__ == "__main__":
     createParser()

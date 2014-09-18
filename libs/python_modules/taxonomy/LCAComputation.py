@@ -3,6 +3,7 @@
 from __future__ import division
 try:
      import sys, traceback, re
+     import math
      from   libs.python_modules.utils.metapathways_utils  import fprintf, printf, GffFileParser, getShortORFId
 except:
      print """ Could not load some user defined  module functions"""
@@ -128,7 +129,8 @@ class LCAComputation:
                    else:
                        return  self.id_to_name[tid]
                tid = self.taxid_to_ptaxid[tid][0]
-
+        if return_id:
+            return 1
         return "root"
 
     def update_taxon_support_count(self, taxonomy):
@@ -281,13 +283,9 @@ class LCAComputation:
     # weighted taxonomic distance between observed and expected taxa
     def wtd(self, exp, obs):
         exp_id = exp
-        obs_id = self.get_a_Valid_ID([obs])
+        obs_id = obs
         exp_lin = self.get_lineage(exp_id)
         obs_lin = self.get_lineage(obs_id)
-        # print "Expected ID: ", exp_id
-        # print "Observed ID: ", obs_id
-        # print "Expected:", exp_lin
-        # print "Observed:", obs_lin
         sign = -1
 
         # check to see if expected in observed lineage
@@ -319,9 +317,9 @@ class LCAComputation:
 
     # given an ID gets the lineage
     def get_lineage(self, id):
-        tid = id
+        tid = str(id)
         lineage = []
-        lineage.append(id)
+        lineage.append(tid)
         while( tid in self.taxid_to_ptaxid and tid !='1' ):
             lineage.append(self.taxid_to_ptaxid[tid][0])
             tid = self.taxid_to_ptaxid[tid][0]
