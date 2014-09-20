@@ -94,7 +94,6 @@ def format_db(formatdb_executable, seqType, raw_sequence_file, formatted_db,  al
         return False
 
 
-
 # convert an input gbk file to fna faa and gff file
 def  convert_gbk_to_fna_faa_gff(input_gbk, output_fna, output_faa, output_gff, config_settings):
     cmd = "%s  -g %s --output-fna %s --output-faa %s --output-gff %s" %((config_settings['METAPATHWAYS_PATH'] \
@@ -455,7 +454,7 @@ def read_pipeline_configuration( file, globallogger ):
                  eprintf("     Error in line : %s\n", line)
                  globalerrorlogger(
                       "WARNING\t\n"+\
-                      "     The following line in your config settings files isn not set up yet\n"+\
+                      "     The following line in your config settings files is not set up yet\n"+\
                       "     Please rerun the pipeline after setting up this line\n"+\
                       "     Error in line : %s\n" %(line))
 
@@ -591,8 +590,6 @@ def run_metapathways(samplesData, output_dir, all_samples_output_dir, globallogg
     for input_file in samplesData.keys():
       s =  samplesData[input_file]
       jobcreator.addJobs(s, block_mode = block_mode)
-
-
 
     if block_mode:
        for input_file in samplesData.keys():

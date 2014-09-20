@@ -55,8 +55,6 @@ The resulting ePGDB is in the ~/ptools-local/pgdbs/user folder. They can be view
     parser = optparse.OptionParser(usage=usage, epilog = epilog)
 
     # Input options
-
-
     parser.add_option('-i', '--input', dest='inputfolder', default=None,
                            help='runs pathologic on the input folder')
 

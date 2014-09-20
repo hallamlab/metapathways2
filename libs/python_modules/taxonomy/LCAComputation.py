@@ -3,6 +3,7 @@
 from __future__ import division
 try:
      import sys, traceback, re
+     import math
      from   libs.python_modules.utils.metapathways_utils  import fprintf, printf, GffFileParser, getShortORFId
 except:
      print """ Could not load some user defined  module functions"""
@@ -10,7 +11,6 @@ except:
      print """ """
      print traceback.print_exc(10)
      sys.exit(3)
-
 
 
 def copyList(a, b): 
@@ -51,7 +51,8 @@ class LCAComputation:
           fields =  [ x.strip()  for x in line.rstrip().split('\t')]
           if len(fields) !=3:
               continue
-          self.name_to_id[str(fields[0])] = str(fields[1])
+          if str(fields[0]) not in self.id_to_name:
+            self.name_to_id[str(fields[0])] = str(fields[1])
           self.id_to_name[str(fields[1])] = str(fields[0])
           # the taxid to ptax map has for each taxid a corresponding 3-tuple
           # the first location is the pid, the second is used as a counter for 
@@ -116,16 +117,20 @@ class LCAComputation:
     #   note that at the node where all the of the individual ids ( limit in number)
     #   converges the counter matches the limit for the first time, while climbing up. 
     #   This also this enables us to  make the selection of id arbitrary 
-    def get_lca(self, IDs):
+    def get_lca(self, IDs, return_id=False):
         limit = len(IDs)
         for id in IDs:
            tid = id 
            while( tid in self.taxid_to_ptaxid and tid !='1' ):
                self.taxid_to_ptaxid[tid][1]+=1
                if self.taxid_to_ptaxid[tid][1]==limit:
-                  return  self.id_to_name[tid]  
+                   if return_id:
+                       return tid
+                   else:
+                       return  self.id_to_name[tid]
                tid = self.taxid_to_ptaxid[tid][0]
-
+        if return_id:
+            return 1
         return "root"
 
     def update_taxon_support_count(self, taxonomy):
@@ -265,5 +270,57 @@ class LCAComputation:
            import traceback
            traceback.print_exc()
            print "ERROR : Cannot read annotated gff file "
-          
 
+
+    ## Weighted Taxonomic Distnace (WTD)
+    # Implementation of the weighted taxonomic distance as described in
+    # Metabolic pathways for the whole community. Hanson et al. (2014)
+
+    # monotonicly decreasing function of depth of divergence d
+    def step_cost(self, d):
+        return 1 / math.pow(2,d)
+
+    # weighted taxonomic distance between observed and expected taxa
+    def wtd(self, exp, obs):
+        exp_id = exp
+        obs_id = obs
+        exp_lin = self.get_lineage(exp_id)
+        obs_lin = self.get_lineage(obs_id)
+        sign = -1
+
+        # check to see if expected in observed lineage
+        # if so distance sign is positive
+        if exp_id in obs_lin:
+            sign = 1
+        large = None
+        if len(obs_lin) <= len(exp_lin):
+            # expected longer than observed
+            large = exp_lin
+            small = obs_lin
+        else:
+            large = obs_lin
+            small = exp_lin
+
+        # calculate cost
+        a_cost = 0
+        b_cost = 0
+        for i in range(len(large)):
+            if i > 0:
+                a_cost += self.step_cost(len(large)-i-1)
+            b_cost = 0
+            for j in range(len(small)):
+                if j > 0:
+                    b_cost += self.step_cost(len(small)-j-1)
+                if large[i] == small[j]:
+                    return ((a_cost + b_cost) * sign)
+        return None # did not find lineages
+
+    # given an ID gets the lineage
+    def get_lineage(self, id):
+        tid = str(id)
+        lineage = []
+        lineage.append(tid)
+        while( tid in self.taxid_to_ptaxid and tid !='1' ):
+            lineage.append(self.taxid_to_ptaxid[tid][0])
+            tid = self.taxid_to_ptaxid[tid][0]
+        return lineage
