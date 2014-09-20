@@ -11,7 +11,6 @@
 use strict;
 
 use Getopt::Long;
-use lib "/usr/local/hallamsoft";
 use perlcyc;
 use XML::Writer;
 use IO::File;

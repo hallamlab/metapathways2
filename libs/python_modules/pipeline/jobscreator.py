@@ -813,6 +813,7 @@ class ContextCreator:
                            'KO_classification':basefun + PATHDELIM +  'KO_classification.txt',
                            'COG_categories':basefun + PATHDELIM +  'COG_categories.txt',
                            'SEED_subsystems':basefun + PATHDELIM + 'SEED_subsystems.txt',
+                           'CAZY_hierarchy':basefun + PATHDELIM + 'CAZY_hierarchy.txt',
                            'ncbi_taxonomy_tree': basencbi + PATHDELIM + 'NCBI_TAXONOMY_TREE.TXT'
                            }
           context.outputs = {
@@ -838,7 +839,7 @@ class ContextCreator:
 
 
           cmd = "%s %s --input-annotated-gff %s  --input-kegg-maps %s \
-                 --input-cog-maps %s --input-seed-maps %s --output-dir %s \
+                 --input-cog-maps %s --input-seed-maps %s --input-cazy-maps %s --output-dir %s \
                  --ncbi-taxonomy-map %s "\
                %(\
                   pyScript, \
@@ -847,6 +848,7 @@ class ContextCreator:
                   context.inputs['KO_classification'],\
                   context.inputs['COG_categories'],\
                   context.inputs['SEED_subsystems'],\
+                  context.inputs['CAZY_hierarchy'],\
                   context.outputs['output_results_annotation_table_dir'],\
                   context.inputs['ncbi_taxonomy_tree']\
                )

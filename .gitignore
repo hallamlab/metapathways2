@@ -9,6 +9,10 @@ executables/*
 output
 regtests/output
 .DS_Store
+.*
+executables/Unix/*
+executables/Unix
+executables/openSUSE/*
 
 config/template_param_niels.txt
 config/template_config_niels.txt
