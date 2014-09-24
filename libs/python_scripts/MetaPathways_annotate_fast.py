@@ -542,7 +542,6 @@ def process_product(product, database, similarity_threshold=0.9):
 
     processed_product = ''
 
-    print 'dbase', database
     # COG
     if database == 'cog':
         results = re.search(r'Function: (.+?) #', product)
@@ -748,7 +747,6 @@ def compute_annotation_value(data):
 
 # compute the refscores
 def process_parsed_blastoutput(dbname, weight,  blastoutput, cutoffs, annotation_results):
-    print 'dbase1', dbname
     blastparser =  BlastOutputTsvParser(dbname, blastoutput)
 
     fields = ['q_length', 'bitscore', 'bsr', 'expect', 'aln_length', 'identity', 'ec' ]
