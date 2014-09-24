@@ -20,12 +20,14 @@ use Data::Dumper;
 my $DB_NAME;
 my $HELP;
 my $LIST;
+my $FULL = undef;
 my $OUTFILE;
 sub recurse_pathway_classes ;
 
 my $result = GetOptions(
     'help+' => \$HELP,
     'list' => \$LIST,
+    'type' => \$FULL,
     'output=s' => \$OUTFILE,
 );
 
@@ -40,6 +42,7 @@ Pathway Tools must be opened with the -api argument:
 Options:
   -h, --help            show this help and exit
   -l, --list            list all PGDBs that can be extracted
+  -t, --type            flag to produce the full structure
 ";
 }
 
@@ -154,8 +157,14 @@ for my $p (@base_pathways) {
     }
 }
 
-
-&printTree('|Pathways|', '|Pathways|',  \%tree,  $cyc, 0);
+if( defined($FULL) ) {
+   &printTree('|Pathways|', '|Pathways|',  \%tree,  $cyc, 0);
+}
+else {
+    for my $name (@base_pathways){
+        &printTree($name, $name,  \%tree,  $cyc, 0);
+    }
+}
 
 
 # Then output the pathway classes
@@ -295,7 +304,7 @@ sub printTree{
    my $common_name = $cyc->get_slot_value($node, 'Common-Name') || $node;
 
    my $outStr = "\t" x $indent . $node."\t".$common_name;
-   if( !(ref $tree_->{$pnode}{$node} eq "HASH") &&  $tree_->{$pnode}{$node} ==2 ) {
+   if( !(ref $tree_->{$pnode}{$node} eq "HASH") && defined $tree_->{$pnode}{$node} &&   $tree_->{$pnode}{$node} == 2 ) {
          my @rxngenes = $cyc->genes_of_reaction($node,"T");
          $outStr .= " (" . scalar(@rxngenes) . ")";
    }
