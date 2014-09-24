@@ -140,6 +140,7 @@ class PythonCyc:
     def stopPathwayTools(self):
         query= "(exit)"
         self.send_query(query)
+        time.sleep(10)
 
 
     def wrap_query(self, function ):

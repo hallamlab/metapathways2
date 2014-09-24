@@ -42,7 +42,7 @@ def createParser():
 
     # standard options [REQUIRED]
     standard_options_group = OptionGroup(parser, "Input/Output/Ptools group" )
-    standard_options_group.add_option("-o", "--output", dest="table_out",
+    standard_options_group.add_option("-o", "--output-pwy-table", dest="table_out",
         help='the output table for the pathways [REQUIRED]')
     standard_options_group.add_option("-p", "--pgdb", dest="pgdb_name",
         help='the pgdb name [REQUIRED]')
@@ -55,7 +55,7 @@ def createParser():
         help='flag to add the WTD to each pathway')
     wtd_options_group.add_option("-a", "--annotation-table", dest="annotation_table",
         help='ORF annotation table for WTD')
-    wtd_options_group.add_option("-n", "--ncbi-taxonomy-map", dest="ncbi_taxonomy_map",
+    wtd_options_group.add_option("-n", "--ncbi-tree", dest="ncbi_tree",
         help='add the ncbi taxonomy map')
     wtd_options_group.add_option("--lca-min-score", dest="lca_min_score",  type='float', default=20,
         help='minimum BLAST/LAST score to consider as for LCA rule')
@@ -65,7 +65,7 @@ def createParser():
         help='minimum number of reads that must be assigned to a taxon for ' + \
              'that taxon to be present otherwise move up the tree until there ' +
              'is a taxon that meets the requirement')
-    wtd_options_group.add_option("--megan-map", dest="megan_map", help="MEGANs prefered mapping NCBI IDs" )
+    wtd_options_group.add_option("--ncbi-megan-map", dest="ncbi_megan_map", help="MEGANs prefered mapping NCBI IDs" )
 
 def check_arguments(opts, args):
     # standard options
@@ -84,7 +84,7 @@ def check_arguments(opts, args):
         if opts.annotation_table == None:
             print "Need to specify annotation-table and ncbi-taxonomy-map for WTD"
             return False
-        if opts.ncbi_taxonomy_map == None:
+        if opts.ncbi_tree == None:
             print "Need to specify annotation-table and ncbi-taxonomy-map for WTD"
             return False
 
@@ -109,8 +109,10 @@ def cleanup(string):
 
 def get_preferred_taxa_name(taxa_id, megan_map, id_to_name):
     """
-    Helper function to format NCBI IDs into preferred names
-    :param taxa_id: taxa id to translate
+    Helper function to format NCBI IDs into preferred names. First checks for MEGAN name,
+    if not found moves to current taxonomy in loaded NCBI taxonomy tree, failing that
+    gives the taxonomy of 'Unknown', but still provides the id, e.g., 'Unknown (12345)'.
+    :param taxa_id: numeric taxa id to translate
     :param megan_map: preferred megan mapping hash
     :param id_to_name: local ncbi tree hash
     :return: "perferred name (id)"
@@ -175,8 +177,8 @@ def main(argv):
 
     # create mapping of preferred NCBI to MEGAN taxonomy
     megan_map = {}
-    if opts.megan_map:
-        with open(opts.megan_map) as megan_map_file:
+    if opts.ncbi_megan_map:
+        with open(opts.ncbi_megan_map) as megan_map_file:
             for line in megan_map_file:
                 fields = line.split("\t")
                 fields = map(str.strip, fields)
@@ -217,7 +219,7 @@ def main(argv):
     pwy_lca = {}
     # load NCBI taxonomy map
     print "Loading NCBI Taxonomy Map"
-    lca = LCAComputation([ opts.ncbi_taxonomy_map ])
+    lca = LCAComputation([ opts.ncbi_tree ])
     lca.setParameters(opts.lca_min_score, opts.lca_top_percent, opts.lca_min_support)
 
     for pwy in pwy_to_orfs:

@@ -542,7 +542,7 @@ def process_product(product, database, similarity_threshold=0.9):
 
     processed_product = ''
 
-    print 'dbase', database
+    # print 'dbase', database
     # COG
     if database == 'cog':
         results = re.search(r'Function: (.+?) #', product)
@@ -573,6 +573,7 @@ def process_product(product, database, similarity_threshold=0.9):
     # RefSeq: split and process
 
     elif database == 'refseq':
+        print product.split('; ')
         for subproduct in product.split('; '):
             subproduct = re.sub(r'[a-z]{2,}\|(.+?)\|\S*', '', subproduct)
             subproduct = re.sub(r'\[.+?\]', '', subproduct)
@@ -628,8 +629,7 @@ def process_product(product, database, similarity_threshold=0.9):
     processed_product = remove_repeats(filtered_words)
     processed_product = re.sub(';','',processed_product)
 
-    processed_product = re.sub(r'hypothetical protein','', processed_product)
-
+    # processed_product = re.sub(r'hypothetical protein','', processed_product)
     return processed_product
 
 def remove_repeats(filtered_words):
@@ -803,42 +803,43 @@ def read_contig_lengths(contig_map_file, contig_lengths):
         contig_lengths[fields[0] ] = int(fields[2])
      
 # the main function
-def main(argv, errorlogger =None, runstatslogger = None): 
+def main(argv, errorlogger =None, runstatslogger = None):
     global parser
     (opts, args) = parser.parse_args(argv)
 
     if not check_arguments(opts, args):
-       print usage
-       sys.exit(0)
+        print usage
+        sys.exit(0)
 
     results_dictionary={}
     dbname_weight={}
 
-    contig_lengths = {}     
-    read_contig_lengths(opts.contig_map_file, contig_lengths) 
+    contig_lengths = {}
+    read_contig_lengths(opts.contig_map_file, contig_lengths)
 
     priority = 6000
     count_annotations = {}
-    for dbname, blastoutput, weight in zip( opts.database_name, opts.input_blastout, opts.weight_db): 
+    for dbname, blastoutput, weight in zip( opts.database_name, opts.input_blastout, opts.weight_db):
         results_dictionary[dbname]={}
         dbname_weight[dbname] = weight
         count = process_parsed_blastoutput( dbname, weight, blastoutput, opts, results_dictionary[dbname])
         if runstatslogger!=None:
-           runstatslogger.write("%s\tProtein Annotations from %s\t%s\n" %( str(priority), dbname, str(count)))
-        count_annotations 
+            runstatslogger.write("%s\tProtein Annotations from %s\t%s\n" %( str(priority), dbname, str(count)))
+        count_annotations
         priority += 1
 
-    for dbname in results_dictionary: 
-      for seqname in results_dictionary[dbname]: 
-         count_annotations[seqname] = True      
+    for dbname in results_dictionary:
+        for seqname in results_dictionary[dbname]:
+            count_annotations[seqname] = True
     count = len(count_annotations)
     if runstatslogger!=None:
-       runstatslogger.write("%s\tTotal Protein Annotations\t%s\n" %( str(priority),  str(count)))
-        
+        runstatslogger.write("%s\tTotal Protein Annotations\t%s\n" %( str(priority),  str(count)))
+
 
     #create the annotations from he results
-    
+
     #print results_dictionary
+
     create_annotation(dbname_weight, results_dictionary, opts.input_gff, opts.rRNA_16S, opts.tRNA, opts.output_gff, opts.output_comparative_annotation, contig_lengths)
 
 

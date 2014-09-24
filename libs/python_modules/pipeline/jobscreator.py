@@ -912,31 +912,51 @@ class ContextCreator:
           else:
               taxonomic_pruning= True
 
+          # WTD input
+          pgdb_name = s.sample_name.lower()
+          input_annot_table = s.output_results_annotation_table_dir +\
+                               PATHDELIM + 'functional_and_taxonomic_table.txt'
+          basencbi = self.configs.REFDBS + PATHDELIM + 'ncbi_tree'
+          ncbi_tree = basencbi + PATHDELIM + 'NCBI_TAXONOMY_TREE.TXT'
+          ncbi_megan_map = basencbi + PATHDELIM + 'ncbi.map'
+
           '''output'''
           reactions_file = s.output_results_annotation_table_dir + PATHDELIM + s.sample_name + '.metacyc.orf.annots.txt'
           pgdb_location = self.configs.PGDB_FOLDER + PATHDELIM + s.sample_name.lower() + "cyc"
+
+          # WTD output
+          output_pwy_table = s.output_results_pgdb_dir + PATHDELIM + s.sample_name.lower() + ".pwy.txt"
+
 
           context = Context()
           context.name = 'BUILD_PGDB'
           context.inputs = {
                              'ptools_input_folder':ptools_input_folder,
                              'ptoolsExec': self.configs.PATHOLOGIC_EXECUTABLE,
+                             'annotation_table': input_annot_table,
+                             'ncbi_tree': ncbi_tree,
+                             'ncbi_megan_map': ncbi_megan_map
                            }
 
           context.outputs = {
-                             'reactions_file':reactions_file,
-                             'pgdb_location':pgdb_location
+                             'reactions_file': reactions_file,
+                             'pgdb_location': pgdb_location,
+                             'output_pwy_table': output_pwy_table
                            }
 
 
           pyScript = self.configs.METAPATHWAYS_PATH + PATHDELIM +  self.configs.RUN_PATHOLOGIC
-          cmd = "%s --reactions %s --ptoolsExec %s -i %s -p %s -s %s"\
+          cmd = "%s --reactions %s --ptoolsExec %s -i %s -p %s -s %s --wtd --annotation-table %s \
+                --ncbi-tree %s --ncbi-megan-map %s --output-pwy-table %s"\
                  %(pyScript, context.outputs['reactions_file'],\
                  context.inputs['ptoolsExec'],\
                  context.inputs['ptools_input_folder'] +  PATHDELIM,\
                  context.outputs['pgdb_location'],\
-                 s.sample_name )
-
+                 s.sample_name,\
+                 context.inputs['annotation_table'],\
+                 context.inputs['ncbi_tree'],\
+                 context.inputs['ncbi_megan_map'],\
+                 context.outputs['output_pwy_table'])
 
           context.status = self.params.get('metapaths_steps', 'BUILD_PGDB') 
 
@@ -944,6 +964,58 @@ class ContextCreator:
           contexts.append(context)
           context.message = self._Message("RUNNING PATHOLOGIC")
           return contexts
+
+      def create_extract_pathways_cmd(self, s):
+          """EXTRACT PATHWAYS"""
+
+          contexts = []
+
+          '''input'''
+          pgdb_name = s.sample_name.lower()
+          input_annot_table = s.output_results_annotation_table_dir +\
+                               PATHDELIM + 'functional_and_taxonomic_table.txt'
+          basencbi = self.configs.REFDBS + PATHDELIM + 'ncbi_tree'
+          ncbi_tree = basencbi + PATHDELIM + 'NCBI_TAXONOMY_TREE.TXT'
+          ncbi_megan_map = basencbi + PATHDELIM + 'ncbi.map'
+
+          '''output'''
+          output_pwy_table = s.output_results_pgdb_dir + PATHDELIM + s.sample_name.lower() + ".pwy.txt"
+
+
+          context = Context()
+          context.name = 'EXTRACT_PATHWAYS'
+          context.inputs = {
+                             'pgdb_name':pgdb_name,
+                             'ptools': self.configs.PATHOLOGIC_EXECUTABLE,
+                             'ncbi_tree': ncbi_tree,
+                             'ncbi_megan_map': ncbi_megan_map,
+                             'input_annot_table': input_annot_table
+                           }
+
+          context.outputs = {
+                             'output_pwy_table':output_pwy_table
+                           }
+          pyScript = self.configs.METAPATHWAYS_PATH + PATHDELIM + self.configs.EXTRACT_PATHWAYS
+
+
+          cmd = "%s ncbi-megan-map %s ncbi-tree %s --annotation-table %s --wtd --ptools %s --pgdb %s --output-pwy-table %s "\
+                 %(pyScript,\
+                 context.inputs['ncbi_megan_map'],\
+                 context.inputs['ncbi_tree'],\
+                 context.inputs['input_annot_table'],\
+                 context.inputs['ptools'],\
+                 context.inputs['pgdb_name'],\
+                 context.outputs['output_pwy_table'])
+
+
+          context.status = self.params.get('metapaths_steps', 'EXTRACT_PATHWAYS')
+
+          context.commands = [cmd]
+          contexts.append(context)
+          context.message = self._Message("EXTRACTING PATHWAYS")
+          return contexts
+
+
 
       def create_rpkm_cmd(self, s):
           """RPKM CALCULATION"""
@@ -991,50 +1063,50 @@ class ContextCreator:
           return contexts
 
 
-      def create_pgdb_using_pathway_tools_cmd(self, s):
-          """BUILD PGDB"""
-          contexts = []
-
-          '''input'''
-          ptools_input_folder = s.output_fasta_pf_dir
-          taxonomic_pruning_flag = self.params.get('ptools_settings', 'taxonomic_pruning')
-          if taxonomic_pruning_flag=='no':
-              taxonomic_pruning= False
-          else:
-              taxonomic_pruning= True
-
-          '''output'''
-          reactions_file = s.output_results_annotation_table_dir + PATHDELIM + s.sample_name + '.metacyc.orf.annots.txt'
-          pgdb_location = self.configs.PGDB_FOLDER + PATHDELIM + s.sample_name.lower() + "cyc"
-
-          context = Context()
-          context.name = 'BUILD_PGDB'
-          context.inputs = {
-                             'ptools_input_folder':ptools_input_folder,
-                             'ptoolsExec': self.configs.PATHOLOGIC_EXECUTABLE,
-                           }
-
-          context.outputs = {
-                             'reactions_file':reactions_file,
-                             'pgdb_location':pgdb_location
-                           }
-
-
-          pyScript = self.configs.METAPATHWAYS_PATH + PATHDELIM +  self.configs.RUN_PATHOLOGIC
-          cmd = "%s --reactions %s --ptoolsExec %s -i %s -p %s -s %s"\
-                 %(pyScript, context.outputs['reactions_file'],\
-                 context.inputs['ptoolsExec'],\
-                 context.inputs['ptools_input_folder'] +  PATHDELIM,\
-                 context.outputs['pgdb_location'],\
-                 s.sample_name )
-
-
-          context.status = self.params.get('metapaths_steps', 'BUILD_PGDB') 
-
-          context.commands = [cmd]  
-          contexts.append(context)
-          context.message = self._Message("RUNNING PATHOLOGIC")
-          return contexts
+      # def create_pgdb_using_pathway_tools_cmd(self, s):
+      #     """BUILD PGDB"""
+      #     contexts = []
+      #
+      #     '''input'''
+      #     ptools_input_folder = s.output_fasta_pf_dir
+      #     taxonomic_pruning_flag = self.params.get('ptools_settings', 'taxonomic_pruning')
+      #     if taxonomic_pruning_flag=='no':
+      #         taxonomic_pruning= False
+      #     else:
+      #         taxonomic_pruning= True
+      #
+      #     '''output'''
+      #     reactions_file = s.output_results_annotation_table_dir + PATHDELIM + s.sample_name + '.metacyc.orf.annots.txt'
+      #     pgdb_location = self.configs.PGDB_FOLDER + PATHDELIM + s.sample_name.lower() + "cyc"
+      #
+      #     context = Context()
+      #     context.name = 'BUILD_PGDB'
+      #     context.inputs = {
+      #                        'ptools_input_folder':ptools_input_folder,
+      #                        'ptoolsExec': self.configs.PATHOLOGIC_EXECUTABLE,
+      #                      }
+      #
+      #     context.outputs = {
+      #                        'reactions_file':reactions_file,
+      #                        'pgdb_location':pgdb_location
+      #                      }
+      #
+      #
+      #     pyScript = self.configs.METAPATHWAYS_PATH + PATHDELIM +  self.configs.RUN_PATHOLOGIC
+      #     cmd = "%s --reactions %s --ptoolsExec %s -i %s -p %s -s %s"\
+      #            %(pyScript, context.outputs['reactions_file'],\
+      #            context.inputs['ptoolsExec'],\
+      #            context.inputs['ptools_input_folder'] +  PATHDELIM,\
+      #            context.outputs['pgdb_location'],\
+      #            s.sample_name )
+      #
+      #
+      #     context.status = self.params.get('metapaths_steps', 'BUILD_PGDB')
+      #
+      #     context.commands = [cmd]
+      #     contexts.append(context)
+      #     context.message = self._Message("RUNNING PATHOLOGIC")
+      #     return contexts
 
 
 
@@ -1126,7 +1198,7 @@ class ContextCreator:
                               'GENBANK_FILE',  
                               'CREATE_ANNOT_REPORTS',
                              # 'MLTREEMAP_CALCULATION',
-                              'BUILD_PGDB' ]
+                              'BUILD_PGDB']
                              ]
            
            self.stageList['gbk-annotated'] = [

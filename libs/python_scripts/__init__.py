@@ -8,7 +8,7 @@ import libs.python_scripts.MetaPathways_genbank_modifier
 import libs.python_scripts.MetaPathways_input_gff
 import libs.python_scripts.MetaPathways_parse_blast
 import libs.python_scripts.MetaPathways_parse_genbank
-import libs.python_scripts.MetaPathways_pathway_table
+import libs.python_scripts.MetaPathways_extract_pathways
 import libs.python_scripts.MetaPathways_rRNA_stats_calculator
 import libs.python_scripts.MetaPathways_refscore
 import libs.python_scripts.MetaPathways_run_pathologic

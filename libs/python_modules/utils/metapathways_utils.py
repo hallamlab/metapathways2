@@ -72,7 +72,7 @@ def getSampleNameFromContig(contigname):
     return sampleName
 
 class GffFileParser(object):
-   def __init__(self, gff_filename):
+    def __init__(self, gff_filename):
         self.Size = 10000
         self.i=0
         self.orf_dictionary = {}
@@ -80,87 +80,86 @@ class GffFileParser(object):
         self.lines= []
         self.size=0
         try:
-           self.gff_file = open( gff_filename,'r')
+            self.gff_file = open( gff_filename,'r')
         except AttributeError:
-           print "Cannot read the map file for database :" + dbname
-           sys.exit(0)
+            print "Cannot read the map file for database :" + dbname
+            sys.exit(0)
 
-   def __iter__(self):
+    def __iter__(self):
         return self
 
-   def refillBuffer(self):
-       self.orf_dictionary = {}
-       i = 0
-       while  i < self.Size:
-          line=self.gff_file.readline()
-          if not line:
-            break
-          if self.gff_beg_pattern.search(line):
-            continue
-          self.insert_orf_into_dict(line, self.orf_dictionary)
-          i += 1
+    def refillBuffer(self):
+        self.orf_dictionary = {}
+        i = 0
+        while  i < self.Size:
+            line=self.gff_file.readline()
+            if not line:
+                break
+            if self.gff_beg_pattern.search(line):
+                continue
+            self.insert_orf_into_dict(line, self.orf_dictionary)
+            i += 1
 
-       self.orfs = self.orf_dictionary.keys()
-       self.size = len(self.orfs)
-       self.i = 0
+        self.orfs = self.orf_dictionary.keys()
+        self.size = len(self.orfs)
+        self.i = 0
 
-   def next(self):
+    def next(self):
         if self.i == self.size:
-           self.refillBuffer()
+            self.refillBuffer()
 
         if self.size==0:
-           self.gff_file.close()
-           raise StopIteration()
+            self.gff_file.close()
+            raise StopIteration()
 
         #print self.i
         if self.i < self.size:
-           self.i = self.i + 1
-           return self.orfs[self.i-1]
+            self.i = self.i + 1
+            return self.orfs[self.i-1]
 
 
-
-   def insert_orf_into_dict(self, line, contig_dict):
+    def insert_orf_into_dict(self, line, contig_dict):
         rawfields = re.split('\t', line)
         fields = []
         for field in rawfields:
-           fields.append(field.strip());
-       
-        
+            fields.append(field.strip());
+
+
         if( len(fields) != 9):
-          return
-   
+            return
+
         attributes = {}
         attributes['seqname'] =  fields[0]   # this is a bit of a  duplication  
         attributes['source'] =  fields[1]
         attributes['feature'] =  fields[2]
         attributes['start'] =  int(fields[3])
         attributes['end'] =  int(fields[4])
-   
+
         try:
-           attributes['score'] =  float(fields[5])
+            attributes['score'] =  float(fields[5])
         except:
-           attributes['score'] =  fields[5]
-   
+            attributes['score'] =  fields[5]
+
         attributes['strand'] =  fields[6]
         attributes['frame'] =  fields[7]
-        
+
         self.split_attributes(fields[8], attributes)
-   
+
         if not fields[0] in contig_dict :
-          contig_dict[fields[0]] = []
-   
+            contig_dict[fields[0]] = []
+
         contig_dict[fields[0]].append(attributes)
-   
-   def insert_attribute(self, attributes, attribStr):
+
+    def insert_attribute(self, attributes, attribStr):
         rawfields = re.split('=', attribStr)
         if len(rawfields) == 2:
-          attributes[rawfields[0].strip().lower()] = rawfields[1].strip()
-   
-   def split_attributes(self, str, attributes):
+            attributes[rawfields[0].strip().lower()] = rawfields[1].strip()
+
+    def split_attributes(self, str, attributes):
         rawattributes = re.split(';', str)
         for attribStr in rawattributes:
-           self.insert_attribute(attributes, attribStr)
-   
+            self.insert_attribute(attributes, attribStr)
+
         return attributes
 
 class Performance:

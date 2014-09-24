@@ -36,35 +36,35 @@ class LCAComputation:
 
     # initialize with the ncbi tree file 
     def __init__(self, filenames):
-       for filename in filenames:
-          self.loadtreefile(filename)
-          #print filename,  len(self.taxid_to_ptaxid.keys())
+        for filename in filenames:
+            self.loadtreefile(filename)
+            #print filename,  len(self.taxid_to_ptaxid.keys())
 
     def loadtreefile(self, filename):
-       taxonomy_file = open(filename, 'r')
-       lines = taxonomy_file.readlines()
-       taxonomy_file.close()
+        taxonomy_file = open(filename, 'r')
+        lines = taxonomy_file.readlines()
+        taxonomy_file.close()
 
-       for line in lines:
-          if self.begin_pattern.search(line):
-              continue
-          fields =  [ x.strip()  for x in line.rstrip().split('\t')]
-          if len(fields) !=3:
-              continue
-          if str(fields[0]) not in self.id_to_name:
-            self.name_to_id[str(fields[0])] = str(fields[1])
-          self.id_to_name[str(fields[1])] = str(fields[0])
-          # the taxid to ptax map has for each taxid a corresponding 3-tuple
-          # the first location is the pid, the second is used as a counter for 
-          # lca while a search is traversed up the tree and the third is used for
-          # the min support
-          self.taxid_to_ptaxid[str(fields[1])] = [ str(fields[2]), 0, 0]
+        for line in lines:
+            if self.begin_pattern.search(line):
+                continue
+            fields =  [ x.strip()  for x in line.rstrip().split('\t')]
+            if len(fields) !=3:
+                continue
+            if str(fields[0]) not in self.id_to_name:
+                self.name_to_id[str(fields[0])] = str(fields[1])
+            self.id_to_name[str(fields[1])] = str(fields[0])
+            # the taxid to ptax map has for each taxid a corresponding 3-tuple
+            # the first location is the pid, the second is used as a counter for
+            # lca while a search is traversed up the tree and the third is used for
+            # the min support
+            self.taxid_to_ptaxid[str(fields[1])] = [ str(fields[2]), 0, 0]
 
 
     def setParameters(self, min_score, top_percent, min_support):
-       self.lca_min_score = min_score
-       self.lca_top_percent =top_percent
-       self.lca_min_support = min_support
+        self.lca_min_score = min_score
+        self.lca_top_percent =top_percent
+        self.lca_min_support = min_support
          
     def sizeTaxnames(self ):
          return len(self.name_to_id)
@@ -72,40 +72,39 @@ class LCAComputation:
 
     def sizeTaxids(self):
          return len(self.taxid_to_ptaxid)
-          
+
     def get_a_Valid_ID(self, name_group):
         for name in name_group:
-           if name in self.name_to_id:
-               return  self.name_to_id[name]
+            if name in self.name_to_id:
+                return  self.name_to_id[name]
         return -1
 
     # given a taxon name it returns the correcponding unique ncbi tax id
     def translateNameToID(self, name):
-       if not name in self.name_to_id:
-           return None
-       return self.name_to_id[name]
+        if not name in self.name_to_id:
+            return None
+        return self.name_to_id[name]
 
     # given a taxon id to taxon name map
     def translateIdToName(self, id):
-       if not id in self.id_to_name:
-           return None
-       return self.id_to_name[id]
-
+        if not id in self.id_to_name:
+            return None
+        return self.id_to_name[id]
 
     # given a name it returns the parents name
     def getParentName(self, name):
-       if not name in  self.name_to_id:  
-          return None
-       id = self.name_to_id[name]  
-       pid = self.getParentTaxId(id)
-       return self.translateIdToName( pid )
+        if not name in  self.name_to_id:
+            return None
+        id = self.name_to_id[name]
+        pid = self.getParentTaxId(id)
+        return self.translateIdToName( pid )
 
 
     # given a ncbi tax id returns the parents tax id
     def getParentTaxId(self, ID):
-       if not ID in self.taxid_to_ptaxid:
-          return None
-       return self.taxid_to_ptaxid[ID][0]
+        if not ID in self.taxid_to_ptaxid:
+            return None
+        return self.taxid_to_ptaxid[ID][0]
 
 
     # given a set of ids it returns the lowest common ancenstor 
@@ -120,84 +119,88 @@ class LCAComputation:
     def get_lca(self, IDs, return_id=False):
         limit = len(IDs)
         for id in IDs:
-           tid = id 
-           while( tid in self.taxid_to_ptaxid and tid !='1' ):
-               self.taxid_to_ptaxid[tid][1]+=1
-               if self.taxid_to_ptaxid[tid][1]==limit:
-                   if return_id:
-                       return tid
-                   else:
-                       return  self.id_to_name[tid]
-               tid = self.taxid_to_ptaxid[tid][0]
+            tid = id
+            while( tid in self.taxid_to_ptaxid and tid !='1' ):
+                self.taxid_to_ptaxid[tid][1]+=1
+                if self.taxid_to_ptaxid[tid][1]==limit:
+                    if return_id:
+                        return tid
+                    else:
+                        return  self.id_to_name[tid]
+                tid = self.taxid_to_ptaxid[tid][0]
         if return_id:
             return 1
         return "root"
 
     def update_taxon_support_count(self, taxonomy):
-         id = self.get_a_Valid_ID( [taxonomy ])
-         tid = id 
-         while( tid in self.taxid_to_ptaxid and tid !='1' ):
-               self.taxid_to_ptaxid[tid][2]+=1
-               tid = self.taxid_to_ptaxid[tid][0]
+        id = self.get_a_Valid_ID( [taxonomy ])
+        tid = id
+        while( tid in self.taxid_to_ptaxid and tid !='1' ):
+            self.taxid_to_ptaxid[tid][2]+=1
+            tid = self.taxid_to_ptaxid[tid][0]
 
     def get_supported_taxon(self, taxonomy):
-         id = self.get_a_Valid_ID( [taxonomy ])
-         tid = id 
-         #i =0
-         while( tid in self.taxid_to_ptaxid and tid !='1' ):
+        id = self.get_a_Valid_ID( [taxonomy ])
+        tid = id
+        #i =0
+        while( tid in self.taxid_to_ptaxid and tid !='1' ):
             #print   str(i) + ' ' + self.translateIdToName(tid)
             if self.lca_min_support > self.taxid_to_ptaxid[tid][2] :
                 tid = self.taxid_to_ptaxid[tid][0]
             else:
                 return self.translateIdToName(tid)
-            #i+=1
+                #i+=1
 
-         return  self.translateIdToName(tid)
-    
+        return  self.translateIdToName(tid)
+
     # need to call this to clear the counts of reads at every node      
     def clear_cells(self, IDs):
         limit = len(IDs)
         for id in IDs:
-           tid = id 
-           while( tid in self.taxid_to_ptaxid and tid !='1' ):
-               #if self.taxid_to_ptaxid[tid][1]==0:
-               #   return  self.id_to_name[tid]  
-               self.taxid_to_ptaxid[tid][1]=0
-               tid = self.taxid_to_ptaxid[tid][0]
+            tid = id
+            while( tid in self.taxid_to_ptaxid and tid !='1' ):
+                #if self.taxid_to_ptaxid[tid][1]==0:
+                #   return  self.id_to_name[tid]
+                self.taxid_to_ptaxid[tid][1]=0
+                tid = self.taxid_to_ptaxid[tid][0]
         return ""
 
 
-    #given a set of sets of names it computes an lca 
+    #given a set of sets of names it computes an lca
     # in the format [ [name1, name2], [name3, name4,....namex] ...]
     # here name1 and name2 are synonyms and so are name3 through namex
     def getTaxonomy(self, name_groups):
-         IDs = []
-         for name_group in name_groups:
+        IDs = []
+        for name_group in name_groups:
             id = self.get_a_Valid_ID(name_group)
             if id!=-1:
-              IDs.append(id)
-    
-         consensus = self.get_lca(IDs)
-         self.clear_cells(IDs)
-         return consensus
+                IDs.append(id)
+        consensus = self.get_lca(IDs)
+        self.clear_cells(IDs)
+
+        return consensus
 
 
     # extracts taxon names for a refseq annotation
     def get_species(self, hit):
-       if not 'product' in hit: 
-           return None
-       species = []
-       try:
-           m = re.findall(r'\[([^\[]+)\]', hit['product'])
-           if m != None:
-             copyList(m,species)
-       except:
-             return None
-       if species:
-          return species
-       else:
-          return None
- 
+        if not 'product' in hit:
+            return None
+        species = []
+        try:
+            # extracting taxon names here
+            m = re.findall(r'\[([^\[]+?)\]', hit['product'])
+            if m != None:
+                copyList(m,species)
+                #print hit['product']
+                #print species
+        except:
+            return None
+        if species and species != "":
+            # print species
+            return species
+        else:
+            return None
+
     # used for optimization
     def set_results_dictionary(self, results_dictionary):
         self.results_dictionary= results_dictionary
@@ -205,27 +208,27 @@ class LCAComputation:
     # this returns the megan taxonomy, i.e., it computes the lca but at the same time
     # takes into consideration the parameters, min score, min support and top percent
     def getMeganTaxonomy(self, orfid):
-         #compute the top hit wrt score
-         names = []
-         species = []
-         if self.tax_dbname in self.results_dictionary:
+        #compute the top hit wrt score
+        names = []
+        species = []
+        if self.tax_dbname in self.results_dictionary:
             if orfid in self.results_dictionary[self.tax_dbname]:
-                 
-               top_score = 0 
-               for hit in self.results_dictionary[self.tax_dbname][orfid]:
-                  if hit['bitscore'] >= self.lca_min_score and hit['bitscore'] >= top_score:
-                     top_score = hit['bitscore']
 
-               for hit in self.results_dictionary[self.tax_dbname][orfid]:
-                  if (100-self.lca_top_percent)*top_score/100 < hit['bitscore']:
-                     names = self.get_species(hit)
-                     if names:
-                       species.append(names) 
+                top_score = 0
+                for hit in self.results_dictionary[self.tax_dbname][orfid]:
+                    if hit['bitscore'] >= self.lca_min_score and hit['bitscore'] >= top_score:
+                        top_score = hit['bitscore']
 
-         taxonomy = self.getTaxonomy(species)
-         meganTaxonomy = self.get_supported_taxon( taxonomy)
-         return meganTaxonomy
- 
+                for hit in self.results_dictionary[self.tax_dbname][orfid]:
+                    if (100-self.lca_top_percent)*top_score/100 < hit['bitscore']:
+                        names = self.get_species(hit)
+                        if names:
+                            species.append(names)
+
+        taxonomy = self.getTaxonomy(species)
+        meganTaxonomy = self.get_supported_taxon( taxonomy)
+        return meganTaxonomy
+
 
     # this is use to compute the min support for each taxon in the tree
     # this is called before the  getMeganTaxonomy
@@ -233,43 +236,44 @@ class LCAComputation:
         self.tax_dbname = dbname
         gffreader = GffFileParser(annotate_gff_file)
         try:
-           for contig in  gffreader:
-              for orf in  gffreader.orf_dictionary[contig]:
-                 shortORFId = getShortORFId(orf['id'])
+            for contig in  gffreader:
+                for orf in  gffreader.orf_dictionary[contig]:
+                    shortORFId = getShortORFId(orf['id'])
 
-                 #print shortORFId, orf['id']
-                 if not shortORFId in pickorfs:
-                     continue
-                 #print ">", shortORFId, orf['id']
+                    #print shortORFId, orf['id']
+                    if not shortORFId in pickorfs:
+                        continue
+                    #print ">", shortORFId, orf['id']
 
-                 taxonomy = None
-                 species = []
-                 if self.tax_dbname in self.results_dictionary:
-                   if shortORFId in self.results_dictionary[self.tax_dbname]:
-                       #compute the top hit wrt score
-                       top_score = 0 
-                       for hit in self.results_dictionary[self.tax_dbname][shortORFId]:
-                        #  print hit['bitscore'], self.lca_min_score, top_score 
-                          if hit['bitscore'] >= self.lca_min_score and hit['bitscore'] >= top_score:
-                            top_score = hit['bitscore']
-       
-                       for hit in self.results_dictionary[self.tax_dbname][shortORFId]:
-                          if (100-self.lca_top_percent)*top_score/100 < hit['bitscore']:
-                             names = self.get_species(hit)
-                             if names:
-                               species.append(names) 
+                    taxonomy = None
+                    species = []
+                    if self.tax_dbname in self.results_dictionary:
+                        if shortORFId in self.results_dictionary[self.tax_dbname]:
+                            #compute the top hit wrt score
+                            top_score = 0
+                            for hit in self.results_dictionary[self.tax_dbname][shortORFId]:
+                                #  print hit['bitscore'], self.lca_min_score, top_score
 
-                 #print orf['id']
-                 #print  orf['id'], species
-                 #print  orf['id'], len(self.results_dictionary[dbname][orf['id']]), species
-                 taxonomy=self.getTaxonomy(species)
-                 #print taxonomy,  orf['id'], species
-                 self.update_taxon_support_count(taxonomy)
-                 pickorfs[shortORFId] = taxonomy
+                                if hit['bitscore'] >= self.lca_min_score and hit['bitscore'] >= top_score:
+                                    top_score = hit['bitscore']
+
+                            for hit in self.results_dictionary[self.tax_dbname][shortORFId]:
+                                if (100-self.lca_top_percent)*top_score/100 < hit['bitscore']:
+                                    names = self.get_species(hit)
+                                    if names:
+                                        species.append(names)
+
+                    #print orf['id']
+                    # print  orf['id'], species
+                    #print  orf['id'], len(self.results_dictionary[dbname][orf['id']]), species
+                    taxonomy=self.getTaxonomy(species)
+                    #print taxonomy,  orf['id'], species
+                    self.update_taxon_support_count(taxonomy)
+                    pickorfs[shortORFId] = taxonomy
         except:
-           import traceback
-           traceback.print_exc()
-           print "ERROR : Cannot read annotated gff file "
+            import traceback
+            traceback.print_exc()
+            print "ERROR : Cannot read annotated gff file "
 
 
     ## Weighted Taxonomic Distnace (WTD)
