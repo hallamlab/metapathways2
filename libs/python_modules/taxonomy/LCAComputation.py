@@ -34,11 +34,31 @@ class LCAComputation:
     results_dictionary = None
     tax_dbname = 'refseq'
 
+    megan_map = {} # hash between NCBI ID and taxonomic name name
+
     # initialize with the ncbi tree file 
-    def __init__(self, filenames):
+    def __init__(self, filenames, megan_map=None):
         for filename in filenames:
             self.loadtreefile(filename)
             #print filename,  len(self.taxid_to_ptaxid.keys())
+        if megan_map:
+            self.load_megan_map(megan_map)
+
+    def load_megan_map(self, megan_map_file):
+        with open(megan_map_file) as file:
+            for line in file:
+                fields = line.split("\t")
+                fields = map(str.strip, fields)
+                self.megan_map[ fields[0] ] = fields[1]
+
+    def get_preferred_taxonomy(self, ncbi_id):
+        ncbi_id = str(ncbi_id)
+        if ncbi_id in self.megan_map:
+            return self.megan_map[ncbi_id] + " (" + str(ncbi_id) + ")"
+        # think about this
+        return None
+
+
 
     def loadtreefile(self, filename):
         taxonomy_file = open(filename, 'r')
@@ -139,7 +159,7 @@ class LCAComputation:
             self.taxid_to_ptaxid[tid][2]+=1
             tid = self.taxid_to_ptaxid[tid][0]
 
-    def get_supported_taxon(self, taxonomy):
+    def get_supported_taxon(self, taxonomy, return_id=False):
         id = self.get_a_Valid_ID( [taxonomy ])
         tid = id
         #i =0
@@ -148,10 +168,15 @@ class LCAComputation:
             if self.lca_min_support > self.taxid_to_ptaxid[tid][2] :
                 tid = self.taxid_to_ptaxid[tid][0]
             else:
-                return self.translateIdToName(tid)
+                if return_id:
+                    return tid
+                else:
+                    return self.translateIdToName(tid)
                 #i+=1
-
-        return  self.translateIdToName(tid)
+        if return_id:
+            return tid
+        else:
+            return  self.translateIdToName(tid)
 
     # need to call this to clear the counts of reads at every node      
     def clear_cells(self, IDs):
@@ -169,13 +194,13 @@ class LCAComputation:
     #given a set of sets of names it computes an lca
     # in the format [ [name1, name2], [name3, name4,....namex] ...]
     # here name1 and name2 are synonyms and so are name3 through namex
-    def getTaxonomy(self, name_groups):
+    def getTaxonomy(self, name_groups, return_id=False):
         IDs = []
         for name_group in name_groups:
             id = self.get_a_Valid_ID(name_group)
             if id!=-1:
                 IDs.append(id)
-        consensus = self.get_lca(IDs)
+        consensus = self.get_lca(IDs, return_id)
         self.clear_cells(IDs)
 
         return consensus
@@ -262,14 +287,21 @@ class LCAComputation:
                                     names = self.get_species(hit)
                                     if names:
                                         species.append(names)
-
-                    #print orf['id']
-                    # print  orf['id'], species
-                    #print  orf['id'], len(self.results_dictionary[dbname][orf['id']]), species
+                            # print self.results_dictionary[dbname][shortORFId][0]['product']
+                            # print  orf['id']
+                            # print  orf['id'], species
+                            # print  orf['id'], len(self.results_dictionary[dbname][shortORFId]), species
                     taxonomy=self.getTaxonomy(species)
-                    #print taxonomy,  orf['id'], species
+                    # taxonomy_id = self.getTaxonomy(species, return_id=True)
+                    # print taxonomy
+                    # print taxonomy_id
+                    # print taxonomy,  orf['id'], species
                     self.update_taxon_support_count(taxonomy)
+                    # preferred_taxonomy = self.get_preferred_taxonomy(taxonomy_id)
+                    # print taxonomy
+                    # print preferred_taxonomy
                     pickorfs[shortORFId] = taxonomy
+
         except:
             import traceback
             traceback.print_exc()

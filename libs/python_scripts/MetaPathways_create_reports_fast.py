@@ -74,6 +74,9 @@ def createParser():
      output_options_group.add_option("--ncbi-taxonomy-map", dest="ncbi_taxonomy_map", action='append',  default=[],
                        help='add the ncbi taxonomy map ')
 
+     output_options_group.add_option("--ncbi-megan-map", dest="ncbi_megan_map",  default=None,
+                       help='megan map file of preferred taxonomy names')
+
      output_options_group.add_option( "--input-cog-maps", dest="input_cog_maps",
                       help='input cog maps file')
 
@@ -228,7 +231,13 @@ def create_annotation(results_dictionary, dbname,  annotated_gff,  output_dir, T
             #_results = re.search(r'refseq', opts_global.database_name, re.I)
             if shortORFId in Taxons:
                 taxonomy1=Taxons[shortORFId]
-                taxonomy=lca.get_supported_taxon(taxonomy1)
+                taxonomy_id=lca.get_supported_taxon(taxonomy1, return_id=True)
+                # print taxonomy_id
+                preferred_taxonomy = lca.get_preferred_taxonomy(taxonomy_id)
+                if preferred_taxonomy:
+                    taxonomy = preferred_taxonomy
+                else:
+                    taxonomy = Taxons[shortORFId]
             else:
                 taxonomy = 'root'
             # product = re.sub(r'\[{1,2}.+?\]{1,2}','', orf['product']).strip()
@@ -914,7 +923,7 @@ def main(argv, errorlogger = None,  runstatslogger = None):
 #####
 
     # process in blocks of size _stride
-    lca = LCAComputation(opts.ncbi_taxonomy_map)
+    lca = LCAComputation(opts.ncbi_taxonomy_map, opts.ncbi_megan_map)
     lca.setParameters(opts.lca_min_score, opts.lca_top_percent, opts.lca_min_support)
 
     blastParsers={}
@@ -941,9 +950,9 @@ def main(argv, errorlogger = None,  runstatslogger = None):
 
        results_dictionary={}
        for dbname, blastoutput in zip( opts.database_name, opts.input_blastout):
-          #results = re.search(r'refseq', dbname, re.I)
-          #if results:
-          if True:
+          results = re.search(r'refseq', dbname, re.I)
+          if results:
+          #if True:
             try:
                results_dictionary[dbname]={}
                process_parsed_blastoutput(dbname, blastParsers[dbname], opts, results_dictionary[dbname], pickorfs)
@@ -951,7 +960,6 @@ def main(argv, errorlogger = None,  runstatslogger = None):
                lca.set_results_dictionary(results_dictionary)
                lca.compute_min_support_tree(opts.input_annotated_gff, pickorfs, dbname = dbname )
                for key, taxon  in pickorfs.iteritems():
-                   print key, taxon
                    Taxons[key] = taxon
             except:
                eprintf("ERROR: while training for min support tree %s\n", dbname)

@@ -188,97 +188,110 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
     # Extract pathways and WTD
     # place to store list of expected taxonomic range(s)
     serialized_metacyc_taxa_ranges = "/tmp/metacyc_pwy_taxa_range.pk"
-
-    if options.wtd and not path.isfile(serialized_metacyc_taxa_ranges):
-        # get MetaCyc's expected taxonomic range(s) and serialize for later use in /tmp
-        # try:
-        print 'Getting MetaCyc Expected Taxonomic Range(s)'
-
-        # connect to Pathway Tools
-        cyc = PythonCyc()
-        cyc.setOrganism('meta')
-        cyc.setPToolsExec(options.ptoolsExec)
-        cyc.startPathwayTools()
-
-        pwys = cyc.getAllPathways()
-
-        pwy_taxa_range = {} # hash from pwy to expected taxonomic range(s)
-        pwy_taxa_range_pk = open(serialized_metacyc_taxa_ranges ,"w")
-
-        # get expected taxonomic ranges for each pathway
-        for pwy in pwys:
-            my_expected_taxonomic_range = cyc.getExpectedTaxonomicRange(pwy)
-            pwy_taxa_range[pwy] = my_expected_taxonomic_range
-
-        # write the pathway
-        pickle.dump(pwy_taxa_range, pwy_taxa_range_pk)
-        pwy_taxa_range_pk.close()
-
-        # close Pathway Tools
-        cyc.stopPathwayTools()
-        # except:
-        #     print """
-        #     Problem connecting to Pathway Tools. Check the /tmp/ptools-socket file.
-        #     """
-    else:
-        # read expected taxonomic range from serialized file
-        exepected_taxa_in = open(serialized_metacyc_taxa_ranges ,"r")
-        pwy_taxa_range = pickle.load(exepected_taxa_in)
-
-    # create mapping of preferred NCBI to MEGAN taxonomy
-    megan_map = {}
-    if options.ncbi_megan_map:
-        with open(options.ncbi_megan_map) as megan_map_file:
-            for line in megan_map_file:
-                fields = line.split("\t")
-                fields = map(str.strip, fields)
-                megan_map[ fields[0] ] = fields[1]
-
-    # get ORF to taxa map from annotation_table
-    print "Getting ORF to Taxa Map from AnnotationTable"
-    orf_lca = {}
-    with open(options.annotation_table) as f:
-        for line in f:
-            fields = line.split("\t")
-            orf_lca[fields[0].strip()] = fields[8].strip()
-
-    # get pathway ORFs and Rxns
-    pwy_to_orfs = {}
-    pwy_to_long = {}
-    pwy_to_rxns = {}
     try:
-        cyc = PythonCyc()
-        cyc.setOrganism(options.sample_name.lower())
-        cyc.setPToolsExec(options.ptoolsExec)
-        cyc.startPathwayTools()
-        pwys = cyc.getAllPathways()
-        for pwy in pwys:
-            genes = cyc.getPathwayORFs(pwy)
-            rxns = cyc.getPathwayReactionInfo(pwy)
-            pwy_to_orfs[pwy] = genes
-            pwy_to_long[pwy] = cleanup(cyc.get_slot_value(pwy, "common-name"))
-            pwy_to_rxns[pwy] = rxns
+        if options.wtd and not path.isfile(serialized_metacyc_taxa_ranges):
+            # get MetaCyc's expected taxonomic range(s) and serialize for later use in /tmp
+            # try:
+            print 'Getting MetaCyc Expected Taxonomic Range(s)'
 
-        cyc.stopPathwayTools()
+            # connect to Pathway Tools
+            cyc = PythonCyc()
+            cyc.setOrganism('meta')
+            cyc.setPToolsExec(options.ptoolsExec)
+            cyc.startPathwayTools()
+
+            pwys = cyc.getAllPathways()
+
+            pwy_taxa_range = {} # hash from pwy to expected taxonomic range(s)
+            pwy_taxa_range_pk = open(serialized_metacyc_taxa_ranges ,"w")
+
+            # get expected taxonomic ranges for each pathway
+            for pwy in pwys:
+                my_expected_taxonomic_range = cyc.getExpectedTaxonomicRange(pwy)
+                pwy_taxa_range[pwy] = my_expected_taxonomic_range
+
+            # write the pathway
+            pickle.dump(pwy_taxa_range, pwy_taxa_range_pk)
+            pwy_taxa_range_pk.close()
+
+            # close Pathway Tools
+            cyc.stopPathwayTools()
+            # except:
+            #     print """
+            #     Problem connecting to Pathway Tools. Check the /tmp/ptools-socket file.
+            #     """
+        else:
+            # read expected taxonomic range from serialized file
+            exepected_taxa_in = open(serialized_metacyc_taxa_ranges ,"r")
+            pwy_taxa_range = pickle.load(exepected_taxa_in)
+
+        # create mapping of preferred NCBI to MEGAN taxonomy
+        megan_map = {}
+        if options.ncbi_megan_map:
+            with open(options.ncbi_megan_map) as megan_map_file:
+                for line in megan_map_file:
+                    fields = line.split("\t")
+                    fields = map(str.strip, fields)
+                    megan_map[ fields[0] ] = fields[1]
+
+        # get ORF to taxa map from annotation_table
+        print "Getting ORF to Taxa Map from AnnotationTable"
+        orf_lca = {}
+        with open(options.annotation_table) as f:
+            for line in f:
+                fields = line.split("\t")
+                orf_lca[fields[0].strip()] = fields[8].strip()
+
+        # get pathway ORFs and Rxns
+        pwy_to_orfs = {}
+        pwy_to_long = {}
+        pwy_to_rxns = {}
+        try:
+            cyc = PythonCyc()
+            cyc.setOrganism(options.sample_name.lower())
+            cyc.setPToolsExec(options.ptoolsExec)
+            cyc.startPathwayTools()
+            pwys = cyc.getAllPathways()
+            for pwy in pwys:
+                genes = cyc.getPathwayORFs(pwy)
+                rxns = cyc.getPathwayReactionInfo(pwy)
+                pwy_to_orfs[pwy] = genes
+                pwy_to_long[pwy] = cleanup(cyc.get_slot_value(pwy, "common-name"))
+                pwy_to_rxns[pwy] = rxns
+
+            cyc.stopPathwayTools()
+        except:
+            print """
+            Problem connecting to Pathway Tools. Check the /tmp/ptools-socket file.
+            """
     except:
         print """
-        Problem connecting to Pathway Tools. Check the /tmp/ptools-socket file.
+        Problem calculating WTD via Pathway Tools. Check the /tmp/ptools-socket file.
         """
 
     # get LCA per pathway
     pwy_lca = {}
     # load NCBI taxonomy map
     print "Loading NCBI Taxonomy Map"
-    lca = LCAComputation([ options.ncbi_tree ])
+    lca = LCAComputation([ options.ncbi_tree ], )
 
     for pwy in pwy_to_orfs:
         orfs = pwy_to_orfs[pwy]
         taxa_ids = []
         for orf in orfs:
             if orf in orf_lca:
-                id = lca.get_a_Valid_ID([ orf_lca[orf] ])
+                # could strip out id here
+                res = re.search("(.+?)\(([0-9]+?)\)",  orf_lca[orf] )
+                if res:
+                    taxa_annotation = res.group(1)
+                    id = res.group(2)
+                else:
+                    id = lca.get_a_Valid_ID([ orf_lca[orf] ])
                 taxa_ids.append(id)
         pwy_lca_id = lca.get_lca(taxa_ids, True)
+        # print "In run_pathologic"
+        # print pwy_lca_id
+        # print pwy_lca_id
         lca.clear_cells(taxa_ids)
 
         pwy_lca[pwy] = [pwy_lca_id, lca.translateIdToName(pwy_lca_id)]

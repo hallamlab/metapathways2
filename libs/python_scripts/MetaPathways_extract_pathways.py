@@ -244,47 +244,47 @@ def main(argv):
         C_pos_taxa = [] # list of parallel observed-expected taxa pairs
         C_neg = [] # list of negative distances
         C_neg_taxa = [] # list of parallel observed-expected taxa pairs
-
-        if len(pwy_taxa_range[pwy]) > 0:
-            for expected in pwy_taxa_range[pwy]:
-                dist = lca.wtd(expected[0], pwy_lca[pwy][0])
-                if dist or dist == 0:
-                    # valid distance
-                    # add distance respective lists
-                    C.append(dist) # add distance
-                    C_taxa.append([ expected[0], pwy_lca[pwy][0] ])
-                    if dist >= 0:
-                        C_pos.append(dist)  # add to non-negative list
-                        C_pos_taxa.append([ expected[0], pwy_lca[pwy][0] ])
+        if pwy in pwy_taxa_range:
+            if len(pwy_taxa_range[pwy]) > 0:
+                for expected in pwy_taxa_range[pwy]:
+                    dist = lca.wtd(expected[0], pwy_lca[pwy][0])
+                    if dist or dist == 0:
+                        # valid distance
+                        # add distance respective lists
+                        C.append(dist) # add distance
+                        C_taxa.append([ expected[0], pwy_lca[pwy][0] ])
+                        if dist >= 0:
+                            C_pos.append(dist)  # add to non-negative list
+                            C_pos_taxa.append([ expected[0], pwy_lca[pwy][0] ])
+                        else:
+                            C_neg.append(dist)  # add to negative list
+                            C_neg_taxa.append([ expected[0], pwy_lca[pwy][0] ])
                     else:
-                        C_neg.append(dist)  # add to negative list
-                        C_neg_taxa.append([ expected[0], pwy_lca[pwy][0] ])
-                else:
-                    print "Not a valid distance"
-                    continue
-        else:
-            # no expected taxonomy, set to root
-            min_taxa = "1"
-            dist = lca.wtd(min_taxa, pwy_lca[pwy][0])
-            # add distance respective lists
-            C.append(dist) # add distance
-            C_taxa.append([ min_taxa, pwy_lca[pwy][0] ])
-            if dist >= 0:
-                C_pos.append(dist)  # add to non-negative list
-                C_pos_taxa.append([ min_taxa, pwy_lca[pwy][0] ])
+                        print "Not a valid distance"
+                        continue
             else:
-                C_neg.append(dist)  # add to negative list
-                C_neg_taxa.append([ min_taxa, pwy_lca[pwy][0] ])
+                # no expected taxonomy, set to root
+                min_taxa = "1"
+                dist = lca.wtd(min_taxa, pwy_lca[pwy][0])
+                # add distance respective lists
+                C.append(dist) # add distance
+                C_taxa.append([ min_taxa, pwy_lca[pwy][0] ])
+                if dist >= 0:
+                    C_pos.append(dist)  # add to non-negative list
+                    C_pos_taxa.append([ min_taxa, pwy_lca[pwy][0] ])
+                else:
+                    C_neg.append(dist)  # add to negative list
+                    C_neg_taxa.append([ min_taxa, pwy_lca[pwy][0] ])
 
-        # find index with max distance (closest to expected taxonomy)
-        max_index, max_dist = max(enumerate(C), key=operator.itemgetter(1))
-        max_taxa = C_taxa[max_index]
+            # find index with max distance (closest to expected taxonomy)
+            max_index, max_dist = max(enumerate(C), key=operator.itemgetter(1))
+            max_taxa = C_taxa[max_index]
 
-        # remap to preferred names
-        observed = get_preferred_taxa_name(max_taxa[1], megan_map, lca.id_to_name)
-        expected = get_preferred_taxa_name(max_taxa[0], megan_map, lca.id_to_name)
+            # remap to preferred names
+            observed = get_preferred_taxa_name(max_taxa[1], megan_map, lca.id_to_name)
+            expected = get_preferred_taxa_name(max_taxa[0], megan_map, lca.id_to_name)
 
-        pwy_to_wtd[pwy] = [ max_dist, observed, expected ]
+            pwy_to_wtd[pwy] = [ max_dist, observed, expected ]
 
     # write out pathway table
     try:
@@ -310,9 +310,14 @@ def main(argv):
         line.append(pwy_to_rxns[pwy][1]) # pathway covered reactions
         line.append(len(pwy_to_orfs[pwy])) # num orfs
         if opts.wtd:
-            line.append(pwy_to_wtd[pwy][0]) # wtd
-            line.append(pwy_to_wtd[pwy][1]) # wtd observed taxa
-            line.append(pwy_to_wtd[pwy][2]) # wtd expected taxa
+            if pwy in pwy_to_wtd:
+                line.append(pwy_to_wtd[pwy][0]) # wtd
+                line.append(pwy_to_wtd[pwy][1]) # wtd observed taxa
+                line.append(pwy_to_wtd[pwy][2]) # wtd expected taxa
+            else:
+                line.append("NA")
+                line.append("NA")
+                line.append("NA")
         line.append("[" + ",".join(pwy_to_orfs[pwy]) + "]") # list of ORFs
 
         line = map(str, line) # cast all to string

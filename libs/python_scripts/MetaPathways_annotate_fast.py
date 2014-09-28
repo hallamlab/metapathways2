@@ -10,18 +10,19 @@ __maintainer__ = "Kishori M Konwar"
 __status__ = "Release"
 
 try:
-     from os import makedirs, sys, remove, rename
-     from sys import path
-     import re, traceback
-     from optparse import OptionParser, OptionGroup
+    from os import makedirs, sys, remove, rename
+    from sys import path
+    import re, traceback
+    from optparse import OptionParser, OptionGroup
 
-     from libs.python_modules.utils.metapathways_utils  import parse_command_line_parameters, fprintf, printf, eprintf
-     from libs.python_modules.utils.sysutil import getstatusoutput
+    from libs.python_modules.utils.metapathways_utils  import parse_command_line_parameters, fprintf, printf, eprintf
+    from libs.python_modules.utils.sysutil import getstatusoutput
+
 except:
-     print """ Could not load some user defined  module functions"""
-     print """ Make sure your typed 'source MetaPathwaysrc'"""
-     print """ """
-     sys.exit(3)
+    print """ Could not load some user defined  module functions"""
+    print """ Make sure your typed 'source MetaPathwaysrc'"""
+    print """ """
+    sys.exit(3)
 
 
 usage=  sys.argv[0] + """ -d dbname1 -b parsed_blastout_for_database1 -w weight_for_database1 [-d dbname2 -b parsed_blastout_for_database2 -w weight_for_database2 ] [ --rRNA_16S  16SrRNA-stats-table ] [ --tRNA tRNA-stats-table ]"""
@@ -542,7 +543,7 @@ def process_product(product, database, similarity_threshold=0.9):
 
     processed_product = ''
 
-    print 'dbase', database
+    # print 'dbase', database
     # COG
     if database == 'cog':
         results = re.search(r'Function: (.+?) #', product)

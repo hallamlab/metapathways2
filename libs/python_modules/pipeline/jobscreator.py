@@ -814,7 +814,9 @@ class ContextCreator:
                            'COG_categories':basefun + PATHDELIM +  'COG_categories.txt',
                            'SEED_subsystems':basefun + PATHDELIM + 'SEED_subsystems.txt',
                            'CAZY_hierarchy':basefun + PATHDELIM + 'CAZY_hierarchy.txt',
-                           'ncbi_taxonomy_tree': basencbi + PATHDELIM + 'NCBI_TAXONOMY_TREE.TXT'
+                           'ncbi_taxonomy_tree': basencbi + PATHDELIM + 'NCBI_TAXONOMY_TREE.TXT',
+                           'ncbi_megan_map': basencbi + PATHDELIM + 'ncbi.map'
+
                            }
           context.outputs = {
                            'output_results_annotation_table_dir':s.output_results_annotation_table_dir,
@@ -840,7 +842,7 @@ class ContextCreator:
 
           cmd = "%s %s --input-annotated-gff %s  --input-kegg-maps %s \
                  --input-cog-maps %s --input-seed-maps %s --input-cazy-maps %s --output-dir %s \
-                 --ncbi-taxonomy-map %s "\
+                 --ncbi-taxonomy-map %s --ncbi-megan-map %s"\
                %(\
                   pyScript, \
                   db_argument_string,\
@@ -850,7 +852,8 @@ class ContextCreator:
                   context.inputs['SEED_subsystems'],\
                   context.inputs['CAZY_hierarchy'],\
                   context.outputs['output_results_annotation_table_dir'],\
-                  context.inputs['ncbi_taxonomy_tree']\
+                  context.inputs['ncbi_taxonomy_tree'],\
+                  context.inputs['ncbi_megan_map']
                )
 
           context.commands = [ cmd ]
