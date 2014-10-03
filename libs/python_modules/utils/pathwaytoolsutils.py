@@ -5,7 +5,7 @@ from os import _exit, path, remove
 import re
 from libs.python_modules.utils.sysutil import getstatusoutput
 from multiprocessing import Process
-from libs.python_modules.utils.metapathways_utils  import fprintf, printf, eprintf
+from libs.python_modules.utils.utils  import fprintf, printf, eprintf
 import time
 
 class PythonCyc:
@@ -13,11 +13,13 @@ class PythonCyc:
     _organism = 'meta'
     soc = None
     _ptoolsExec = None
-
+    DEBUG = True
     def __init__(self):
         pass
 
-    
+    def setDebug( self, debug = False):
+        DEBUG = debug
+
     def setPToolsExec(self, ptoolsExec):
         self._ptoolsExec = ptoolsExec
 
@@ -213,10 +215,12 @@ class PythonCyc:
         return result
 
     TIME = 10
+    
 
     def sendStartSignal(self):
-        #print "Starting up pathway tools"
-        process = Process(target=startPathwayTools, args=(self._ptoolsExec,))
+        if self.DEBUG:
+           printf("Starting up pathway tools\n")
+        process = Process(target=startUpPathwayTools, args=(self._ptoolsExec,))
         process.start()
 
     def removeSocketFile(self):
@@ -333,14 +337,15 @@ class PythonCyc:
         return [len(pathwayRxns.keys()), coveredRxns]
 
 
-
     def getReactionListLines(self):
         my_base_pathways = self.call_func("all-pathways :all T")
         pwy_count=0
         unique_rxns ={}
-        #print "Extracting the reaction list"
+        if self.DEBUG:
+           printf("Extracting the reaction list..\n")
         for pathway in my_base_pathways:
-            # printf(" " + pathway)
+            if self.DEBUG:
+               printf(" " + pathway)
             sys.stdout.flush()
             pwy_count +=1
             mygenes = self.genes_of_pathway(pathway,'T')
@@ -416,7 +421,7 @@ class PythonCyc:
         return rxnOutputStrings
 
 
-def startPathwayTools(ptoolsExec):
+def startUpPathwayTools(ptoolsExec):
     cmd = ptoolsExec + " -api"
     status = getstatusoutput(cmd)
 
