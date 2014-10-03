@@ -56,9 +56,12 @@ class Context:
 
     def removeOutput(self, errorlogger = None):
         #print self.inputs.values()
+        #metacycPATT = re.compile(r'metacyc')
         for item in self.outputs.values():
            if not path.exists(item):
               continue
+           #if metacycPATT.search(item)
+           #   continue
 
            if path.isdir(item):
               rmtree(item)
