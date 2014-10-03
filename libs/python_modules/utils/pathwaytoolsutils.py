@@ -1,10 +1,11 @@
 #!/usr/bin/python -w
 
-import socket, re, sys
-from os import _exit
+import socket, re, sys, traceback
+from os import _exit, path, remove
 import re
 from libs.python_modules.utils.sysutil import getstatusoutput
 from multiprocessing import Process
+from libs.python_modules.utils.metapathways_utils  import fprintf, printf, eprintf
 import time
 
 class PythonCyc:
@@ -16,6 +17,7 @@ class PythonCyc:
     def __init__(self):
         pass
 
+    
     def setPToolsExec(self, ptoolsExec):
         self._ptoolsExec = ptoolsExec
 
@@ -25,6 +27,7 @@ class PythonCyc:
     def makeSocket(self):
         self.soc = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self.soc.connect("/tmp/ptools-socket" )
+        return True
 
     def tokenize(self,string):
         LPAREN = '\(';
@@ -74,8 +77,10 @@ class PythonCyc:
 
 
     def send_query(self, query):
-        self.makeSocket()
-        self.soc.send(query)
+        if self.makeSocket():
+          self.soc.send(query)
+        else:
+           printf("ERROR\tCannot create or connect socket\n")
 
     def retrieve_results(self):
         data = '';
@@ -97,7 +102,6 @@ class PythonCyc:
             _data = _data.strip()
             if _data != None:
                 results.append(_data)
-
         return ''.join(results)
 
 
@@ -137,7 +141,7 @@ class PythonCyc:
         return _organisms
 
 
-    def stopPathwayTools(self):
+    def sendStopSignal(self):
         query= "(exit)"
         self.send_query(query)
         time.sleep(10)
@@ -208,28 +212,66 @@ class PythonCyc:
         result = self.retrieve_results_string()
         return result
 
-    def startPathwayTools(self):
-        try:
-            self.stopPathwayTools()
-            time.sleep(10)
-        except:
-            pass
+    TIME = 10
 
+    def sendStartSignal(self):
+        #print "Starting up pathway tools"
         process = Process(target=startPathwayTools, args=(self._ptoolsExec,))
         process.start()
-        time.sleep(10)
 
-        trialNo = 0
+    def removeSocketFile(self):
+       if remove("/tmp/ptools-socket"):
+          return True
+       else:
+          return False
 
-        while trialNo < 5:
-            trialNo += 1
-            if trialNo > 5:
-                return False
-            try:
-                self.getOrganismList()
-                return True
-            except:
-                pass
+    def doesSocketExist(self):
+       if path.exists("/tmp/ptools-socket"):
+          #print "Socket exists"
+          return True
+       else:
+          #print "No socket exist"
+          return False
+
+    def startPathwayTools(self):
+        try:
+           self.stopPathwayTools()
+           trial = 0
+           while not self.doesSocketExist() :
+             self.sendStartSignal()
+             time.sleep(self.TIME)
+             if trial > 5:
+               print "Failed to Start pathway-tools"
+               return False
+             else:
+                trial += 1
+        except:
+            print traceback.print_exc(10) 
+            print "Failed to Start pathway-tools"
+            return False
+        return True
+
+    def stopPathwayTools(self):
+        #print "Stopping the pathway tools"
+        try:
+           trial = 0
+           while  self.doesSocketExist() :
+             #print "Stopping the running pathway tools"
+             self.sendStopSignal()
+             time.sleep(self.TIME)
+             if trial > 5:
+               print "Failed to stop pathway-tools"
+               if self.removeSocketFile():
+                  return True
+               else:
+                  return False
+             else:
+                trial += 1
+        except:
+            print traceback.print_exc(10) 
+            return False
+
+#                self.getOrganismList()
 
     def getExpectedTaxonomicRange(self, pwy):
         """
@@ -293,12 +335,13 @@ class PythonCyc:
 
 
     def getReactionListLines(self):
-
         my_base_pathways = self.call_func("all-pathways :all T")
-
         pwy_count=0
         unique_rxns ={}
+        #print "Extracting the reaction list"
         for pathway in my_base_pathways:
+            # printf(" " + pathway)
+            sys.stdout.flush()
             pwy_count +=1
             mygenes = self.genes_of_pathway(pathway,'T')
             totalrxns = self.get_slot_values(pathway, "REACTION-LIST")
@@ -371,6 +414,7 @@ class PythonCyc:
 
             rxnOutputStrings.append(rxnOutputStr)
         return rxnOutputStrings
+
 
 def startPathwayTools(ptoolsExec):
     cmd = ptoolsExec + " -api"

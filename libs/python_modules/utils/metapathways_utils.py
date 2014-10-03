@@ -739,7 +739,6 @@ class FastaRecord(object):
 def read_fasta_records(input_file):
     records = []
     sequence=""
-    name=""
     while 1:
          line = input_file.readline()
          if line == "": 

@@ -5,11 +5,11 @@
 
 # Paths for the Python, Perl and Pathway Tools
 PYTHON_EXECUTABLE '/usr/bin/python'
-PGDB_FOLDER '/Users/kishori/ptools-local/pgdbs/user'
-METAPATHWAYS_PATH '/Users/kishori/MetaPathways2.3/MetaPathways_Python'
+PGDB_FOLDER '/Users/mayab3/ptools-local/pgdbs/user'
+METAPATHWAYS_PATH '/Users/mayab3/Applications/metapathways2'
 
 # Replace with your current
-PATHOLOGIC_EXECUTABLE '/Users/kishori/pathway-tools/pathway-tools'
+PATHOLOGIC_EXECUTABLE '/Users/mayab3/pathway-tools/pathway-tools'
 
 REFDBS '/Users/sgeadmin/MetaPathways/databases'
 
