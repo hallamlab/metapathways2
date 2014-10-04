@@ -73,6 +73,11 @@ def execute_pipeline_stage(pipeline_command, extra_command = None,  errorlogger 
      return result
 
 
+def  printMissingList(missingList):
+    eprintf("MISSING INPUT LIST:\n")
+    for missingItem in missingList:
+       eprintf("     %s\n", missingItem)
+
 
 def execute_tasks(s, verbose = False, block = 0):
     """Run list of commands, one after another """
@@ -82,7 +87,6 @@ def execute_tasks(s, verbose = False, block = 0):
     contextBlock = contextBlocks[block]
 
     for c in contextBlock:
-        print c.name, c.status, 'status'
         if c.status=='stop':
            print "Stopping!"
            s.stepslogger.write('%s\t%s\n' %(c.name, "STOPPED"))
@@ -92,7 +96,6 @@ def execute_tasks(s, verbose = False, block = 0):
              eprintf("\n\n\nEXECUTED COMMAND : %s\n", ', '.join(c.commands) )
 
         eprintf("%s" %(c.message))
-
 
         if c.status in ['redo']:
             c.removeOutput(s)
@@ -108,6 +111,10 @@ def execute_tasks(s, verbose = False, block = 0):
                   s.stepslogger.write('%s\t%s\n' %( c.name, "FAILED"))
             else:
                eprintf('..... Skipping [NO INPUT]!\n')
+               if verbose:
+                  missingList=c.getMissingList( errorlogger = s.errorlogger)
+                  printMissingList(missingList)
+                     
                s.stepslogger.write('%s\t%s\n' %( c.name, "MISSING_INPUT"))
 
         elif c.status in ['yes']:

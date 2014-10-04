@@ -13,8 +13,8 @@ PATHOLOGIC_EXECUTABLE '/Users/kishori/pathway-tools/pathway-tools'
 
 REFDBS '/Users/sgeadmin/MetaPathways/databases'
 
-# Check the executables/ directory your operating system
-# e.g., Mac = Darwin
+# Executables: replace 'mac' to your platform linux, mac, win
+# Bit type - bit32 or bit64 
 FORMATDB_EXECUTABLE  'makeblastdb'
 BLASTP_EXECUTABLE  'blastp'
 BLASTN_EXECUTABLE  'blastn'
@@ -24,7 +24,7 @@ LAST_EXECUTABLE  'lastal'
 PRODIGAL_EXECUTABLE 'prodigal' 
 RESOURCES_DIR           'resources/'
 SCAN_tRNA_EXECUTABLE      'trnascan-1.4' 
-RPKM_EXECUTABLE      'rpkm' 
+RPKM_EXECUTABLE 'rpkm'
 
 # This is the folder where the scripts folder of the MetaPathways  pipeline 
 # # is installed

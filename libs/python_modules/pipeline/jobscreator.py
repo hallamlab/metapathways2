@@ -691,14 +691,18 @@ class ContextCreator:
                 context.outputs['output_annotated_gff'],  options,\
                 context.outputs1['output_comparative_annotation'],s.algorithm )
 
+
+
+
           for refdb in refdbs:
                parsed_file =  s.blast_results_dir + PATHDELIM + s.sample_name\
                               + "." + refdb+ "." + s.algorithm + "out.parsed.txt"
                context.inputs[parsed_file] = parsed_file
-               cmd = cmd + " -b " + parsed_file + " -d " + refdb + " -w 1 "
+#               cmd = cmd + " -b " + parsed_file + " -d " + refdb + " -w 1 "
 
 
           cmd = cmd + " -m " + context.inputs1['mapping_txt']
+          cmd = cmd + " -D " + s.blast_results_dir + " -s " + s.sample_name
 
           context.message = self._Message("ANNOTATE ORFS")
           context.commands = [ cmd ]
@@ -827,25 +831,24 @@ class ContextCreator:
           dbstring =   self.params.get('annotation', 'dbs', default=None)
           refdbs= [x.strip() for x in dbstring.split(",")  if len(x)!=0 ]
 
-          db_argument_string = ''
+          #db_argument_string = ''
           for dbname in refdbs: 
               parsed_file =  s.blast_results_dir + PATHDELIM + s.sample_name\
                               + "." + dbname+ "." + s.algorithm + "out.parsed.txt"
               context.inputs[parsed_file] = parsed_file
 
-              db_argument_string += ' -d ' + dbname
-              db_argument_string += ' -b ' + parsed_file
+              #db_argument_string += ' -d ' + dbname
+              #db_argument_string += ' -b ' + parsed_file
 
 
           pyScript = self.configs.METAPATHWAYS_PATH + self.configs.CREATE_ANNOT_REPORTS
 
 
-          cmd = "%s %s --input-annotated-gff %s  --input-kegg-maps %s \
+          cmd = "%s  --input-annotated-gff %s  --input-kegg-maps %s \
                  --input-cog-maps %s --input-seed-maps %s --input-cazy-maps %s --output-dir %s \
                  --ncbi-taxonomy-map %s --ncbi-megan-map %s"\
                %(\
                   pyScript, \
-                  db_argument_string,\
                   context.inputs['input_annot_gff'],\
                   context.inputs['KO_classification'],\
                   context.inputs['COG_categories'],\
@@ -855,6 +858,7 @@ class ContextCreator:
                   context.inputs['ncbi_taxonomy_tree'],\
                   context.inputs['ncbi_megan_map']
                )
+          cmd = cmd + " -D " + s.blast_results_dir + " -s " + s.sample_name
 
           context.commands = [ cmd ]
           context.status = self.params.get('metapaths_steps', 'CREATE_ANNOT_REPORTS') 

@@ -10,7 +10,7 @@ try:
    from libs.python_modules.taxonomy.LCAComputation import *
    import operator
 
-   from os import path, _exit
+   from os import path, _exit, remove, rename
    import logging.handlers
    from glob import glob
    from libs.python_modules.utils.sysutil import pathDelim
@@ -27,8 +27,6 @@ except:
      sys.exit(3)
 
 PATHDELIM=pathDelim()
-
-
 
 def fprintf(file, fmt, *args):
     file.write(fmt % args)
@@ -109,6 +107,33 @@ The resulting ePGDB is in the ~/ptools-local/pgdbs/user folder. They can be view
     wtd_options_group.add_option("--ncbi-megan-map", dest="ncbi_megan_map", help="MEGANs preferred mapping NCBI IDs" )
 
 
+import os, signal
+TIME = 10
+
+def __StopPathwayTools():
+    processPATT = re.compile(r'pathway-tools-runtime')
+    for line in os.popen("ps xa"):
+        fields = line.split()
+        pid = fields[0]
+        process = fields[4]
+        result = processPATT.search(process)
+        if result :
+            os.kill(int(pid), signal.SIGHUP)
+
+
+def StopPathwayTools():
+  try:
+     __StopPathwayTools()
+     time.sleep(TIME)
+     __StopPathwayTools()
+     time.sleep(TIME)
+
+     if path.exists("/tmp/ptools-socket"): 
+        remove("/tmp/ptools-socket")
+  except:
+    pass
+
+
 def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
     global parser
 
@@ -146,14 +171,11 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
     command += " -api"
 
     status =0
-
     fix_pgdb_input_files(options.pgdbdir, pgdbs = [])
 
     if not path.exists(options.pgdbdir):
       status  = runPathologicCommand(runcommand = command) 
       fix_pgdb_input_files(options.pgdbdir, pgdbs = [])
-
-
     if status!=0:
        eprintf("ERROR\tFailed to run Pathologic on input %s : \n" %(options.inputfolder))
        eprintf("INFO\tKill any other PathwayTools instance running on the machine and try again\n")
@@ -163,63 +185,76 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
           errorlogger.write("     : " + command)
        exit_process("ERROR\tFailed to run Pathologic on input %s : "  %(options.inputfolder) )
 
-    try:
-        pythonCyc = PythonCyc()
-        pythonCyc.setOrganism(options.sample_name.lower())
-        pythonCyc.setPToolsExec(options.ptoolsExec)
-        pythonCyc.startPathwayTools()
 
-        resultLines = pythonCyc.getReactionListLines()
-        pythonCyc.stopPathwayTools()
+    if not path.exists(options.reactions_list):
+       try:
+           pythonCyc = startPathwayTools(options.sample_name.lower(), options.ptoolsExec, True)
+           pythonCyc.setDebug() # disable pathway debug statements
+           printf("INFO\tExtracting the reaction list from ePGDB " + options.sample_name + "\n")
+           resultLines = pythonCyc.getReactionListLines()
+           #pythonCyc.stopPathwayTools()
+           reaction_list_file = open(options.reactions_list + ".tmp", 'w')
+           for line in resultLines:
+              fprintf(reaction_list_file,"%s\n",line.strip())
+           reaction_list_file.close()
+           rename(options.reactions_list + ".tmp", options.reactions_list)
 
-        reaction_list_file = open(options.reactions_list, 'w')
-        for line in resultLines:
-           fprintf(reaction_list_file,"%s\n",line.strip())
+           StopPathwayTools()
 
-        reaction_list_file.close()
-    except:
-        eprintf("ERROR\tFailed to run extract pathways for %s : \n" %(options.sample_name))
-        eprintf("INFO\tKill any other PathwayTools instance running on the machine and try again")
-        if errorlogger:
-            errorlogger.write("ERROR\tFailed to run extract pathways for %s : " %(options.sample_name))
-            errorlogger.write("INFO\tKill any other PathwayTools instance running on the machine and try again\n")
-        pass
+       except:
+           print traceback.print_exc(10)
+           eprintf("ERROR\tFailed to run extract pathways for %s : \n" %(options.sample_name))
+           eprintf("INFO\tKill any other PathwayTools instance running on the machine and try again")
+           if errorlogger:
+               errorlogger.write("ERROR\tFailed to run extract pathways for %s : " %(options.sample_name))
+               errorlogger.write("INFO\tKill any other PathwayTools instance running on the machine and try again\n")
+           StopPathwayTools()
 
+    if not path.exists(options.table_out):
+        ExtractPathway_WTD(options)
+   
+
+def startPathwayTools(organism, ptoolsExec, debug):
+    StopPathwayTools()
+    pythonCyc = PythonCyc()
+    pythonCyc.setDebug(debug = debug)
+    pythonCyc.setOrganism(organism)
+    pythonCyc.setPToolsExec(ptoolsExec)
+    pythonCyc.startPathwayTools()
+
+    return pythonCyc
+
+
+def  ExtractPathway_WTD(options):
     # Extract pathways and WTD
-    # place to store list of expected taxonomic range(s)
+   # place to store list of expected taxonomic range(s)
+    printf('INFO\tEntering the WTD calculations!\n')
     serialized_metacyc_taxa_ranges = "/tmp/metacyc_pwy_taxa_range.pk"
+    serialized_metacyc_taxa_ranges_tmp = "/tmp/metacyc_pwy_taxa_range.pk.tmp"
     try:
         if options.wtd and not path.isfile(serialized_metacyc_taxa_ranges):
             # get MetaCyc's expected taxonomic range(s) and serialize for later use in /tmp
             # try:
-            print 'Getting MetaCyc Expected Taxonomic Range(s)'
+            printf('INFO\tGetting MetaCyc Expected Taxonomic Range(s)\n')
+            pythonCyc = startPathwayTools('meta', options.ptoolsExec, True)
 
-            # connect to Pathway Tools
-            cyc = PythonCyc()
-            cyc.setOrganism('meta')
-            cyc.setPToolsExec(options.ptoolsExec)
-            cyc.startPathwayTools()
-
-            pwys = cyc.getAllPathways()
+            pwys = pythonCyc.getAllPathways()
 
             pwy_taxa_range = {} # hash from pwy to expected taxonomic range(s)
-            pwy_taxa_range_pk = open(serialized_metacyc_taxa_ranges ,"w")
+            pwy_taxa_range_pk = open(serialized_metacyc_taxa_ranges_tmp ,"w")
 
             # get expected taxonomic ranges for each pathway
             for pwy in pwys:
-                my_expected_taxonomic_range = cyc.getExpectedTaxonomicRange(pwy)
+                # printf(" " + pwy)
+                my_expected_taxonomic_range = pythonCyc.getExpectedTaxonomicRange(pwy)
                 pwy_taxa_range[pwy] = my_expected_taxonomic_range
+            # printf(" " + pwy)
 
             # write the pathway
             pickle.dump(pwy_taxa_range, pwy_taxa_range_pk)
             pwy_taxa_range_pk.close()
-
-            # close Pathway Tools
-            cyc.stopPathwayTools()
-            # except:
-            #     print """
-            #     Problem connecting to Pathway Tools. Check the /tmp/ptools-socket file.
-            #     """
+            StopPathwayTools()
+            rename(serialized_metacyc_taxa_ranges_tmp, serialized_metacyc_taxa_ranges) 
         else:
             # read expected taxonomic range from serialized file
             exepected_taxa_in = open(serialized_metacyc_taxa_ranges ,"r")
@@ -235,7 +270,7 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
                     megan_map[ fields[0] ] = fields[1]
 
         # get ORF to taxa map from annotation_table
-        print "Getting ORF to Taxa Map from AnnotationTable"
+        printf("INFO\tGetting ORF to Taxa Map from AnnotationTable\n")
         orf_lca = {}
         with open(options.annotation_table) as f:
             for line in f:
@@ -247,19 +282,19 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
         pwy_to_long = {}
         pwy_to_rxns = {}
         try:
-            cyc = PythonCyc()
-            cyc.setOrganism(options.sample_name.lower())
-            cyc.setPToolsExec(options.ptoolsExec)
-            cyc.startPathwayTools()
-            pwys = cyc.getAllPathways()
-            for pwy in pwys:
-                genes = cyc.getPathwayORFs(pwy)
-                rxns = cyc.getPathwayReactionInfo(pwy)
-                pwy_to_orfs[pwy] = genes
-                pwy_to_long[pwy] = cleanup(cyc.get_slot_value(pwy, "common-name"))
-                pwy_to_rxns[pwy] = rxns
+            pythonCyc = startPathwayTools(options.sample_name.lower(), options.ptoolsExec, True)
+            pwys = pythonCyc.getAllPathways()
 
-            cyc.stopPathwayTools()
+            for pwy in pwys:
+                # printf(" " + pwy)
+                genes = pythonCyc.getPathwayORFs(pwy)
+                rxns = pythonCyc.getPathwayReactionInfo(pwy)
+                pwy_to_orfs[pwy] = genes
+                pwy_to_long[pwy] = cleanup(pythonCyc.get_slot_value(pwy, "common-name"))
+                pwy_to_rxns[pwy] = rxns
+            # printf("\n")
+            StopPathwayTools()
+
         except:
             print """
             Problem connecting to Pathway Tools. Check the /tmp/ptools-socket file.
@@ -272,7 +307,7 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
     # get LCA per pathway
     pwy_lca = {}
     # load NCBI taxonomy map
-    print "Loading NCBI Taxonomy Map"
+    printf("INFO\tLoading NCBI Taxonomy Map\n")
     lca = LCAComputation([ options.ncbi_tree ], )
 
     for pwy in pwy_to_orfs:
@@ -349,8 +384,9 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
         pwy_to_wtd[pwy] = [ max_dist, observed, expected ]
 
     # write out pathway table
+    table_out_tmp  = options.table_out + ".tmp"
     try:
-        out = open(options.table_out, "w")
+        out = open(table_out_tmp, "w")
     except:
         print "Had problems opening file: " + options.table_out
 
@@ -382,6 +418,7 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
         out.write("\t".join(line) + "\n") # write out line
     try:
         out.close() # close file
+        rename(table_out_tmp, options.table_out)
     except:
         print "Had problems closing file: " + options.table_out
 
@@ -479,17 +516,6 @@ def write_new_file(lines, output_file):
     outputfile.close()
 
 
-def MetaPathways_run_pathologic(argv, extra_command = None, errorlogger = None, runstatslogger =None): 
-    if errorlogger != None:
-       errorlogger.write("#STEP\tBUILD_PGDB\n")
-    createParser()
-    main(argv, errorlogger = errorlogger, runcommand= extra_command, runstatslogger = runstatslogger)
-    return (0,'')
-
-if __name__ == '__main__':
-    createParser()
-    main(sys.argv[1:])
-
 def cleanup(string):
     """
     Cleans up pathway long-names for presentation.
@@ -523,4 +549,15 @@ def get_preferred_taxa_name(taxa_id, megan_map, id_to_name):
         taxa = "Unknown" + " (" + taxa_id + ")"
 
     return taxa
+
+def MetaPathways_run_pathologic(argv, extra_command = None, errorlogger = None, runstatslogger =None): 
+    if errorlogger != None:
+       errorlogger.write("#STEP\tBUILD_PGDB\n")
+    createParser()
+    main(argv, errorlogger = errorlogger, runcommand= extra_command, runstatslogger = runstatslogger)
+    return (0,'')
+
+if __name__ == '__main__':
+    createParser()
+    main(sys.argv[1:])
 

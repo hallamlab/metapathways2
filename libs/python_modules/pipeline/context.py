@@ -54,17 +54,35 @@ class Context:
                 status = False
         return status
 
+
+
+    def getMissingList(self, errorlogger = None):
+        #print self.inputs.values()
+        missingList = []
+        status = True
+        for file in self.inputs.values():
+            if not doesFileExist(file):
+                missingList.append(file)
+                if errorlogger!=None:
+                   errorlogger.printf("ERROR\tMissing input %s\n", file)
+                status = False
+        return missingList
+
+
+
+
     def removeOutput(self, errorlogger = None):
         #print self.inputs.values()
-        #metacycPATT = re.compile(r'metacyc')
+        annotationPATT = re.compile(r'annotation_table')
         for item in self.outputs.values():
            if not path.exists(item):
               continue
-           #if metacycPATT.search(item)
-           #   continue
 
            if path.isdir(item):
-              rmtree(item)
+              if annotationPATT.search(item):
+                 pass
+              else:
+                 rmtree(item)
            else:
               remove(item)
 
