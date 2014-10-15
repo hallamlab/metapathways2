@@ -16,4 +16,4 @@ The MetaPathways Python codebase as well as the GUI code is self-contained in th
 
 Please see the [MetaPathways v2.0 wiki](https://github.com/hallamlab/metapathways2/wiki) for more installation and usage information.
 
-A template [MetaPathways_DB.zip](https://www.dropbox.com/s/ye3kpve041e0r39/MetaPathways_DBs.zip?dl=0) contains starter protein and taxonomic databases
+A template [MetaPathways_DBs.zip (**Updated: October 2014**)](https://www.dropbox.com/s/ye3kpve041e0r39/MetaPathways_DBs.zip?dl=0) contains starter protein and taxonomic databases
