@@ -858,7 +858,7 @@ class ContextCreator:
                   context.inputs['ncbi_taxonomy_tree'],\
                   context.inputs['ncbi_megan_map']
                )
-          cmd = cmd + " -D " + s.blast_results_dir + " -s " + s.sample_name
+          cmd = cmd + " -D " + s.blast_results_dir + " -s " + s.sample_name + " -a "  + s.algorithm
 
           context.commands = [ cmd ]
           context.status = self.params.get('metapaths_steps', 'CREATE_ANNOT_REPORTS') 

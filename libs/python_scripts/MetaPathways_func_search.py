@@ -4,11 +4,9 @@
 
 try:
    import  sys, re, csv, traceback
-   from os import path, _exit
+   from os import path, _exit, rename
    import logging.handlers
-
    from optparse import OptionParser, OptionGroup
-
    from libs.python_modules.utils.sysutil import pathDelim
    from libs.python_modules.utils.metapathways_utils  import fprintf, printf, eprintf,  exit_process
    from libs.python_modules.utils.sysutil import getstatusoutput
@@ -140,7 +138,7 @@ def  _execute_LAST(options):
        args += [ "-f", options.last_f ]
     
     if options.last_o:
-       args += [ "-o", options.last_o ]
+       args += [ "-o", options.last_o + ".tmp"]
 
     if options.last_db:
        args += [ options.last_db ]
@@ -148,7 +146,12 @@ def  _execute_LAST(options):
     if options.last_query:
        args += [ options.last_query ]
 
-    result = getstatusoutput(' '.join(args) )
+    try:
+       result = getstatusoutput(' '.join(args) )
+       rename(options.last_o + ".tmp", options.last_o) 
+    except:
+       return '1'
+
     return result[0]
     
 
@@ -177,9 +180,14 @@ def  _execute_BLAST(options):
        args += [ "-evalue", options.blast_evalue ]
 
     if options.blast_out:
-       args += [ "-out", options.blast_out ]
+       args += [ "-out", options.blast_out + ".tmp" ]
 
-    result = getstatusoutput(' '.join(args) )
+    try:
+       result = getstatusoutput(' '.join(args) )
+       rename(options.blast_out + ".tmp", options.blast_out) 
+    except:
+       return '1'
+
     return result[0]
 
 

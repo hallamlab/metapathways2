@@ -30,15 +30,25 @@ def halt_process(secs=4):
     _exit(0)
 
 def exit_process(message = None):
-
     if message != None: 
       eprintf("%s", message+ "\n")
 
     eprintf("INFO: Exiting the Python code\n")
     eprintf("ERROR\t" + str(traceback.format_exc(10)) + "\n")
     time.sleep(4)
-    #sys.exit(0)
     _exit(0)
+
+
+def exit_step(message = None):
+    if message != None: 
+      eprintf("%s", message+ "\n")
+
+    eprintf("INFO: Exiting the Python code\n")
+    eprintf("ERROR\t" + str(traceback.format_exc(10)) + "\n")
+    time.sleep(4)
+    _exit(0)
+
+
 
 def getShortORFId(orfname) :
     #return orfname
@@ -70,6 +80,12 @@ def getSampleNameFromContig(contigname):
         sampleName = pos.group(1)
 
     return sampleName
+
+def strip_taxonomy(product):
+   func = re.sub(r'\[[^\[]+\]', '', product)
+   return func
+
+
 
 class GffFileParser(object):
     def __init__(self, gff_filename):

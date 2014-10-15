@@ -142,6 +142,7 @@ def execute_tasks(s, verbose = False, block = 0):
            blastgrid(c.commands[0])
 
 def execute(s, c):
+   
      if len(c.commands) == 2:
        result=execute_pipeline_stage(c.commands[0], extra_command =  c.commands[1], errorlogger= s.errorlogger, runstatslogger = s.runstatslogger )
      else:

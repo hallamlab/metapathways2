@@ -179,7 +179,7 @@ def formatDB(tools, db, refdbspath, seqType, dbType, algorithm, configs, logger 
 
      if algorithm=='LAST':
          # dirname = os.path.dirname(raw_sequence_file)    
-         cmd='%s -s 4G -p -c %s  %s' %(formatdb_executable, _temp_formatted_db, raw_sequence_file)
+         cmd='%s -s 4000M -p -c %s  %s' %(formatdb_executable, _temp_formatted_db, raw_sequence_file)
      
      eprintf("INFO\t" + cmd)
      result= getstatusoutput(cmd)

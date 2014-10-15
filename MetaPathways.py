@@ -383,6 +383,9 @@ def main(argv):
 
     # add check the config parameters 
     sorted_input_output_list = sorted(input_output_list.keys())
+    print sample_subset 
+    print sorted_input_output_list
+
 
     config_settings = read_pipeline_configuration(config_file, globalerrorlogger)
 

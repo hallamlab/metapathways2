@@ -132,8 +132,6 @@ def check_if_raw_sequences_exist(filename):
 # Makes.re that the ref database is formatted for blasting 
 def check_an_format_refdb(dbname, seqType,  config_settings, params, globallogger = None): 
 
-
-
     algorithm=  get_parameter( params,'annotation','algorithm').upper()
     
     suffixes=[]
@@ -587,45 +585,58 @@ def run_metapathways(samplesData, output_dir, all_samples_output_dir, globallogg
 
     jobcreator = JobCreator(params, config_settings)
 
-    for input_file in samplesData.keys():
+    sorted_samplesData_keys = sorted(samplesData.keys())
+    for input_file in sorted_samplesData_keys:
       s =  samplesData[input_file]
       jobcreator.addJobs(s, block_mode = block_mode)
 
     if block_mode:
-       for input_file in samplesData.keys():
+       for input_file in sorted_samplesData_keys:
          s =  samplesData[input_file]
          s.stepslogger.printf("\n\n==============  BEGIN RUN " + s.sample_name + " " + runid + " ================\n")
          sample_name_banner = "PROCESSING INPUT " + input_file
          eprintf("==============  BEGIN RUN " + s.sample_name + " STEPS BLOCK 0 ================\n")
          eprintf('#'*len(sample_name_banner) + "\n")
          eprintf( '\n' + sample_name_banner + '\n')
-         execute_tasks(s, verbose = command_line_params['verbose'], block = 0)    
+         print "STEPS BLOCK 0"
+         sys.exit(0)
+         try:
+            execute_tasks(s, verbose = command_line_params['verbose'], block = 0)    
+         except:
+            pass
 
 
-       for input_file in samplesData.keys():
+       for input_file in sorted_samplesData_keys:
          s =  samplesData[input_file]
          sample_name_banner = "PROCESSING INPUT " + input_file
          eprintf("==============  BEGIN RUN " + s.sample_name + " STEPS BLOCK 1 ================\n")
          eprintf('#'*len(sample_name_banner) + "\n")
          eprintf( '\n' + sample_name_banner + '\n')
+         print "STEPS BLOCK 1"
+         sys.exit(0)
          execute_tasks(s, verbose = command_line_params['verbose'], block = 1)    
 
-       for input_file in samplesData.keys():
+       for input_file in sorted_samplesData_keys:
          s =  samplesData[input_file]
          sample_name_banner = "PROCESSING INPUT " + input_file
          eprintf("==============  BEGIN RUN " + s.sample_name + " STEPS BLOCK 2 ================\n")
          eprintf('#'*len(sample_name_banner) + "\n")
          eprintf( '\n' + sample_name_banner + '\n')
+         print "STEPS BLOCK 2"
+         sys.exit(0)
          execute_tasks(s, verbose = command_line_params['verbose'], block = 2)    
 
     else:
-       for input_file in samplesData.keys():
+       for input_file in sorted_samplesData_keys:
          s =  samplesData[input_file]
          s.stepslogger.printf("\n\n==============  BEGIN RUN " + s.sample_name + " " + runid + "  ==================\n")
          sample_name_banner = "PROCESSING INPUT " + input_file
          eprintf('#'*len(sample_name_banner) + "\n")
          eprintf( '\n' + sample_name_banner + '\n')
-         execute_tasks(s, verbose = command_line_params['verbose'], block = 0)    
+         try:
+            execute_tasks(s, verbose = command_line_params['verbose'], block = 0)    
+         except:
+            pass
 
     return
 

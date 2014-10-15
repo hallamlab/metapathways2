@@ -14,8 +14,9 @@ try:
     from sys import path
     import re, traceback
     from optparse import OptionParser, OptionGroup
-
+    from glob import glob
     from libs.python_modules.utils.metapathways_utils  import parse_command_line_parameters, fprintf, printf, eprintf
+    from libs.python_modules.utils.metapathways_utils  import strip_taxonomy
     from libs.python_modules.utils.sysutil import getstatusoutput
 
 except:
@@ -50,6 +51,12 @@ def createParser():
      
      parser.add_option("-d", "--dbasename", dest="database_name", action='append', default=[],
                        help='the database names [at least 1 REQUIRED]')
+
+     parser.add_option("-D", "--blastdir", dest="blastdir",  default=None,
+                       help='the blast dir where all the BLAST outputs are located')
+     
+     parser.add_option("-s", "--samplename", dest="sample_name",  default=None,
+                       help='the sample name')
      
      parser.add_option("-w", "--weight_for_database", dest="weight_db", action='append', default=[], type='float',
                        help='the map file for the database  [at least 1 REQUIRED]')
@@ -613,7 +620,7 @@ def process_product(product, database, similarity_threshold=0.9):
 
     # Generic
     else:
-        processed_product=product
+        processed_product=strip_taxonomy(product)
 
     words = [ x.strip() for x in processed_product.split() ]
     filtered_words =[]
@@ -667,7 +674,7 @@ class BlastOutputTsvParser(object):
            for x in fields:
              self.fieldmap[x] = k 
              k+=1
-           eprintf("\nProcessing : %s\n", dbname)
+           eprintf("\nProcessing database : %s\n", dbname)
            
         except AttributeError:
            eprintf("Cannot read the map file for database :%s\n", dbname)
@@ -749,7 +756,6 @@ def compute_annotation_value(data):
 
 # compute the refscores
 def process_parsed_blastoutput(dbname, weight,  blastoutput, cutoffs, annotation_results):
-    print 'dbase1', dbname
     blastparser =  BlastOutputTsvParser(dbname, blastoutput)
 
     fields = ['q_length', 'bitscore', 'bsr', 'expect', 'aln_length', 'identity', 'ec' ]
@@ -769,7 +775,7 @@ def process_parsed_blastoutput(dbname, weight,  blastoutput, cutoffs, annotation
     #       print dbname 
            annotation['bsr'] = data['bsr']
            annotation['ec'] = data['ec']
-           annotation['product'] = process_product(data['product'], dbname) 
+           annotation['product'] = strip_taxonomy(process_product(data['product'], dbname) )
            annotation['value'] = compute_annotation_value(annotation)*weight
          #  print annotation
            
@@ -803,6 +809,26 @@ def read_contig_lengths(contig_map_file, contig_lengths):
             return 
         contig_lengths[fields[0] ] = int(fields[2])
      
+def getBlastFileNames(opts) :
+    
+    database_names = []
+    parsed_blastouts = [] 
+    weight_dbs = []
+
+    dbnamePATT = re.compile(r'' + opts.blastdir + '*' + opts.sample_name + '*[.](.*)[.]' + opts.algorithm.upper() + 'out.parsed.txt')
+
+    blastOutNames = glob(opts.blastdir + '*' + opts.algorithm.upper() + 'out.parsed.txt')  
+    for blastoutname in blastOutNames :
+        result = dbnamePATT.search(blastoutname)
+        if result:
+            dbname = result.group(1)
+            database_names.append(dbname)
+            parsed_blastouts.append(blastoutname)
+            weight_dbs.append(1)
+
+    return database_names, parsed_blastouts, weight_dbs
+
+
 # the main function
 def main(argv, errorlogger =None, runstatslogger = None): 
     global parser
@@ -818,9 +844,22 @@ def main(argv, errorlogger =None, runstatslogger = None):
     contig_lengths = {}     
     read_contig_lengths(opts.contig_map_file, contig_lengths) 
 
+    
+    if opts.blastdir !=None and opts.sample_name != None:
+        try:
+           database_names, input_blastouts, weight_dbs = getBlastFileNames(opts) 
+        except:
+           print traceback.print_exc(10)
+           pass
+    else:
+        database_names = opts.database_name
+        input_blastouts = opts.input_blastout 
+        weight_dbs = opts.weight_db 
+
+
     priority = 6000
     count_annotations = {}
-    for dbname, blastoutput, weight in zip( opts.database_name, opts.input_blastout, opts.weight_db): 
+    for dbname, blastoutput, weight in zip( database_names, input_blastouts, weight_dbs): 
         results_dictionary[dbname]={}
         dbname_weight[dbname] = weight
         count = process_parsed_blastoutput( dbname, weight, blastoutput, opts, results_dictionary[dbname])

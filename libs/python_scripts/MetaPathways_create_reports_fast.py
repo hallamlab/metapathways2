@@ -11,8 +11,9 @@ __status__ = "Release"
 
 try:
      from os import makedirs, sys, remove, path, _exit
-     import re
+     import re, traceback, gc, resource
      from optparse import OptionParser, OptionGroup
+     from glob import glob
 
      from libs.python_modules.taxonomy.LCAComputation import *
      from libs.python_modules.taxonomy.MeganTree import *
@@ -20,6 +21,7 @@ try:
                fprintf, printf, eprintf,  GffFileParser, exit_process, getShortORFId, getSampleNameFromContig
      from libs.python_modules.utils.sysutil import getstatusoutput, pathDelim
      from libs.python_modules.utils.utils import *
+
 except:
      print """ Could not load some user defined  module functions"""
      print """ Make sure your typed 'source MetaPathwaysrc'"""
@@ -38,11 +40,21 @@ def createParser():
      epilog = re.sub(r'\s+', ' ',epilog)
 
      parser = OptionParser(usage = usage, epilog = epilog)
+
+     parser.add_option("-a", "--algorithm", dest="algorithm", default="BLAST", help="algorithm BLAST or LAST" )
+
+
      parser.add_option("-b", "--blastoutput", dest="input_blastout", action='append', default=[],
                        help='blastout files in TSV format [at least 1 REQUIRED]')
 
      parser.add_option("-d", "--dbasename", dest="database_name", action='append', default=[],
                        help='the database names [at least 1 REQUIRED]')
+
+     parser.add_option("-D", "--blastdir", dest="blastdir",  default=None,
+                       help='the blast dir where all the BLAST outputs are located')
+     
+     parser.add_option("-s", "--samplename", dest="sample_name",  default=None,
+                       help='the sample name')
 
      cutoffs_group =  OptionGroup(parser, 'Cuttoff Related Options')
 
@@ -394,22 +406,6 @@ class BlastOutputTsvParser(object):
                     exit_process()
 
 
-                #              print "<<<<<<-------"
-                #              print 'self size ' + str(self.size)
-                #              print 'line ' + self.lines[self.i % self.SIZE]
-                #              print 'num fields ' + str(len(fields))
-                #              fields = [ x  for x in self.lines[self.i % self.SIZE].split('\t')]
-                #              for field in fields:
-                #                 print field
-                #              print 'next line ' + self.lines[(self.i + 1) % self.SIZE]
-                #              print ' field map ' + str(self.fieldmap)
-                #              print 'index ' + str(self.i)
-                #              print 'data ' + str(self.data)
-                #              print 'fields ' + str(fields)
-                #              print ' while processing file ' + self.blastoutput
-                #              print ">>>>>>-------"
-                #              import traceback
-                #              print traceback.print_exc()
 
             self.i = self.i + 1
             return self.data
@@ -419,7 +415,6 @@ class BlastOutputTsvParser(object):
             raise StopIteration()
 
 def isWithinCutoffs(data, cutoffs):
-  import traceback
 
   try:
     if data['q_length'] < cutoffs.min_length:
@@ -660,8 +655,6 @@ def  add_counts_to_hierarchical_map(hierarchical_map, orthology_count):
       else:
           add_counts_to_hierarchical_map(hierarchical_map[key], orthology_count)
   except:
-
-      import traceback
       traceback.print_exc()
       print len(hierarchical_map[key])
       sys.exit(0)
@@ -734,7 +727,7 @@ def merge_sorted_parsed_files(dbname, filenames, outputfilename, orfRanks, verbo
     readerhandles = []
 
     if verbose:
-       eprintf("Processing for database  : %s\n", dbname)
+       eprintf("Processing database  : %s\n", dbname)
 
     if len(filenames)==0:
        eprintf("WARNING : Cannot find any B/LAST output file for database : %\n", dbname)
@@ -792,8 +785,6 @@ def merge_sorted_parsed_files(dbname, filenames, outputfilename, orfRanks, verbo
           shortORFId = getShortORFId(fields[0])
           values[0] = (values[0][0], orfRanks[shortORFId], line)
        except:
-          #import traceback
-          #traceback.print_exc()
           #print 'finished ' + str(S)
           values[0] = values[S-1]
           S = S - 1
@@ -882,8 +873,24 @@ def  create_sorted_parse_blast_files(dbname, blastoutput, listOfOrfs, size = 100
        remove(file)
 
 
-import gc
-import resource
+def getBlastFileNames(opts) :
+    database_names = []
+    parsed_blastouts = []  
+    weight_dbs = []
+
+    dbnamePATT = re.compile(r'' + opts.blastdir + '*' + opts.sample_name + '*[.](.*)[.]' + opts.algorithm.upper() + 'out.parsed.txt')
+
+    blastOutNames = glob(opts.blastdir + '*' + opts.algorithm.upper() + 'out.parsed.txt')
+    for blastoutname in blastOutNames :
+        result = dbnamePATT.search(blastoutname)
+        if result:
+            dbname = result.group(1)
+            database_names.append(dbname)
+            parsed_blastouts.append(blastoutname)
+            weight_dbs.append(1)
+
+    return database_names, parsed_blastouts, weight_dbs
+
 
 opts_global = ""
 
@@ -900,7 +907,6 @@ def main(argv, errorlogger = None,  runstatslogger = None):
 
     db_to_map_Maps =  {'cog':opts.input_cog_maps, 'seed':opts.input_seed_maps, 'kegg':opts.input_kegg_maps, 'cazy':opts.input_cazy_maps}
 
-
     results_dictionary={}
     dbname_weight={}
 
@@ -913,12 +919,20 @@ def main(argv, errorlogger = None,  runstatslogger = None):
     listOfOrfs =  get_list_of_queries(opts.input_annotated_gff)
     listOfOrfs.sort(key=lambda tup: tup, reverse=False)
 
-    #printlist(listOfOrfs,5)
-    #sys.exit(0)
 
+    if opts.blastdir !=None and opts.sample_name != None:
+        try:
+           database_names, input_blastouts, weight_dbs = getBlastFileNames(opts)
+        except:
+           print traceback.print_exc(10)
+           pass
+    else:
+        database_names = opts.database_name
+        input_blastouts = opts.input_blastout
+        weight_dbs = opts.weight_db
 
 ##### uncomment the following lines
-    for dbname, blastoutput in zip(opts.database_name, opts.input_blastout):
+    for dbname, blastoutput in zip(database_names, input_blastouts):
       create_sorted_parse_blast_files(dbname, blastoutput, listOfOrfs, verbose= opts.verbose, errorlogger = errorlogger)
 #####
 
@@ -927,7 +941,7 @@ def main(argv, errorlogger = None,  runstatslogger = None):
     lca.setParameters(opts.lca_min_score, opts.lca_top_percent, opts.lca_min_support)
 
     blastParsers={}
-    for dbname, blastoutput in zip( opts.database_name, opts.input_blastout):
+    for dbname, blastoutput in zip( database_names, input_blastouts):
         blastParsers[dbname] =  BlastOutputTsvParser(dbname, blastoutput + '.tmp')
         blastParsers[dbname].setMaxErrorsLimit(5)
         blastParsers[dbname].setErrorAndWarningLogger(errorlogger)
@@ -949,7 +963,7 @@ def main(argv, errorlogger = None,  runstatslogger = None):
        #print 'Num of Min support orfs ' + str(start)
 
        results_dictionary={}
-       for dbname, blastoutput in zip( opts.database_name, opts.input_blastout):
+       for dbname, blastoutput in zip(database_names, input_blastouts):
           results = re.search(r'refseq', dbname, re.I)
           if results:
           #if True:
@@ -963,11 +977,10 @@ def main(argv, errorlogger = None,  runstatslogger = None):
                    Taxons[key] = taxon
             except:
                eprintf("ERROR: while training for min support tree %s\n", dbname)
-               import traceback
                traceback.print_exc()
 
     blastParsers={}
-    for dbname, blastoutput in zip( opts.database_name, opts.input_blastout):
+    for dbname, blastoutput in zip(database_names, input_blastouts):
         blastParsers[dbname] =  BlastOutputTsvParser(dbname, blastoutput + '.tmp')
 
     # this loop determines the actual/final taxonomy of each of the ORFs 
@@ -978,7 +991,7 @@ def main(argv, errorlogger = None,  runstatslogger = None):
 
 
     short_to_long_dbnames = {}
-    for dbname in opts.database_name:
+    for dbname in database_names:
       results = re.search(r'^seed', dbname,  re.IGNORECASE)
       if results:
           short_to_long_dbnames['seed'] = dbname
@@ -1022,14 +1035,13 @@ def main(argv, errorlogger = None,  runstatslogger = None):
        gc.collect()
        eprintf("\nMemory used  = %s MB\n", str(resource.getrusage(resource.RUSAGE_SELF).ru_maxrss/1000000))
        results_dictionary={}
-       for dbname, blastoutput in zip( opts.database_name, opts.input_blastout):
+       for dbname, blastoutput in zip( database_names, input_blastouts):
             try:
                results_dictionary[dbname]={}
-               eprintf("Processing database %s...", dbname)
+               eprintf("Processing database : %s...", dbname)
                process_parsed_blastoutput(dbname, blastParsers[dbname], opts, results_dictionary[dbname], pickorfs)
                eprintf("done\n")
             except:
-               import traceback
                traceback.print_exc()
                eprintf("ERROR: %s\n", dbname)
                pass
@@ -1040,7 +1052,7 @@ def main(argv, errorlogger = None,  runstatslogger = None):
        # create the annotations now
        orfToContig = {}
 
-       create_annotation(results_dictionary, opts.database_name,  opts.input_annotated_gff, opts.output_dir, Taxons, pickorfs, orfToContig, lca)
+       create_annotation(results_dictionary, database_names,  opts.input_annotated_gff, opts.output_dir, Taxons, pickorfs, orfToContig, lca)
 
        for std_dbname, db_map_filename in zip(standard_dbs, standard_db_maps):
          if std_dbname in short_to_long_dbnames:
@@ -1056,7 +1068,7 @@ def main(argv, errorlogger = None,  runstatslogger = None):
 
     outputfile.close()
     # now remove the temporary files
-    for dbname, blastoutput in zip( opts.database_name, opts.input_blastout):
+    for dbname, blastoutput in zip( database_names, input_blastouts):
         try:
            remove( blastoutput + '.tmp')
         except:
