@@ -5,7 +5,7 @@ template_param.txt
 MetaPathways2
 .*.swp
 blastDB
-executables/*
+#executables/*
 output
 regtests/output
 .DS_Store
