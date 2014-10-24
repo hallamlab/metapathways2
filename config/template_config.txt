@@ -5,20 +5,20 @@
 
 # Paths for the Python, Perl and Pathway Tools
 PYTHON_EXECUTABLE '/usr/bin/python'
-PGDB_FOLDER '/Users/kishori/ptools-local/pgdbs/user'
-METAPATHWAYS_PATH '/Users/kishori/MetaPathways2.4/MetaPathways_Python'
+PGDB_FOLDER '/home/nielshanson/ptools-local/users/pgdbs'
+METAPATHWAYS_PATH '/home/nielshanson/metapathways2/'
 
 # Replace with your current
-PATHOLOGIC_EXECUTABLE '/Users/kishori/pathway-tools/pathway-tools'
+PATHOLOGIC_EXECUTABLE '/home/nielshanson/pathway-tools/pathway-tools-fake'
 
-REFDBS '/Users/sgeadmin/MetaPathways/databases'
+REFDBS '/home/nielshanson/MetaPathways_DBs'
 
 # Executables: replace 'mac' to your platform linux, mac, win
 # Bit type - bit32 or bit64 
 FORMATDB_EXECUTABLE  'makeblastdb'
 BLASTP_EXECUTABLE  'blastp'
 BLASTN_EXECUTABLE  'blastn'
-EXECUTABLES_DIR  'executables/macosx'
+EXECUTABLES_DIR  'executables/ubuntu'
 LASTDB_EXECUTABLE  'lastdb'
 LAST_EXECUTABLE  'lastal'
 PRODIGAL_EXECUTABLE 'prodigal' 

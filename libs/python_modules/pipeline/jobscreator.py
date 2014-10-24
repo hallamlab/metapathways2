@@ -818,7 +818,7 @@ class ContextCreator:
                            'COG_categories':basefun + PATHDELIM +  'COG_categories.txt',
                            'SEED_subsystems':basefun + PATHDELIM + 'SEED_subsystems.txt',
                            'CAZY_hierarchy':basefun + PATHDELIM + 'CAZY_hierarchy.txt',
-                           'ncbi_taxonomy_tree': basencbi + PATHDELIM + 'NCBI_TAXONOMY_TREE.TXT',
+                           'ncbi_taxonomy_tree': basencbi + PATHDELIM + 'ncbi_taxonomy_tree.txt',
                            'ncbi_megan_map': basencbi + PATHDELIM + 'ncbi.map'
 
                            }
