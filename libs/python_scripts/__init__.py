@@ -16,3 +16,4 @@ import libs.python_scripts.MetaPathways_func_search
 import libs.python_scripts.MetaPathways_tRNA_scan
 import libs.python_scripts.MetaPathways_mltreemap
 import libs.python_scripts.MetaPathways_rpkm
+import libs.python_scripts.MetaPathways_preprocess_amino_input

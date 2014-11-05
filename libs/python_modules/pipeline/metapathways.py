@@ -591,40 +591,42 @@ def run_metapathways(samplesData, output_dir, all_samples_output_dir, globallogg
       jobcreator.addJobs(s, block_mode = block_mode)
 
     if block_mode:
+       eprintf("==============  RUNNING STEPS IN BLOCK 0 ================\n")
        for input_file in sorted_samplesData_keys:
          s =  samplesData[input_file]
          s.stepslogger.printf("\n\n==============  BEGIN RUN " + s.sample_name + " " + runid + " ================\n")
          sample_name_banner = "PROCESSING INPUT " + input_file
-         eprintf("==============  BEGIN RUN " + s.sample_name + " STEPS BLOCK 0 ================\n")
-         eprintf('#'*len(sample_name_banner) + "\n")
-         eprintf( '\n' + sample_name_banner + '\n')
-         print "STEPS BLOCK 0"
-         sys.exit(0)
+         eprintf('\n'+ '#'*len(sample_name_banner) + "\n")
+         eprintf( '\n' + sample_name_banner +  ' [STEPS BLOCK 0] ' + '\n')
          try:
+            pass
             execute_tasks(s, verbose = command_line_params['verbose'], block = 0)    
          except:
             pass
 
-
        for input_file in sorted_samplesData_keys:
          s =  samplesData[input_file]
          sample_name_banner = "PROCESSING INPUT " + input_file
-         eprintf("==============  BEGIN RUN " + s.sample_name + " STEPS BLOCK 1 ================\n")
-         eprintf('#'*len(sample_name_banner) + "\n")
-         eprintf( '\n' + sample_name_banner + '\n')
-         print "STEPS BLOCK 1"
-         sys.exit(0)
-         execute_tasks(s, verbose = command_line_params['verbose'], block = 1)    
+         eprintf('\n' + '#'*len(sample_name_banner) + "\n")
+         eprintf( '\n' + sample_name_banner +  ' [STEPS BLOCK 1] ' + '\n')
+         try:
+            pass
+            execute_tasks(s, verbose = command_line_params['verbose'], block = 1)    
+         except:
+            pass
 
        for input_file in sorted_samplesData_keys:
          s =  samplesData[input_file]
          sample_name_banner = "PROCESSING INPUT " + input_file
          eprintf("==============  BEGIN RUN " + s.sample_name + " STEPS BLOCK 2 ================\n")
          eprintf('#'*len(sample_name_banner) + "\n")
-         eprintf( '\n' + sample_name_banner + '\n')
-         print "STEPS BLOCK 2"
-         sys.exit(0)
-         execute_tasks(s, verbose = command_line_params['verbose'], block = 2)    
+         eprintf( '\n' + sample_name_banner +  ' [STEPS BLOCK 2] ' + '\n')
+         try:
+            pass
+            execute_tasks(s, verbose = command_line_params['verbose'], block = 2)    
+         except:
+            pass
+
 
     else:
        for input_file in sorted_samplesData_keys:
@@ -635,6 +637,14 @@ def run_metapathways(samplesData, output_dir, all_samples_output_dir, globallogg
          eprintf( '\n' + sample_name_banner + '\n')
          try:
             execute_tasks(s, verbose = command_line_params['verbose'], block = 0)    
+         except:
+            pass
+         try:
+            execute_tasks(s, verbose = command_line_params['verbose'], block = 1)    
+         except:
+            pass
+         try:
+            execute_tasks(s, verbose = command_line_params['verbose'], block = 2)    
          except:
             pass
 

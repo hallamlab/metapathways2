@@ -43,6 +43,160 @@ def eprintf(fmt, *args):
 
 PATHDELIM = pathDelim()
 
+
+
+
+def isFastaFile(filename):
+    ''' this function checks if the given file is a fasta file
+        by examining the first 100 lines of the file
+    '''
+
+    fastaNamePATT = re.compile(r'^>')
+    fastaAlphabetPATT = re.compile(r'[a-zA-Z]+')
+    isFasta = True
+    seenNamePatt = False 
+
+    try:
+      c = 0
+      with open(filename) as fp:
+        for line in fp:
+          '''trim the line'''
+          line_trimmed = line.strip()
+          
+          if line_trimmed:
+             if fastaNamePATT.search(line_trimmed):
+               ''' is a name line '''
+               seenNamePatt = True 
+             else:
+               ''' not a seq name '''
+               if fastaAlphabetPATT.search(line_trimmed):
+                  ''' it is of the alphabet'''
+                  if not seenNamePatt:
+                     ''' am i seeing sequence before the name'''
+                     isFasta = False 
+               else:
+                  isFasta = False 
+          c+=1
+          if c > 100:
+             break
+    except:
+       eprintf("ERROR:\tCannot open filee " + filename)
+       print traceback.print_exc(10)
+       return False
+
+    if seenNamePatt==False:
+       isFasta = False
+    
+    return isFasta
+
+
+def isGenbank(filename):
+    ''' this function decides if a file is in genbank format or not
+        by reading the first 100 lines and look for the key words that 
+        usually appear in the genbank file formsts
+    '''
+
+    print 'genbanck'
+    locusPATT = re.compile(r'^\s*LOCUS')
+    versionPATT = re.compile(r'^\s*VERSION')
+    featuresPATT = re.compile(r'^\s*FEATURES')
+    originPATT = re.compile(r'\s*ORIGIN')
+    accessionPATT = re.compile(r'^\s*ACCESSION')
+    sourcePATT = re.compile(r'^\s*SOURCE')
+
+    patterns = [locusPATT, versionPATT, featuresPATT, originPATT, accessionPATT, sourcePATT ]
+    countPatterns  = [ 0 for i in range(0, len(patterns)) ]   
+
+    try:
+      c = 0
+      with open(filename) as fp:
+        for line in fp:
+          '''trim the line'''
+          line_trimmed = line.strip()
+          if line_trimmed:
+            for i in range(0, len(patterns) ):
+               if patterns[i].search(line_trimmed.upper()):
+                  countPatterns[i] = 1
+          c+=1
+          if c > 100:
+            break
+
+    except:
+       eprintf("ERROR:\tCannot open filex " + filename)
+       print traceback.print_exc(10)
+       return False
+
+
+    numPattsSeen = 0
+    for val in countPatterns:
+       numPattsSeen +=  val
+
+    if numPattsSeen >= 3:
+      '''if you have seen more than 3 of the above patters
+         then we decide that it is a genbank file
+      '''
+      return True
+
+    return False
+
+
+def isNucleotide( filename):
+    ''' checks if a fasta file is a nucleotide file format'''
+    fastaNamePATT = re.compile(r'^>')
+    isFasta = True
+    nucCount = 0.0
+    nonNucCount = 0.0
+
+    try:
+      c = 0
+      with open(filename) as fp:
+        for line in fp:
+          '''trim the line'''
+          line_trimmed = line.strip()
+          if line_trimmed:
+            if not fastaNamePATT.search(line_trimmed):
+               for a in line_trimmed.upper():
+                  if  a in ['A', 'T', 'C', 'G' ]:
+                    nucCount+= 1
+                  else:
+                    nonNucCount+= 1
+    except:
+       eprintf("ERROR:\tCannot open filey " + filename)
+       return False
+
+    if nucCount ==0:
+      return False
+
+    if float(nucCount)/float(nonNucCount + nucCount) > 0.9 :
+      return True
+
+    return False
+
+
+def check_file_types(filenames):
+    filetypes={}
+
+    print 'hello'
+    print filenames
+    for filename in filenames:
+      print filename
+      if not path.exists(filename):
+         filetypes[filename] = ['UNKNOWN', 'UNKNOWN', False]
+
+
+      if isFastaFile(filename):
+         if isNucleotide(filename):
+            filetypes[filename] = ['FASTA', 'NUCL', False]
+         else: # assume amino
+            filetypes[filename] = ['FASTA', 'AMINO', False]
+      elif isGenbank(filename):
+            filetypes[filename] = ['GENBANK', 'NOT-USED', False]
+      else:
+         filetypes[filename] = ['UNKNOWN', 'UNKNOWN', False]
+
+    return filetypes
+
+
 def load_job_status_file(filename, A) :
        if path.exists(filename):
            listfile = open(filename, 'r')
@@ -241,6 +395,10 @@ def doesFileExist( fileName ):
         return False
     else:
         return True
+
+
+
+
 #"""This module defines classes for working with GenBank records."""
 import re
 import sys

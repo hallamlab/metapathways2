@@ -46,7 +46,7 @@ class JobCreator():
           contextCreator = ContextCreator(self.params, self.configs)
 
           contextBlock = []
-          for stageList in contextCreator.getStageLists():
+          for stageList in contextCreator.getStageLists(s.getType()):
             if block_mode ==True:
                contextBlock = []
 
@@ -464,7 +464,7 @@ class ContextCreator:
                   pyScript      = self.configs.METAPATHWAYS_PATH + PATHDELIM +  self.configs.FUNC_SEARCH
                   searchExec =   self.configs.METAPATHWAYS_PATH + PATHDELIM + self.configs.EXECUTABLES_DIR +\
                                  PATHDELIM + self.configs.LAST_EXECUTABLE
-                  cmd= "%s --algorithm %s --last_executable %s --last_o %s --last_f 0 --last_db %s --last_query %s" \
+                  cmd= "%s --algorithm %s --last_executable %s --last_o %s --last_f 2 --last_db %s --last_query %s" \
                        %(pyScript, s.algorithm ,  searchExec, blastoutput, refDbFullName, input_filtered_faa) 
 
                   context.message = self._Message("LASTING AMINO SEQS AGAINST " + db)
@@ -814,13 +814,12 @@ class ContextCreator:
           basencbi = self.configs.REFDBS + PATHDELIM + 'ncbi_tree' 
           context.inputs = {
                             'input_annot_gff':input_annot_gff,
-                           'KO_classification':basefun + PATHDELIM +  'KO_classification.txt',
-                           'COG_categories':basefun + PATHDELIM +  'COG_categories.txt',
-                           'SEED_subsystems':basefun + PATHDELIM + 'SEED_subsystems.txt',
-                           'CAZY_hierarchy':basefun + PATHDELIM + 'CAZY_hierarchy.txt',
-                           'ncbi_taxonomy_tree': basencbi + PATHDELIM + 'NCBI_TAXONOMY_TREE.TXT',
-                           'ncbi_megan_map': basencbi + PATHDELIM + 'ncbi.map'
-
+                            'KO_classification':basefun + PATHDELIM +  'KO_classification.txt',
+                            'COG_categories':basefun + PATHDELIM +  'COG_categories.txt',
+                            'SEED_subsystems':basefun + PATHDELIM + 'SEED_subsystems.txt',
+                            'CAZY_hierarchy':basefun + PATHDELIM + 'CAZY_hierarchy.txt',
+                            'ncbi_taxonomy_tree': basencbi + PATHDELIM + 'NCBI_TAXONOMY_TREE.TXT',
+                            'ncbi_megan_map': basencbi + PATHDELIM + 'ncbi.map'
                            }
           context.outputs = {
                            'output_results_annotation_table_dir':s.output_results_annotation_table_dir,
@@ -1120,22 +1119,23 @@ class ContextCreator:
       def __init__(self, params, configs): 
           self.params = Singleton(Params)(params)
           self.configs = Singleton(Configs)(configs)
-          self.format = params['INPUT']['format']
+          #self.format = params['INPUT']['format']
           self.initFactoryList()
           pass
 
       def getContexts(self, s, stage):
           stageList  = {}
 
-          for stageBlock in self.stageList[self.format]:
+          for stageBlock in self.stageList[s.getType()]:
             for _stage in  stageBlock:
                stageList[_stage] = True
 
           if stage in stageList:
               return self.factory[stage](s)
 
-      def getStageLists(self):
-           return self.stageList[self.format]
+      def getStageLists(self, type):
+           print 'type' , type
+           return self.stageList[type]
            
 
       def initFactoryList(self):
@@ -1159,7 +1159,7 @@ class ContextCreator:
            self.factory['MLTREEMAP_CALCULATION'] = self.create_mltreemap_cmd
            self.factory['COMPUTE_RPKM'] = self.create_rpkm_cmd
 
-           self.stageList['fasta-amino'] = [
+           self.stageList['AMINO-FASTA'] = [
                              ['PREPROCESS_AMINOS',
                               'FILTER_AMINOS',
                               'COMPUTE_REFSCORES' ],
@@ -1173,7 +1173,7 @@ class ContextCreator:
                               'BUILD_PGDB' ]
                              ]
            
-           self.stageList['fasta'] = [
+           self.stageList['NUCL-FASTA'] = [
                              ['PREPROCESS_INPUT',
                               'ORF_PREDICTION',
                               'ORF_TO_AMINO',
@@ -1192,11 +1192,13 @@ class ContextCreator:
                               'COMPUTE_RPKM']
                              ]
            
-           self.stageList['gbk-unannotated'] = [
+           self.stageList['AMINO-GENBANK-UNANNOT'] = [
                              [ 'GBK_TO_FNA_FAA_GFF',
                               'FILTER_AMINOS',
                               'COMPUTE_REFSCORES' ],
+
                              [ 'FUNC_SEARCH' ],
+
                              [ 'PARSE_FUNC_SEARCH',
                               'SCAN_rRNA',
                               'SCAN_tRNA',
@@ -1208,7 +1210,7 @@ class ContextCreator:
                               'BUILD_PGDB']
                              ]
            
-           self.stageList['gbk-annotated'] = [
+           self.stageList['AMINO-GENBANK-ANNOT'] = [
                               'GBK_TO_FNA_FAA_GFF_ANNOT',
                               'FILTER_AMINOS',
                               'SCAN_rRNA',

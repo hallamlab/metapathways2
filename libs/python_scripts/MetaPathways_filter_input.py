@@ -324,16 +324,34 @@ def main(argv, errorlogger = None, runstatslogger = None):
        priority = 2000
 
     if runstatslogger != None:
-         runstatslogger.write("%s\tSequences BEFORE Filtering (%s)\t%s\n" %(str(priority), opts.seqtype,  str(stats[NUMSEQ][BEFORE])) )
-         runstatslogger.write("%s\tmin length\t%s\n" %(str(priority + 1), str(stats[MIN_LENGTH][BEFORE])) )
-         runstatslogger.write("%s\tavg length\t%s\n" %( str(priority + 2), str(int(stats[AVG_LENGTH][BEFORE]))))
-         runstatslogger.write("%s\tmax length\t%s\n" %(str(priority + 3), str(stats[MAX_LENGTH][BEFORE])) )
-         runstatslogger.write("%s\ttot length\t%s\n" %(str(priority + 4), str(int(stats[AVG_LENGTH][BEFORE]* stats[NUMSEQ][BEFORE]))))
-         runstatslogger.write("%s\tSequences AFTER Filtering (%s)\t%s\n" %(str(priority + 5), opts.seqtype, str(stats[NUMSEQ][AFTER])))
-         runstatslogger.write("%s\tmin length\t%s\n" %(str(priority + 6), str(stats[MIN_LENGTH][AFTER])) )
-         runstatslogger.write("%s\tavg length\t%s\n" %( str(priority + 7), str(int(stats[AVG_LENGTH][AFTER]))))
-         runstatslogger.write("%s\tmax length\t%s\n" %( str(priority + 8), str(stats[MAX_LENGTH][AFTER])) )
-         runstatslogger.write("%s\ttot length\t%s\n" %( str(priority + 9), str(int(stats[AVG_LENGTH][AFTER]* stats[NUMSEQ][AFTER])) ))
+       if opts.seqtype=='nucleotide':
+         runstatslogger.write("%s\tNumber of sequences in input file BEFORE QC (%s)\t%s\n" %(str(priority), opts.seqtype,  str(stats[NUMSEQ][BEFORE])) )
+         runstatslogger.write("%s\t-min length\t%s\n" %(str(priority + 1), str(stats[MIN_LENGTH][BEFORE])) )
+         runstatslogger.write("%s\t-avg length\t%s\n" %( str(priority + 2), str(int(stats[AVG_LENGTH][BEFORE]))))
+         runstatslogger.write("%s\t-max length\t%s\n" %(str(priority + 3), str(stats[MAX_LENGTH][BEFORE])) )
+         runstatslogger.write("%s\t-total base pairs (bp)\t%s\n" %(str(priority + 4), str(int(stats[AVG_LENGTH][BEFORE]* stats[NUMSEQ][BEFORE]))))
+
+         runstatslogger.write("%s\tNumber of sequences AFTER QC (%s)\t%s\n" %(str(priority + 5), opts.seqtype, str(stats[NUMSEQ][AFTER])))
+         runstatslogger.write("%s\t-min length\t%s\n" %(str(priority + 6), str(stats[MIN_LENGTH][AFTER])) )
+         runstatslogger.write("%s\t-avg length\t%s\n" %( str(priority + 7), str(int(stats[AVG_LENGTH][AFTER]))))
+         runstatslogger.write("%s\t-max length\t%s\n" %( str(priority + 8), str(stats[MAX_LENGTH][AFTER])) )
+         runstatslogger.write("%s\t-total base pairs (bp)\t%s\n" %( str(priority + 9), str(int(stats[AVG_LENGTH][AFTER]* stats[NUMSEQ][AFTER])) ))
+       else:
+         runstatslogger.write("%s\tNumber of translated ORFs BEFORE QC (%s)\t%s\n" %(str(priority), opts.seqtype,  str(stats[NUMSEQ][BEFORE])) )
+         runstatslogger.write("%s\t-min length\t%s\n" %(str(priority + 1), str(stats[MIN_LENGTH][BEFORE])) )
+         runstatslogger.write("%s\t-avg length\t%s\n" %( str(priority + 2), str(int(stats[AVG_LENGTH][BEFORE]))))
+         runstatslogger.write("%s\t-max length\t%s\n" %(str(priority + 3), str(stats[MAX_LENGTH][BEFORE])) )
+         runstatslogger.write("%s\t-total base pairs (bp)\t%s\n" %(str(priority + 4), str(int(stats[AVG_LENGTH][BEFORE]* stats[NUMSEQ][BEFORE]))))
+         runstatslogger.write("%s\tNumber of tranlated ORFs AFTER QC (%s)\t%s\n" %(str(priority + 5), opts.seqtype, str(stats[NUMSEQ][AFTER])))
+         runstatslogger.write("%s\t-min length\t%s\n" %(str(priority + 6), str(stats[MIN_LENGTH][AFTER])) )
+         runstatslogger.write("%s\t-avg length\t%s\n" %( str(priority + 7), str(int(stats[AVG_LENGTH][AFTER]))))
+         runstatslogger.write("%s\t-max length\t%s\n" %( str(priority + 8), str(stats[MAX_LENGTH][AFTER])) )
+         runstatslogger.write("%s\t-total base pairs (bp)\t%s\n" %( str(priority + 9), str(int(stats[AVG_LENGTH][AFTER]* stats[NUMSEQ][AFTER])) ))
+
+ 
+
+
+
 
 def MetaPathways_filter_input(argv, errorlogger = None, runstatslogger = None):
     createParser()

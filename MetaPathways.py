@@ -95,7 +95,7 @@ def createParser():
                       help="print lots of information on the stdout [default]")
     
     parser.add_option("-b", "--block-mode",
-                      action="store_true", dest="block_mode", default=False,
+                      action="store_true", dest="block_mode", default=True,
                       help="processes the samples by blocking the stages before and after functional search [default off]")
     
     parser.add_option("-P", "--print-only",
@@ -123,51 +123,25 @@ def valid_arguments(opts, args):
     else:
        return False
 
-def remove_unspecified_samples(input_output_list, sample_subset, format, globalerrorlogger = None):
+def derive_sample_name(filename):
+    basename = path.basename(filename) 
+    
+    shortname = re.sub('[.]gbk$','',basename, re.IGNORECASE) 
+    shortname = re.sub('[.](fasta|fas|fna|faa|fa)$','',shortname, re.IGNORECASE) 
+    return shortname
+    
+
+
+def remove_unspecified_samples(input_output_list, sample_subset,  globalerrorlogger = None):
    """ keep only the samples that are specified  before processing  """
    shortened_names = {}
 
-   for input_file in input_output_list.keys():
-      shortname = None 
-      if format in ['gbk-unannotated', 'gbk-annotated']:
-          shortname = re.sub('[.]gbk$','',input_file, re.IGNORECASE) 
-      elif format =='fasta':
-          shortname = re.sub('[.](fasta|fas|fna|faa|fa)$','',input_file, re.IGNORECASE) 
 
-      if shortname==None:
-         continue
-
-      shortname = re.sub(r'[.]','_',shortname) 
-      shortened_names[shortname] = input_file
-
-   shortened_subset_names = [] 
-   for sample_in_subset in sample_subset:
-      shortname = None 
-      if format in ['gbk-unannotated', 'gbk-annotated']:
-          shortname = re.sub('[.]gbk$','',sample_in_subset, re.IGNORECASE) 
-      elif format =='fasta':
-          shortname = re.sub('[.](fasta|fas|fna|faa|fa)$','',sample_in_subset, re.IGNORECASE) 
-
-      if shortname==None:
-         continue
-
-      if check_for_error_in_input_file_name(shortname, globalerrorlogger=globalerrorlogger):
-         shortened_subset_names.append(shortname)
-
-   samples_to_keep = {} 
-
-   for keep_sample in shortened_subset_names:
-      sampleMatchPAT = re.compile(r'' + keep_sample + '$') 
-      for sample  in shortened_names:
-         result = sampleMatchPAT.search(sample, re.IGNORECASE)
-         if result:
-            samples_to_keep[shortened_names[sample]]= True
-            break
-    
    input_sample_list = input_output_list.keys()
-   for sample in input_sample_list:
-      if not sample in samples_to_keep:
-         del input_output_list[sample]
+   for sample_name in input_sample_list:
+      if not derive_sample_name(sample_name) in sample_subset:
+         del input_output_list[sample_name]
+
 
 
 def check_for_error_in_input_file_name(shortname, globalerrorlogger=None):
@@ -203,7 +177,7 @@ def check_for_error_in_input_file_name(shortname, globalerrorlogger=None):
     return False
 
 
-def create_an_input_output_pair(input_file, output_dir, format, globalerrorlogger=None):
+def create_an_input_output_pair(input_file, output_dir,  globalerrorlogger=None):
     """ creates an input output pair if input is just an input file """
        
     input_output = {}
@@ -212,12 +186,9 @@ def create_an_input_output_pair(input_file, output_dir, format, globalerrorlogge
        return input_output
 
     shortname = None 
-    if format in ['gbk-unannotated', 'gbk-annotated']:
-        shortname = re.sub('[.]gbk$','',input_file, re.IGNORECASE) 
-    elif format =='fasta':
-        shortname = re.sub('[.](fasta|fas|fna|faa|fa)$','',input_file, re.IGNORECASE) 
-    else:
-        shortname = re.sub('[.]gff$','',input_file, re.IGNORECASE) 
+    shortname = re.sub('[.]gbk$','',input_file, re.IGNORECASE) 
+    shortname = re.sub('[.](fasta|fas|fna|faa|fa)$','',input_file, re.IGNORECASE) 
+    #    shortname = re.sub('[.]gff$','',input_file, re.IGNORECASE) 
 
     shortname = re.sub(r'.*' + PATHDELIM ,'',shortname) 
 
@@ -228,23 +199,25 @@ def create_an_input_output_pair(input_file, output_dir, format, globalerrorlogge
     return input_output
 
 
-def create_input_output_pairs(input_dir, output_dir, format, globalerrorlogger=None):
+def create_input_output_pairs(input_dir, output_dir,  globalerrorlogger=None):
     """  creates a list of  input output pairs if input is  an input dir """
     fileslist =  listdir(input_dir)
-    gbkPatt = re.compile('[.]gbk$',re.IGNORECASE) 
 
+    gbkPatt = re.compile('[.]gbk$',re.IGNORECASE) 
     fastaPatt = re.compile('[.](fasta|fas|fna|faa|fa)$',re.IGNORECASE) 
     gffPatt = re.compile('[.]gff$',re.IGNORECASE) 
 
     input_files = {}
     for input_file in fileslist:
+       
        shortname = None 
-       if format in ['gbk-unannotated', 'gbk-annotated']:
-          result =  gbkPatt.search(input_file)
-          if result:
-             shortname = re.sub('[.]gbk$','',input_file, re.IGNORECASE) 
+       result = None
 
-       elif format in [ 'fasta' ]:
+       result =  gbkPatt.search(input_file)
+       if result:
+         shortname = re.sub('[.]gbk$','',input_file, re.IGNORECASE) 
+
+       if result==None:
           result =  fastaPatt.search(input_file)
           if result:
              shortname = re.sub('[.](fasta|fas|fna|faa|fa)$','',input_file, re.IGNORECASE) 
@@ -258,7 +231,7 @@ def create_input_output_pairs(input_dir, output_dir, format, globalerrorlogger=N
 
     paired_input = {} 
     for key, value in input_files.iteritems():
-            paired_input[input_dir + PATHDELIM + key] = path.abspath(output_dir) + PATHDELIM + value
+       paired_input[input_dir + PATHDELIM + key] = path.abspath(output_dir) + PATHDELIM + value
 
     return paired_input
 
@@ -353,7 +326,6 @@ def main(argv):
     command_line_params['verbose']= opts.verbose
 
     params=parse_metapaths_parameters(parameter_f)
-    format = params['INPUT']['format']
 
     """ load the sample inputs  it expects either a fasta 
         file or  a directory containing fasta and yaml file pairs
@@ -364,11 +336,11 @@ def main(argv):
     input_output_list = {}
     if path.isfile(input_fp):   
        """ check if it is a file """
-       input_output_list = create_an_input_output_pair(input_fp, output_dir, format, globalerrorlogger = globalerrorlogger)
+       input_output_list = create_an_input_output_pair(input_fp, output_dir,  globalerrorlogger=globalerrorlogger)
     else:
        if path.exists(input_fp):   
           """ check if dir exists """
-          input_output_list = create_input_output_pairs(input_fp, output_dir, format, globalerrorlogger=globalerrorlogger)
+          input_output_list = create_input_output_pairs(input_fp, output_dir, globalerrorlogger=globalerrorlogger)
        else:   
           """ must be an error """
           eprintf("ERROR\tNo valid input sample file or directory containing samples exists .!")
@@ -377,15 +349,16 @@ def main(argv):
    
     """ these are the subset of sample to process if specified
         in case of an empty subset process all the sample """
-    if sample_subset:
-       remove_unspecified_samples(input_output_list, sample_subset, format, globalerrorlogger = globalerrorlogger)
 
+
+    if sample_subset:
+       remove_unspecified_samples(input_output_list, sample_subset, globalerrorlogger = globalerrorlogger)
 
     # add check the config parameters 
     sorted_input_output_list = sorted(input_output_list.keys())
-    print sample_subset 
-    print sorted_input_output_list
 
+    
+    filetypes = check_file_types(sorted_input_output_list) 
 
     config_settings = read_pipeline_configuration(config_file, globalerrorlogger)
 
@@ -395,7 +368,6 @@ def main(argv):
         globalerrorlogger.printf("ERROR\tFailed to pass the test for required scripts and inputs before run\n")
         exit_process("ERROR\tFailed to pass the test for required scripts and inputs before run\n")
 
-    
     
     samplesData = {}
     # PART1 before the blast
@@ -415,6 +387,8 @@ def main(argv):
                 s.setParameter('algorithm', algorithm)
                 s.setParameter('ncbi_params_file', ncbi_sequin_params)
                 s.setParameter('ncbi_sequin_sbt', ncbi_sequin_sbt)
+                s.setParameter('FILE_TYPE', filetypes[input_file][0])
+                s.setParameter('SEQ_TYPE', filetypes[input_file][1])
                 s.clearJobs()
    
                 if run_type=='overwrite' and  path.exists(sample_output_dir):

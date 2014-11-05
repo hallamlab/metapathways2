@@ -201,6 +201,7 @@ def create_refscores(refscores_file, refscore_map):
 
 class BlastOutputParser(object):
     commentPATTERN = re.compile(r'^#')
+    commentLAST_VERSION_PATTERN = re.compile(r'^#.*LAST[\s]+version[\s]+\d+')
 
     def __init__(self, dbname,  blastoutput, database_mapfile, refscore_file, opts, errorlogger =None):
         self.Size = 10000
@@ -214,6 +215,7 @@ class BlastOutputParser(object):
         self.hits_counts = {}
         self.data = {}
         self.refscores = {}
+        self.needToPermute = False;
 
         self.MAX_READ_ERRORS_ALLOWED = 100
         self.ERROR_COUNT = 0
@@ -291,10 +293,12 @@ class BlastOutputParser(object):
     def refillBuffer(self):
         i = 0
         self.lines = []
-        line = self.blastoutputfile.readline()
+        line = True # self.blastoutputfile.readline()
         while line and i < self.Size:
           line=self.blastoutputfile.readline()
           if self.commentPATTERN.match(line):
+             if self.commentLAST_VERSION_PATTERN.match(line) ==False:
+                self.needToPermute = True
              continue
           self.lines.append(line)
           if not line:
@@ -313,7 +317,8 @@ class BlastOutputParser(object):
                self.i = self.i + 1
                return None
             
-           if  self.opts.algorithm =='LAST':
+           #if  self.opts.algorithm =='LAST':
+           if  self.needToPermute:
                 self.permuteForLAST(words)
 
            if not words[0] in self.hits_counts:
@@ -429,7 +434,7 @@ class BlastOutputParser(object):
            except:
               data['product'] = ''
     
-    
+
         if data['q_length'] < cutoffs.min_length:
            return False
     

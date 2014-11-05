@@ -272,7 +272,6 @@ def main(argv, errorlogger = None, runstatslogger = None):
            if  seqlen > stats[MAX_LENGTH][AFTER] :
                stats[MAX_LENGTH][AFTER] = seqlen
 
-    print 'done'
     fprintf(lengthsfile,"%s\n",lengths_str);
 
     if stats[NUMSEQ][BEFORE] > 0 :
@@ -339,9 +338,10 @@ def main(argv, errorlogger = None, runstatslogger = None):
          runstatslogger.write("%s\tmax length\t%s\n" %( str(priority + 8), str(stats[MAX_LENGTH][AFTER])) )
          runstatslogger.write("%s\ttot length\t%s\n" %( str(priority + 9), str(int(stats[AVG_LENGTH][AFTER]* stats[NUMSEQ][AFTER])) ))
 
-def MetaPathways_filter_input(argv, errorlogger = None, runstatslogger = None):
+def MetaPathways_preprocess_amino_input(argv, errorlogger = None, runstatslogger = None):
     createParser()
     main(argv, errorlogger = errorlogger, runstatslogger = runstatslogger) 
+
     return (0,'')
 
 # the main function of metapaths

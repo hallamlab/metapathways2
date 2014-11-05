@@ -10,7 +10,7 @@ __maintainer__ = "Kishori M Konwar"
 __status__ = "Release"
 
 try:
-     import os, re
+     import os, re, traceback
      from os import makedirs, sys, remove
      from sys import path
      from optparse import OptionParser
@@ -180,14 +180,13 @@ def remove_blast_index_files(filename):
 
 
 def remove_last_index_files(filename):
-    prefixes = [ 'des', 'sds', 'suf', 'bck',  'ssp', 'tis' ]
+    suffixes = [ 'prj', 'des', 'sds', 'suf', 'bck',  'ssp', 'tis' ]
 
     remove( filename+ '.lastout')
     dirname = os.path.dirname(filename)     
-    remove( dirname + PATHDELIM + 'subset_db0' +'.prj')
-    for prefix in prefixes:
+    for suffix in suffixes:
        try:
-          remove(dirname + PATHDELIM + 'subset_db0.' + prefix)
+          remove(dirname + PATHDELIM + 'subset_db.' + suffix)
        except IOError:
           pass
 
@@ -225,15 +224,19 @@ def main(argv, errorlogger = None, runstatslogger = None):
               compute_refscores(formatdb_executable, blast_executable,seq_subset_file, outfile, allNames, algorithm);
 
               # now remove the old file
-              if algorithm == 'BLAST' :
-                 remove_blast_index_files(seq_subset_file.name)
+              try:
+                 if algorithm == 'BLAST' :
+                    remove_blast_index_files(seq_subset_file.name)
 
-              if algorithm == 'LAST' :
-                 remove_last_index_files(seq_subset_file.name)
-
-              remove(seq_subset_file.name)
+                 if algorithm == 'LAST' :
+                    remove_last_index_files(seq_subset_file.name)
+                 remove(seq_subset_file.name)
+              except:
+                 pass
+            count = 0  # reset it to zero
 
             seq_subset_file = open(output_file +'.tmp.'+ str(count) +'.fasta','w')
+
         allNames[record.name.replace(">","")] = False;    
         fprintf(seq_subset_file, "%s\n", record.name)
         fprintf(seq_subset_file, "%s\n", record.sequence)
@@ -242,14 +245,18 @@ def main(argv, errorlogger = None, runstatslogger = None):
 
     #print str(count) + "   "  + "going to blast last sequence "
     if (count) % SIZE != 0:
-       #print str(count) + "   "  + "last sequence "
        seq_subset_file.close()
        compute_refscores(formatdb_executable, blast_executable,seq_subset_file, outfile, allNames, algorithm);
        remove(seq_subset_file.name)
-       if algorithm == 'BLAST' :
-          remove_blast_index_files(seq_subset_file.name)
-       if algorithm == 'LAST' :
-          remove_last_index_files(seq_subset_file.name)
+
+       try:
+          if algorithm == 'BLAST' :
+            remove_blast_index_files(seq_subset_file.name)
+
+          if algorithm == 'LAST' :
+            remove_last_index_files(seq_subset_file.name)
+       except:
+          pass
 
 
     #print count
@@ -263,7 +270,14 @@ def MetaPathways_refscore(argv, errorlogger = None, runstatslogger = None):
     createParser( )
     if errorlogger:
        errorlogger.write("#STEP\tCOMPUTE_REFSCORE\n")
-    main(argv, errorlogger = errorlogger, runstatslogger = runstatslogger)
+    try:
+       main(argv, errorlogger = errorlogger, runstatslogger = runstatslogger)
+    except:
+       print 'error'
+       print traceback.format_exc(10)
+
+       return (1,traceback.format_exc(10))
+
     return (0,'')
 
 # the main function of metapaths

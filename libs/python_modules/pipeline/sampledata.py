@@ -136,6 +136,27 @@ class SampleData():
         self._createLogFiles()
 
 
+    def getType(self):
+        if not hasattr(self, 'SEQ_TYPE'):
+           return None
+
+        if not hasattr(self, 'FILE_TYPE'):
+           return None
+
+        if self.FILE_TYPE=='FASTA':
+            if self.SEQ_TYPE =='NUCL':
+               return self.SEQ_TYPE + '-' + self.FILE_TYPE
+
+            if self.SEQ_TYPE =='AMINO':
+               return self.SEQ_TYPE + '-' + self.FILE_TYPE
+
+        if self.FILE_TYPE=='GENBANK':
+            if self.SEQ_TYPE =='NOT-USED':
+               return 'AMINO' '-' + self.FILE_TYPE + '-' + 'UNANNOT'
+
+        return 'UNKNOWN'
+
+
     def _createLogFiles(self):
         self.runlogger = WorkflowLogger(generate_log_fp(self.output_dir, basefile_name='metapathways_run_log'), open_mode='a')
         self.stepslogger = WorkflowLogger(generate_log_fp(self.output_dir, basefile_name='metapathways_steps_log'),open_mode='a')
