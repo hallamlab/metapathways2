@@ -636,7 +636,8 @@ def process_product(product, database, similarity_threshold=0.9):
     processed_product = remove_repeats(filtered_words)
     processed_product = re.sub(';','',processed_product)
 
-    processed_product = re.sub(r'hypothetical protein','', processed_product)
+    # can actually be a proper annotation
+    # processed_product = re.sub(r'hypothetical protein','', processed_product)
 
     return processed_product
 
