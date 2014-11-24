@@ -252,8 +252,9 @@ def create_annotation(results_dictionary, dbname,  annotated_gff,  output_dir, T
                     taxonomy = Taxons[shortORFId]
             else:
                 taxonomy = 'root'
+            product = orf['product'] # leave product as it is
             # product = re.sub(r'\[{1,2}.+?\]{1,2}','', orf['product']).strip()
-            product = re.sub(r'\[[^\[]+?\]','', orf['product']).strip()
+            # product = re.sub(r'\[[^\[]+?\]','', orf['product']).strip()
             # if "partial" in orf['product']:
             #     print orf['product'].strip()
             #     print product
