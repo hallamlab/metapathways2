@@ -1,2 +1,0 @@
-prx1ref	prx1	Bacterial Peroxidase Family
-prx2ref	prx2	Animal/Plant/Fungal/Bacterial Peroxidase Family
