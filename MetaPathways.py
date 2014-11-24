@@ -18,7 +18,7 @@ try:
      
      from libs.python_modules.utils import metapathways_utils
      from libs.python_modules.utils.utils import *
-     from libs.python_modules.utils.metapathways_utils  import parse_command_line_parameters, eprintf, halt_process, exit_process,WorkflowLogger, generate_log_fp
+     from libs.python_modules.utils.metapathways_utils  import parse_command_line_parameters, eprintf, halt_process, exit_process, WorkflowLogger, generate_log_fp
      from libs.python_modules.parsers.parse  import parse_metapaths_parameters, parse_parameter_file
      from libs.python_modules.pipeline.metapathways_pipeline import print_commands, print_to_stdout, no_status_updates
      from libs.python_modules.utils.sysutil import pathDelim
@@ -97,6 +97,10 @@ def createParser():
     parser.add_option("-b", "--block-mode",
                       action="store_true", dest="block_mode", default=True,
                       help="processes the samples by blocking the stages before and after functional search [default off]")
+
+    parser.add_option("-d", "--delay", dest="delay", type='int',  default=0,
+                      help="number of seconds to sleep once the run is done")
+    
     
     parser.add_option("-P", "--print-only",
                       action="store_true", dest="print_only", default=False,
@@ -134,9 +138,8 @@ def derive_sample_name(filename):
 
 def remove_unspecified_samples(input_output_list, sample_subset,  globalerrorlogger = None):
    """ keep only the samples that are specified  before processing  """
+
    shortened_names = {}
-
-
    input_sample_list = input_output_list.keys()
    for sample_name in input_sample_list:
       if not derive_sample_name(sample_name) in sample_subset:
@@ -151,7 +154,7 @@ def check_for_error_in_input_file_name(shortname, globalerrorlogger=None):
     if not re.search(r'^[a-zA-Z]',shortname):
          eprintf("ERROR\tSample name %s must begin with an alphabet!\n",shortname)
          if globalerrorlogger:
-            globalerrorlogger.printf("ERROR\tSample name %s must begin with an alphabet!\n",shortname)
+            globalerrorlogger.printf("ERROR\tSample name %s must begin with an alphabet!\tConsider prefixing an alphabet to the front\n",shortname)
          clean = False
 
     if re.search(r'[.]',shortname):
@@ -169,11 +172,11 @@ def check_for_error_in_input_file_name(shortname, globalerrorlogger=None):
     if clean:
          return clean
 
-    errmessage = """ Sample names before the  suffixes .fasta, .fas, .fna, .faa or .gbk, must  consist only of alphabets, digits and _; and should consist of at least two characters """
+    errmessage = """Sample names before the  suffixes .fasta, .fas, .fna, .faa or .gbk, must  consist only of alphabets, digits and _; and should consist of at least two characters """
     eprintf("ERROR\t%s\n",errmessage)
     if globalerrorlogger:
         globalerrorlogger.printf("ERROR\t%s\n",errmessage)
-        exit_process("ERROR\t" + errmessage + "Exiting!" + "\n")
+    #    exit_process(errmessage + "Exiting!" + "\n", logger=globalerrorlogger)
     return False
 
 
@@ -235,6 +238,15 @@ def create_input_output_pairs(input_dir, output_dir,  globalerrorlogger=None):
 
     return paired_input
 
+def removeSuffix(sample_subset_in):
+    sample_subset_out = []
+    for sample_name in sample_subset_in:
+       mod_name = re.sub('.(fasta|fas|fna|faa|gff|gbk|fa)$','',sample_name)
+       sample_subset_out.append(mod_name)
+
+    return sample_subset_out
+
+
 def openGrades():
     pass
 
@@ -263,7 +275,8 @@ def main(argv):
     output_dir = path.abspath(opts.output_dir)
     verbose = opts.verbose
     print_only = opts.print_only
-    sample_subset= opts.sample_subset
+
+    sample_subset = removeSuffix(opts.sample_subset)
 
     run_type = opts.run_type.strip()
 
@@ -357,16 +370,15 @@ def main(argv):
     # add check the config parameters 
     sorted_input_output_list = sorted(input_output_list.keys())
 
-    
     filetypes = check_file_types(sorted_input_output_list) 
+
 
     config_settings = read_pipeline_configuration(config_file, globalerrorlogger)
 
     parameter =  Parameters()
     if not staticDiagnose(config_settings, params, logger = globalerrorlogger):
         eprintf("ERROR\tFailed to pass the test for required scripts and inputs before run\n")
-        globalerrorlogger.printf("ERROR\tFailed to pass the test for required scripts and inputs before run\n")
-        exit_process("ERROR\tFailed to pass the test for required scripts and inputs before run\n")
+        exit_process("Failed to pass the test for required scripts and inputs before run", logger=globalerrorlogger)
 
     
     samplesData = {}
@@ -377,6 +389,7 @@ def main(argv):
 
     try:
          # load the sample information 
+         print "RUNNING MetaPathways version 2.5.1"
          if len(input_output_list): 
               for input_file in sorted_input_output_list:
                 sample_output_dir = input_output_list[input_file]
@@ -417,8 +430,8 @@ def main(argv):
                    runid = runid
               )
          else: 
-              eprintf("ERROR\tNo input files in the specified folder %s to process!\n",sQuote(input_fp) )
-              globalerrorlogger.printf("ERROR\tNo input files in the specified folder %s to process!\n",sQuote(input_fp) )
+              eprintf("ERROR\tNo valid input files to process in folder %s!\n",sQuote(input_fp) )
+              globalerrorlogger.printf("ERROR\tNo valid input files to process in folder %s!\n",sQuote(input_fp) )
    
         
          # blast the files
@@ -439,8 +452,7 @@ def main(argv):
                 )
      
     except:
-       globalerrorlogger.write( "ERROR\t" + str(traceback.format_exc(10)))
-       exit_process("ERROR:" + str(traceback.format_exc(10)))
+       exit_process(str(traceback.format_exc(10)), logger= globalerrorlogger )
 
 
     
@@ -448,7 +460,7 @@ def main(argv):
     eprintf("INFO : FINISHED PROCESSING THE SAMPLES \n")
     eprintf("             THE END                   \n")
     eprintf("            ***********                \n")
-    halt_process(4)
+    halt_process(opts.delay)
 
 # the main function of metapaths
 if __name__ == "__main__":

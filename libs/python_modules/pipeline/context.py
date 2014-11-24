@@ -50,6 +50,7 @@ class Context:
             if not doesFileExist(file):
           #      print file
                 if errorlogger!=None:
+                   errorlogger.printf("#STEP\t%s\n", self.name)
                    errorlogger.printf("ERROR\tMissing input %s\n", file)
                 status = False
         return status

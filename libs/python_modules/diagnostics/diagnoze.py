@@ -43,7 +43,6 @@ def staticDiagnose(configs, params, logger = None ):
     _configuration = Configuration() 
     configuration = _configuration.getConfiguration()
     
-
     """ the place holders for the tools required to make the run """
     _tools = Tools()
     tools = _tools.getTools()
@@ -69,7 +68,78 @@ def staticDiagnose(configs, params, logger = None ):
 
     if not checkForRequiredDatabases(tools, params, configs, 'taxonomic',  logger = logger):
         return False
+    
+    message = checkbinaries(configs)
+    if message:
+       print message
+       return False
+
+
     return True
+
+def checkbinaries(configs):
+
+    message = None
+    executables_dir = "---"
+    if "METAPATHWAYS_PATH" in configs:
+       executables_dir = configs["METAPATHWAYS_PATH"]
+
+    if "EXECUTABLES_DIR" in configs:
+       executables_dir += PATHDELIM + configs["EXECUTABLES_DIR"]
+    else:
+       executables_dir += PATHDELIM + "---"
+
+
+    if not path.exists(executables_dir):
+       message = "ERROR\tMissing executables folder under \'MetaPathways_Python/executables\' it set to " + executables_dir
+       return message 
+
+    
+    binaries = {}
+    binaries["LASTDB_EXECUTABLE"] = ["-h"]
+    binaries["LAST_EXECUTABLE"] = ["-h"]
+    binaries["FORMATDB_EXECUTABLE"] = ["-help" ]
+
+    binaries["BLASTP_EXECUTABLE"] = ['-h' ] 
+    binaries["BLASTN_EXECUTABLE"] = ['-h' ]
+
+    binaries["PRODIGAL_EXECUTABLE"]= ["-h"]
+    binaries["SCAN_tRNA_EXECUTABLE"] = ['-h' ] 
+    binaries["RPKM_EXECUTABLE"] = ['-h' ]
+
+    status = {}
+    error = False
+    for name in binaries.keys():
+       if not name in configs : 
+          status[name] = "BINARY UNSPECIFIED"
+          error = True
+          continue
+
+       executable =  executables_dir + PATHDELIM + configs[name];
+
+       if not executable.strip():
+          status[name] = "BINARY UNSPECIFIED"
+          error = True
+          continue
+
+       if not path.exists(executable):
+          status[name] = "BINARY MISSING"
+          error = True
+          continue
+
+       result = getstatusoutput( ' '.join([ executable ] +  binaries[name]))
+
+    message = False
+    if error:
+       message = "ERROR\tOS Specific executables check failed\n\n"
+       message += "\tFOLDER :" + executables_dir + "\n\n" 
+       message += "\tFIX    : Please correct the location for \"OS Specific Executables\" in the Setup tab\n"
+       message += "\t       : Alternatively, you can update the EXECUTABLES_DIR key in the config file \"config/template_config.txt\"\n\n" 
+
+       for name in  status.keys():
+           message +=  "\t" +  name +  "  :  " +   status[name]  + "\n";
+
+    return message
 
 def checkForRequiredDatabases(tools, params, configs, dbType, logger =None):
     """ checks the 
@@ -343,7 +413,7 @@ def executablesExist( executables, configs, logger = None ):
            continue
 
       if name=='PATHOLOGIC_EXECUTABLE' and  path.exists(script):
-           print "FIX ME: diagnoze"
+           #print "FIX ME: diagnoze"
            continue
 
       

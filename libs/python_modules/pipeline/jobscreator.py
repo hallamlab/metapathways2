@@ -52,9 +52,8 @@ class JobCreator():
 
             for stage in stageList: 
                if stage in self.params['metapaths_steps'] or\
-                  stage == 'GBK_TO_FNA_FAA_GFF' or\
-                  stage == 'GBK_TO_FNA_FAA_GFF_ANNOT' or\
-                  stage == 'PREPROCESS_AMINOS':
+                  stage in [ 'ORF_TO_AMINO', 'GBK_TO_FNA_FAA_GFF', 'GBK_TO_FNA_FAA_GFF_ANNOT',\
+                           'COMPUTE_REFSCORES',   'PREPROCESS_AMINOS'] :
                   #if self.params['INPUT']['format'] =='gbk-unannotated':
                   #  if stage=='PREPROCESS_INPUT':
                   #    stage = 'GBK_TO_FNA_FAA_GFF'
@@ -330,7 +329,7 @@ class ContextCreator:
          context.name = 'ORF_TO_AMINO'
          context.inputs = { 'input_gff' : input_gff, 'input_fasta': input_fasta }
          context.outputs = { 'output_faa': output_faa, 'output_fna': output_fna, 'output_gff' : output_gff }
-         context.status = self.params.get('metapaths_steps','ORF_TO_AMINO')
+         context.status = self.params.get('metapaths_steps','ORF_PREDICTION')
 
          pyScript = self.configs.METAPATHWAYS_PATH + self.configs.ORF_TO_AMINO 
          cmd = "%s -g  %s  -n %s --output_nuc %s --output_amino %s --output_gff %s"\
@@ -368,7 +367,7 @@ class ContextCreator:
                               'amino_stats_file': amino_stats_file,\
                               'orf_lengths_file': orf_lengths_file }
 
-          context.status = self.params.get('metapaths_steps','FILTER_AMINOS')
+          context.status = self.params.get('metapaths_steps','ORF_PREDICTION')
 
           pyScript = self.configs.METAPATHWAYS_PATH + self.configs.PREPROCESS_INPUT
 
@@ -399,7 +398,7 @@ class ContextCreator:
           context.inputs = { 'input_filtered_faa' : input_filtered_faa }
           context.outputs = { 'output_refscores': output_refscores}
 
-          context.status = self.params.get('metapaths_steps','COMPUTE_REFSCORES')
+          context.status = self.params.get('metapaths_steps','PARSE_FUNC_SEARCH')
 
           cmd = None
           if s.algorithm == 'BLAST':
@@ -814,12 +813,12 @@ class ContextCreator:
           basencbi = self.configs.REFDBS + PATHDELIM + 'ncbi_tree' 
           context.inputs = {
                             'input_annot_gff':input_annot_gff,
-                            'KO_classification':basefun + PATHDELIM +  'KO_classification.txt',
-                            'COG_categories':basefun + PATHDELIM +  'COG_categories.txt',
-                            'SEED_subsystems':basefun + PATHDELIM + 'SEED_subsystems.txt',
-                            'CAZY_hierarchy':basefun + PATHDELIM + 'CAZY_hierarchy.txt',
-                            'ncbi_taxonomy_tree': basencbi + PATHDELIM + 'NCBI_TAXONOMY_TREE.TXT',
-                            'ncbi_megan_map': basencbi + PATHDELIM + 'ncbi.map'
+                           'KO_classification':basefun + PATHDELIM +  'KO_classification.txt',
+                           'COG_categories':basefun + PATHDELIM +  'COG_categories.txt',
+                           'SEED_subsystems':basefun + PATHDELIM + 'SEED_subsystems.txt',
+                           'CAZY_hierarchy':basefun + PATHDELIM + 'CAZY_hierarchy.txt',
+                           'ncbi_taxonomy_tree': basencbi + PATHDELIM + 'ncbi_taxonomy_tree.txt',
+                           'ncbi_megan_map': basencbi + PATHDELIM + 'ncbi.map'
                            }
           context.outputs = {
                            'output_results_annotation_table_dir':s.output_results_annotation_table_dir,
@@ -1030,14 +1029,30 @@ class ContextCreator:
 
           '''input'''
           rpkm_input = s.rpkm_input_dir 
+          bwaFolder = s.bwa_folder 
           output_gff = s.orf_prediction_dir + PATHDELIM +  s.sample_name + ".unannot.gff"
           output_fas = s.preprocessed_dir + PATHDELIM + s.sample_name + ".fasta"
           rpkmExec = self.configs.METAPATHWAYS_PATH + PATHDELIM + self.configs.EXECUTABLES_DIR +\
                      PATHDELIM + self.configs.RPKM_EXECUTABLE
 
+          bwaExec = self.configs.METAPATHWAYS_PATH + PATHDELIM + self.configs.EXECUTABLES_DIR +\
+                     PATHDELIM + self.configs.BWA_EXECUTABLE
+
+
           '''output'''
           rpkm_output = s.output_results_rpkm_dir  + PATHDELIM + s.sample_name + ".orf_rpkm.txt"
           stats_file = s.output_results_rpkm_dir  + PATHDELIM + s.sample_name + ".orf_rpkm_stats.txt"
+
+          samFiles = getSamFiles(rpkm_input, s.sample_name) 
+          readFiles = getReadFiles(rpkm_input, s.sample_name)
+
+          inputFile = 'no sam or fastq files to process [OPTIONAL]'
+          if samFiles:
+            inputFile = samFiles[0] 
+         
+          if readFiles:
+            inputFile = readFiles[0] 
+
 
           context = Context()
           context.name = 'COMPUTE_RPKM'
@@ -1046,6 +1061,9 @@ class ContextCreator:
                              'output_gff': output_gff,
                              'output_fas':output_fas,
                              'rpkmExec': rpkmExec,
+                             'bwaExec': bwaExec,
+                             'bwaFolder': bwaFolder,
+                             'inputFile': inputFile
                            }
 
           context.outputs = {
@@ -1055,11 +1073,11 @@ class ContextCreator:
 
           pyScript = self.configs.METAPATHWAYS_PATH + self.configs.RPKM_CALCULATION
 
-
-          cmd = "%s -c %s  --rpkmExec %s --rpkmdir %s -O %s -o %s --sample_name %s --stats %s"\
+          cmd = "%s -c %s  --rpkmExec %s --rpkmdir %s -O %s -o %s --sample_name %s --stats %s --bwaFolder %s --bwaExec %s"\
                 % (pyScript, context.inputs['output_fas'], context.inputs['rpkmExec'],\
                    context.inputs['rpkm_input'], context.inputs['output_gff'],\
-                 context.outputs['rpkm_output'], s.sample_name, context.outputs['stats_file'])
+                 context.outputs['rpkm_output'], s.sample_name, context.outputs['stats_file'],\
+                 context.inputs['bwaFolder'], context.inputs['bwaExec'])
                 
           context.status = self.params.get('metapaths_steps', 'COMPUTE_RPKM') 
 
@@ -1119,13 +1137,11 @@ class ContextCreator:
       def __init__(self, params, configs): 
           self.params = Singleton(Params)(params)
           self.configs = Singleton(Configs)(configs)
-          #self.format = params['INPUT']['format']
           self.initFactoryList()
           pass
 
       def getContexts(self, s, stage):
           stageList  = {}
-
           for stageBlock in self.stageList[s.getType()]:
             for _stage in  stageBlock:
                stageList[_stage] = True
@@ -1134,7 +1150,6 @@ class ContextCreator:
               return self.factory[stage](s)
 
       def getStageLists(self, type):
-           print 'type' , type
            return self.stageList[type]
            
 
@@ -1161,13 +1176,13 @@ class ContextCreator:
 
            self.stageList['AMINO-FASTA'] = [
                              ['PREPROCESS_AMINOS',
-                              'FILTER_AMINOS',
-                              'COMPUTE_REFSCORES' ],
+                              'FILTER_AMINOS' ],
                              [ 'FUNC_SEARCH' ],
-                             [ 'PARSE_FUNC_SEARCH',
+                             [ 'COMPUTE_REFSCORES',
+                              'PARSE_FUNC_SEARCH',
                               'ANNOTATE_ORFS',
                               'PATHOLOGIC_INPUT',
-                              'GENBANK_FILE',  
+                             # 'GENBANK_FILE',  
                               'CREATE_ANNOT_REPORTS',
                              # 'MLTREEMAP_CALCULATION',
                               'BUILD_PGDB' ]
@@ -1177,34 +1192,32 @@ class ContextCreator:
                              ['PREPROCESS_INPUT',
                               'ORF_PREDICTION',
                               'ORF_TO_AMINO',
-                              'FILTER_AMINOS',
-                              'COMPUTE_REFSCORES' ],
+                              'FILTER_AMINOS' ],
                              [ 'FUNC_SEARCH' ],
-                             [ 'PARSE_FUNC_SEARCH',
+                             [ 'COMPUTE_REFSCORES' ,
+                              'PARSE_FUNC_SEARCH',
                               'SCAN_rRNA',
                               'SCAN_tRNA',
                               'ANNOTATE_ORFS',
                               'PATHOLOGIC_INPUT',
-                              'GENBANK_FILE',  
+                             # 'GENBANK_FILE',  
                               'CREATE_ANNOT_REPORTS',
-                              'MLTREEMAP_CALCULATION',
+                            #  'MLTREEMAP_CALCULATION',
                               'BUILD_PGDB',
                               'COMPUTE_RPKM']
                              ]
            
            self.stageList['AMINO-GENBANK-UNANNOT'] = [
                              [ 'GBK_TO_FNA_FAA_GFF',
-                              'FILTER_AMINOS',
-                              'COMPUTE_REFSCORES' ],
-
+                              'FILTER_AMINOS'],
                              [ 'FUNC_SEARCH' ],
-
-                             [ 'PARSE_FUNC_SEARCH',
+                              ['COMPUTE_REFSCORES' ,
+                              'PARSE_FUNC_SEARCH',
                               'SCAN_rRNA',
                               'SCAN_tRNA',
                               'ANNOTATE_ORFS',
                               'PATHOLOGIC_INPUT',
-                              'GENBANK_FILE',  
+                             # 'GENBANK_FILE',  
                               'CREATE_ANNOT_REPORTS',
                              # 'MLTREEMAP_CALCULATION',
                               'BUILD_PGDB']

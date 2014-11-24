@@ -7,6 +7,7 @@ try:
    from os import path, _exit
    import logging.handlers
    from glob import glob
+   import multiprocessing
 
    from libs.python_modules.utils.sysutil import pathDelim
    from libs.python_modules.utils.metapathways_utils  import fprintf, printf, eprintf,  exit_process
@@ -23,8 +24,6 @@ except:
 
 
 PATHDELIM= pathDelim()
-
-
 
 def fprintf(file, fmt, *args):
     file.write(fmt % args)
@@ -69,7 +68,7 @@ def createParser():
                            help='output stats for ORFs  into file')
 
     parser.add_option('-r', '--rpkmdir', dest='rpkmdir', default=None,
-                           help='list of sam files that contains the read recruitments')
+                           help='the directory that should have the read files')
 
     parser.add_option('-O', '--orfgff', dest='orfgff', default=None,
                            help='folder of the PGDB')
@@ -80,72 +79,181 @@ def createParser():
     parser.add_option('--rpkmExec', dest='rpkmExec', default=None,
                            help='RPKM Executable')
 
+    parser.add_option('--bwaExec', dest='bwaExec', default=None,
+                           help='BWA Executable')
+
+    parser.add_option('--bwaFolder', dest='bwaFolder', default=None,
+                           help='BWA Folder')
+
+
+def getSamFiles(readdir, sample_name):
+   '''This function finds the set of fastq files that has the reads'''
+
+   samFiles = []
+   _samFile = glob(readdir + PATHDELIM + sample_name + '.sam')
+
+   if _samFile:
+      samFiles += _samFile
+
+   _samFiles = glob(readdir + PATHDELIM + sample_name + '_[0-9].sam')
+
+   if _samFiles:
+     samFiles += _samFiles
+
+   return samFiles
+
+
+
+def getReadFiles(readdir, sample_name):
+   '''This function finds the set of fastq files that has the reads'''
+
+   fastqFiles = []
+
+   _fastqfiles = glob(readdir + PATHDELIM + sample_name + '_[0-9].[fF][aA][Ss][Tt][qQ]')
+
+   if _fastqfiles:
+      fastqFiles = _fastqfiles
+
+   _fastqfiles = glob(readdir + PATHDELIM + sample_name + '_[0-9].[fF][qQ]')
+   if _fastqfiles:
+      fastqFiles = _fastqfiles
+
+   _fastqfiles = glob(readdir + PATHDELIM + sample_name + '.[fF][aA][Ss][Tt][qQ]')
+   if _fastqfiles:
+      fastqFiles = _fastqfiles
+
+   _fastqfiles = glob(readdir + PATHDELIM + sample_name + '.[fF][qQ]')
+   if _fastqfiles:
+      fastqFiles = _fastqfiles
+
+   return fastqFiles
+
+
+
+def indexForBWA(bwaExec, contigs,indexfile):
+    cmd = "%s index -p %s %s"  %(bwaExec, indexfile, contigs, )
+    result = getstatusoutput(cmd)
+
+    if result[0]==0:
+       return True
+
+    return False
+
+
+def runUsingBWA(bwaExec, sample_name,  indexFile,  readFiles, bwaFolder) :
+
+    if len(readFiles) > 2:
+       return False
+
+    num_threads =  int(multiprocessing.cpu_count()*0.8)
+    if num_threads < 1:
+       num_threads = 1
+
+    bwaOutput = bwaFolder + PATHDELIM + sample_name + '.sam'
+
+     
+    if len(readFiles) == 2:
+       cmd = "%s mem -t %d -o %s %s %s %s"  %(bwaExec, num_threads,  bwaOutput, indexFile,  readFiles[0], readFiles[1])
+
+    if len(readFiles) == 1:
+       cmd = "%s mem -t %d -p -o %s  %s %s "  %(bwaExec, num_threads,   bwaOutput, indexFile,  readFiles[0])
+
+    result = getstatusoutput(cmd)
+
+    if result[0]==0:
+       return True
+
+    return False
+
+
 
 def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
     global parser
 
     options, args = parser.parse_args(argv)
-
-    parser.add_option('-r', '--rpkmdir', dest='rpkmdir', default=None,
-                           help='list of sam files that contains the read recruitments')
-
-    parser.add_option('-O', '--orfgff', dest='orfgff', default=None,
-                           help='folder of the PGDB')
-
-    parser.add_option('-s', '--sample_name', dest='sample_name', default=None,
-                           help='name of the sample')
-
-    parser.add_option('--rpkmExec', dest='rpkmExec', default=None,
-                           help='RPKM Executable')
-
-
-
-def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
-    global parser
-
-    options, args = parser.parse_args(argv)
-    if options.contigs ==None:
+    if not (options.contigs!=None and  path.exists(options.contigs)):
        parser.error('ERROR\tThe contigs file is missing')
+       return 255
 
-    if options.rpkmExec ==None:
+    if not (options.rpkmExec !=None and path.exists(options.rpkmExec) ) :
        parser.error('ERROR\tThe RPKM executable is missing')
+       return 255 
 
-    if options.rpkmdir ==None:
-       parser.error('ERROR\tThe RPKM directory')
+    if not (options.bwaExec !=None and path.exists(options.bwaExec) ) :
+       parser.error('ERROR\tThe BWA executable is missing')
+       return 255 
 
-    if options.sample_name ==None:
+    if not (options.rpkmdir !=None and path.exists(options.rpkmdir) ):
+       parser.error('ERROR\tThe RPKM directory is missing')
+       return 255 
+
+    if not (options.bwaFolder !=None and path.exists(options.bwaFolder) ):
+       parser.error('ERROR\tThe BWA directory is missing')
+       return 255 
+
+    if  options.sample_name==None :
        parser.error('ERROR\tThe sample name is missing')
+       return 255 
 
 
-    # is there a pathwaytools executable installed
-    if not path.exists(options.rpkmExec):
+    # read the input sam and fastq  files
+    samFiles = getSamFiles(options.rpkmdir, options.sample_name)
+    readFiles = getReadFiles(options.rpkmdir, options.sample_name)
+
+    if not samFiles and readFiles:
+        if not readFiles:
+           eprintf("ERROR\tCannot find the read files not found for sample %s!\n", options.sample_name)
+           eprintf("ERROR\tMetaPathways need to have the sample names in the format %s.fastq or (%s_1.fastq and %s_2.fastq) !\n", options.sample_name, options.sample_name, options.sample_name)
+           if errorlogger:
+             errorlogger.eprintf("ERROR\tCannot find the read files not found for sample %s!\n", options.sample_name)
+             errorlogger.eprintf("ERROR\tMetaPathways need to have the sample names in the format %s.fastq or (%s_1.fastq and %s_2.fastq) !\n", options.sample_name, options.sample_name, options.sample_name)
+             return 255
+    
+        # index for BWA
+        bwaIndexFile = options.bwaFolder + PATHDELIM + options.sample_name
+        indexSuccess = indexForBWA(options.bwaExec, options.contigs, bwaIndexFile) 
+        if not indexSuccess:
+           eprintf("ERROR\tCannot index the preprocessed file %s!\n", options.contigs)
+           if errorlogger:
+              errorlogger.eprintf("ERROR\tCannot index the preprocessed file %s!\n", options.contigs)
+           return 255
+           #exit_process("ERROR\tMissing read files!\n")
+    
+    
+        bwaRunSuccess = runUsingBWA(options.bwaExec, options.sample_name,  bwaIndexFile, readFiles, options.bwaFolder) 
+        if not bwaRunSuccess:
+           eprintf("ERROR\tCannot successfully run BWA for file %s!\n", options.contigs)
+           if errorlogger:
+              errorlogger.eprintf("ERROR\tCannot successfully run BWA for file %s!\n", options.contigs)
+           return 255
+           #exit_process("ERROR\tFailed to run BWA!\n")
+
+
+    # is there a RPKM executable installed
+    if not path.exists(options.rpkmExec + 'a'):
        eprintf("ERROR\tRPKM executable %s not found!\n", options.rpkmExec)
+       print errorlogger
        if errorlogger:
           errorlogger.printf("ERROR\tRPKM executable %s not found!\n",  options.rpkmExec)
-       exit_process("ERROR\tRPKM executable %s not found!\n" %(options.rpkmExec))
+       return 255
+       #exit_process("ERROR\tRPKM executable %s not found!\n" %(options.rpkmExec))
 
 
-    # command to build the ePGDB
-    command = "%s -c %s"  %(options.rpkmExec, options.contigs)
-    command += " --multireads --format sam-2" 
+    # command to build the RPKM
+    command = "%s --c %s"  %(options.rpkmExec, options.contigs)
+    command += " --multireads " 
     if options.output:
        command += " --ORF-RPKM %s" %(options.output)
        command += " --stats %s" %(options.stats)
 
     if options.orfgff:
-       command += " -O %s" %(options.orfgff)
+       command += " --ORFS %s" %(options.orfgff)
 
+    if not samFiles:
+       return 0
 
-    samfiles = []
-    if path.exists(options.rpkmdir):
-       samfiles = glob(options.rpkmdir + PATHDELIM + options.sample_name + '*.sam')
-    
-    if not samfiles:
-       return 
-
-    for samfile in samfiles:
+    for samfile in samFiles:
         command += " -r " + samfile
-
 
     try:
        status  = runRPKMCommand(runcommand = command) 
@@ -154,9 +262,11 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
        pass
 
     if status!=0:
-       eprintf("ERROR\tFailed to run RPKM \n")
-       exit_process("ERROR\tFailed to run RPKM" )
+       eprintf("ERROR\tRPKM calculation was unsuccessful\n")
+       return 255
+       #exit_process("ERROR\tFailed to run RPKM" )
 
+    return status
 
 def runRPKMCommand(runcommand = None):
     if runcommand == None:
@@ -254,8 +364,8 @@ def MetaPathways_rpkm(argv, extra_command = None, errorlogger = None, runstatslo
     if errorlogger != None:
        errorlogger.write("#STEP\tRPKM_CALCULATION\n")
     createParser()
-    main(argv, errorlogger = errorlogger, runcommand= extra_command, runstatslogger = runstatslogger)
-    return (0,'')
+    returncode = main(argv, errorlogger = errorlogger, runcommand= extra_command, runstatslogger = runstatslogger)
+    return (returncode,'')
 
 if __name__ == '__main__':
     createParser()

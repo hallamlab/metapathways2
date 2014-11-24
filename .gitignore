@@ -2,10 +2,9 @@
 template_param.txt
 .gitignore
 *.pyc
-MetaPathways2
 .*.swp
 blastDB
-executables/*
+#executables/*
 output
 regtests/output
 .DS_Store

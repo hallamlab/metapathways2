@@ -101,18 +101,25 @@ def execute_tasks(s, verbose = False, block = 0):
             c.removeOutput(s)
             if c.isInputAvailable( errorlogger = s.errorlogger):
                s.stepslogger.write('%s\t%s\n' %(c.name, "RUNNING"))
-               result = execute(s,c)
+
+               result = [ 0, 'Error while executing step ' +  c.name ]
+               try:
+                  result = execute(s,c)
+               except:
+                  s.errorlogger.printf("ERROR\t%s\n" ,result[1])
+                  result[0] = 1
+
                if result[0] == 0 :
                   eprintf('..... Redo Success!\n')
                   s.stepslogger.write('%s\t%s\n' %( c.name, "SUCCESS"))
                else:
                   eprintf('..... Failed!\n')
-                  eprintf('%s result \n',  result )
+                 # eprintf('%s result \n',  result )
                   s.stepslogger.write('%s\t%s\n' %( c.name, "FAILED"))
             else:
                eprintf('..... Skipping [NO INPUT]!\n')
                if verbose:
-                  missingList=c.getMissingList( errorlogger = s.errorlogger)
+                  missingList=c.getMissingList(errorlogger = s.errorlogger)
                   printMissingList(missingList)
                      
                s.stepslogger.write('%s\t%s\n' %( c.name, "MISSING_INPUT"))
@@ -121,7 +128,14 @@ def execute_tasks(s, verbose = False, block = 0):
            if not c.isOutputAvailable():
                if c.isInputAvailable(errorlogger = s.errorlogger):
                   s.stepslogger.write('%s\t%s\n' %(c.name, "RUNNING"))
-                  result = execute(s,c)
+
+                  result = [ 0, 'Error while executing  step ' +  c.name ]
+                  try:
+                     result = execute(s,c)
+                  except:
+                     s.errorlogger.printf("ERROR\t%s\n" ,result[1])
+                     result[0] = 1
+
                   if result[0] == 0 :
                      eprintf('..... Success!\n')
                      s.stepslogger.write('%s\t%s\n' %( c.name, "SUCCESS"))
@@ -130,7 +144,7 @@ def execute_tasks(s, verbose = False, block = 0):
                      s.stepslogger.write('%s\t%s\n' %( c.name, "FAILED"))
                else:
                   eprintf('..... Skipping [NO INPUT]!\n')
-                  s.stepslogger.write('%s\t%s\n' %(  c.name, "SKIPPED"))
+                  s.stepslogger.write('%s\t%s\n' %(c.name, "SKIPPED"))
            else:
                eprintf('..... Already Computed!\n')
                s.stepslogger.write('%s\t%s\n' %( c.name, "ALREADY_COMPUTED"))
@@ -142,12 +156,16 @@ def execute_tasks(s, verbose = False, block = 0):
            blastgrid(c.commands[0])
 
 def execute(s, c):
-   
-     if len(c.commands) == 2:
-       result=execute_pipeline_stage(c.commands[0], extra_command =  c.commands[1], errorlogger= s.errorlogger, runstatslogger = s.runstatslogger )
-     else:
-       result=execute_pipeline_stage(c.commands[0], errorlogger= s.errorlogger, runstatslogger = s.runstatslogger)
-     return result
+    result = [ 0, 'Error while executing ' +  c.name ]
+    try:
+       if len(c.commands) == 2:
+          result=execute_pipeline_stage(c.commands[0], extra_command =  c.commands[1], errorlogger= s.errorlogger, runstatslogger = s.runstatslogger )
+       else:
+          result=execute_pipeline_stage(c.commands[0], errorlogger= s.errorlogger, runstatslogger = s.runstatslogger)
+    except:
+       pass
+
+    return result
 
 def print_to_stdout(s):
     print s

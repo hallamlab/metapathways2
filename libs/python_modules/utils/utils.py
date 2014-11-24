@@ -176,10 +176,7 @@ def isNucleotide( filename):
 def check_file_types(filenames):
     filetypes={}
 
-    print 'hello'
-    print filenames
     for filename in filenames:
-      print filename
       if not path.exists(filename):
          filetypes[filename] = ['UNKNOWN', 'UNKNOWN', False]
 

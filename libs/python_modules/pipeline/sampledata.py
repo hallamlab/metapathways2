@@ -59,6 +59,7 @@ class SampleData():
     output_results_tRNA_dir  = None
     ncbi_params_file = None
     ncbi_sequin_sbt = None
+    bwa_folder = None
 
     stages = []
     stages_context = {}
@@ -104,7 +105,7 @@ class SampleData():
         self.sample_name = path.basename(self.sample_name)
         self.sample_name = re.sub('[.]','_',self.sample_name)
 
-        self.rpkm_input_dir  = path.dirname(inputFile) + PATHDELIM  + "rpkmreads" 
+        self.rpkm_input_dir  = path.dirname(inputFile) + PATHDELIM  + "reads" 
 
         self.output_dir = sample_output_dir
 
@@ -114,6 +115,7 @@ class SampleData():
         self.output_run_statistics_dir = self.output_dir + PATHDELIM + "run_statistics"  +PATHDELIM
         self.blast_results_dir =  self.output_dir +  PATHDELIM + "blast_results"  + PATHDELIM
         self.output_mltreemap_calculations_dir = self.output_dir +  PATHDELIM + "mltreemap_calculations"  + PATHDELIM
+        self.bwa_folder = self.output_dir + PATHDELIM + "bwa" + PATHDELIM 
         self.output_results = self.output_dir + PATHDELIM + "results" + PATHDELIM 
         self.output_results_annotation_table_dir  = self.output_results +  PATHDELIM + "annotation_table"  + PATHDELIM
         self.output_results_megan_dir  = self.output_results + PATHDELIM + "megan"  + PATHDELIM
@@ -170,6 +172,7 @@ class SampleData():
         checkOrCreateFolder(self.output_run_statistics_dir)
         checkOrCreateFolder(self.blast_results_dir)
         checkOrCreateFolder(self.output_mltreemap_calculations_dir)
+        checkOrCreateFolder(self.bwa_folder)
         checkOrCreateFolder(self.output_results)
         checkOrCreateFolder(self.output_results_annotation_table_dir)
         checkOrCreateFolder(self.output_results_megan_dir)

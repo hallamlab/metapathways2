@@ -6,43 +6,44 @@
 # Paths for the Python, Perl and Pathway Tools
 PYTHON_EXECUTABLE '/usr/bin/python'
 PGDB_FOLDER '/Users/kishori/ptools-local/pgdbs/user'
-METAPATHWAYS_PATH '/Users/kishori/MetaPathways2.4/MetaPathways_Python'
+METAPATHWAYS_PATH '/Users/kishori/MetaPathways2.4/MetaPathways_Python.2.5.1'
 
 # Replace with your current
 PATHOLOGIC_EXECUTABLE '/Users/kishori/pathway-tools/pathway-tools'
 
 REFDBS '/Users/sgeadmin/MetaPathways/databases'
 
-# Executables: replace 'mac' to your platform linux, mac, win
+# Executables: replace  'yourOS' to your platform linux-flavor or macosx
 # Bit type - bit32 or bit64 
-FORMATDB_EXECUTABLE  'makeblastdb'
-BLASTP_EXECUTABLE  'blastp'
-BLASTN_EXECUTABLE  'blastn'
-EXECUTABLES_DIR  'executables/macosx'
-LASTDB_EXECUTABLE  'lastdb'
-LAST_EXECUTABLE  'lastal'
-PRODIGAL_EXECUTABLE 'prodigal' 
-RESOURCES_DIR           'resources/'
-SCAN_tRNA_EXECUTABLE      'trnascan-1.4' 
+FORMATDB_EXECUTABLE 'makeblastdb'
+BLASTP_EXECUTABLE 'blastp'
+BLASTN_EXECUTABLE 'blastn'
+EXECUTABLES_DIR 'executables/macosx'
+LASTDB_EXECUTABLE 'lastdb'
+LAST_EXECUTABLE 'lastal'
+PRODIGAL_EXECUTABLE 'prodigal'
+RESOURCES_DIR 'resources/'
+SCAN_tRNA_EXECUTABLE 'trnascan-1.4'
 RPKM_EXECUTABLE 'rpkm'
+BWA_EXECUTABLE 'bwa'
 
 # This is the folder where the scripts folder of the MetaPathways  pipeline 
 # # is installed
 
-GBK_TO_FNA_FAA_GFF   'libs/python_scripts/MetaPathways_parse_genbank.py'
-GFF_TO_FNA_FAA_GFF   'libs/python_scripts/MetaPathways_input_gff.py'
-PREPROCESS_INPUT          'libs/python_scripts/MetaPathways_filter_input.py'
-PREPROCESS_AMINOS    'libs/python_scripts/MetaPathways_preprocess_amino_input.py'
-ORF_PREDICTION          'libs/python_scripts/MetaPathways_orf_prediction.py'
+GBK_TO_FNA_FAA_GFF 'libs/python_scripts/MetaPathways_parse_genbank.py'
+GFF_TO_FNA_FAA_GFF 'libs/python_scripts/MetaPathways_input_gff.py'
+PREPROCESS_INPUT 'libs/python_scripts/MetaPathways_filter_input.py'
+PREPROCESS_AMINOS 'libs/python_scripts/MetaPathways_preprocess_amino_input.py'
+ORF_PREDICTION 'libs/python_scripts/MetaPathways_orf_prediction.py'
 ORF_TO_AMINO 'libs/python_scripts/MetaPathways_create_amino_sequences.py'
-COMPUTE_REFSCORES 'libs/python_scripts/MetaPathways_refscore.py' 
+COMPUTE_REFSCORES 'libs/python_scripts/MetaPathways_refscore.py'
 FUNC_SEARCH 'libs/python_scripts/MetaPathways_func_search.py'
 PARSE_FUNC_SEARCH 'libs/python_scripts/MetaPathways_parse_blast.py'
 ANNOTATE_ORFS 'libs/python_scripts/MetaPathways_annotate_fast.py'
-GENBANK_FILE 'libs/python_scripts/MetaPathways_create_genbank_ptinput_sequin.py'  
-CREATE_ANNOT_REPORTS 'libs/python_scripts/MetaPathways_create_reports_fast.py' 
-RUN_PATHOLOGIC 'libs/python_scripts/MetaPathways_run_pathologic.py' 
+GENBANK_FILE 'libs/python_scripts/MetaPathways_create_genbank_ptinput_sequin.py'
+CREATE_ANNOT_REPORTS 'libs/python_scripts/MetaPathways_create_reports_fast.py'
+RUN_PATHOLOGIC 'libs/python_scripts/MetaPathways_run_pathologic.py'
 SCAN_rRNA 'libs/python_scripts/MetaPathways_rRNA_stats_calculator.py'
 SCAN_tRNA 'libs/python_scripts/MetaPathways_tRNA_scan.py'
-MLTREEMAP_CALCULATION 'libs/python_scripts/MetaPathways_mltreemap.py' 
-RPKM_CALCULATION 'libs/python_scripts/MetaPathways_rpkm.py' 
+MLTREEMAP_CALCULATION 'libs/python_scripts/MetaPathways_mltreemap.py'
+RPKM_CALCULATION 'libs/python_scripts/MetaPathways_rpkm.py'

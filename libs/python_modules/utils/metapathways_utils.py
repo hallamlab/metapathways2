@@ -29,13 +29,15 @@ def halt_process(secs=4):
     time.sleep(secs)
     _exit(0)
 
-def exit_process(message = None):
+def exit_process(message = None, delay = 0, logger = None):
     if message != None: 
-      eprintf("%s", message+ "\n")
+      eprintf("ERROR\t%s", message+ "\n")
 
-    eprintf("INFO: Exiting the Python code\n")
-    eprintf("ERROR\t" + str(traceback.format_exc(10)) + "\n")
-    time.sleep(4)
+    logger.printf('ERROR\tExiting the Python code\n')
+    if logger:
+       logger.printf('ERROR\tExiting the Python code\n')
+       logger.printf('ERROR\t' + message + '\n')
+    time.sleep(delay)
     _exit(0)
 
 
@@ -84,6 +86,43 @@ def getSampleNameFromContig(contigname):
 def strip_taxonomy(product):
    func = re.sub(r'\[[^\[]+\]', '', product)
    return func
+
+
+def getSamFiles(readdir, sample_name):
+   '''This function finds the set of fastq files that has the reads'''
+
+   samFiles = []
+   _samFiles = glob(readdir + PATHDELIM + sample_name + '.sam')
+
+   if _samFiles:
+     samFiles = _samFiles
+
+   return samFiles
+
+
+def getReadFiles(readdir, sample_name):
+   '''This function finds the set of fastq files that has the reads'''
+
+   fastqFiles = []
+
+   _fastqfiles = glob(readdir + PATHDELIM + sample_name + '_[12].[fF][aA][Ss][Tt][qQ]')
+
+   if _fastqfiles:
+      fastqFiles = _fastqfiles
+
+   _fastqfiles = glob(readdir + PATHDELIM + sample_name + '_[12].[fF][qQ]')
+   if _fastqfiles:
+      fastqFiles = _fastqfiles
+
+   _fastqfiles = glob(readdir + PATHDELIM + sample_name + '.[fF][aA][Ss][Tt][qQ]')
+   if _fastqfiles:
+      fastqFiles = _fastqfiles
+
+   _fastqfiles = glob(readdir + PATHDELIM + sample_name + '.[fF][qQ]')
+   if _fastqfiles:
+      fastqFiles = _fastqfiles
+
+   return fastqFiles
 
 
 

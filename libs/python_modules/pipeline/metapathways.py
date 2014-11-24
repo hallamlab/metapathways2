@@ -590,11 +590,12 @@ def run_metapathways(samplesData, output_dir, all_samples_output_dir, globallogg
       s =  samplesData[input_file]
       jobcreator.addJobs(s, block_mode = block_mode)
 
+
     if block_mode:
        eprintf("==============  RUNNING STEPS IN BLOCK 0 ================\n")
        for input_file in sorted_samplesData_keys:
          s =  samplesData[input_file]
-         s.stepslogger.printf("\n\n==============  BEGIN RUN " + s.sample_name + " " + runid + " ================\n")
+         s.stepslogger.printf("\n\n==============  BEGIN RUN " + s.sample_name + " " + runid + " BLOCK0 ================\n")
          sample_name_banner = "PROCESSING INPUT " + input_file
          eprintf('\n'+ '#'*len(sample_name_banner) + "\n")
          eprintf( '\n' + sample_name_banner +  ' [STEPS BLOCK 0] ' + '\n')
@@ -606,6 +607,7 @@ def run_metapathways(samplesData, output_dir, all_samples_output_dir, globallogg
 
        for input_file in sorted_samplesData_keys:
          s =  samplesData[input_file]
+         s.stepslogger.printf("\n\n==============  BEGIN RUN " + s.sample_name + " " + runid + " BLOCK1 ================\n")
          sample_name_banner = "PROCESSING INPUT " + input_file
          eprintf('\n' + '#'*len(sample_name_banner) + "\n")
          eprintf( '\n' + sample_name_banner +  ' [STEPS BLOCK 1] ' + '\n')
@@ -617,9 +619,9 @@ def run_metapathways(samplesData, output_dir, all_samples_output_dir, globallogg
 
        for input_file in sorted_samplesData_keys:
          s =  samplesData[input_file]
+         s.stepslogger.printf("\n\n==============  BEGIN RUN " + s.sample_name + " " + runid + " BLOCK2 ================\n")
          sample_name_banner = "PROCESSING INPUT " + input_file
-         eprintf("==============  BEGIN RUN " + s.sample_name + " STEPS BLOCK 2 ================\n")
-         eprintf('#'*len(sample_name_banner) + "\n")
+         eprintf('\n' + '#'*len(sample_name_banner) + "\n")
          eprintf( '\n' + sample_name_banner +  ' [STEPS BLOCK 2] ' + '\n')
          try:
             pass
