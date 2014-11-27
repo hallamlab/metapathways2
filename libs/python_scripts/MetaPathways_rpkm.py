@@ -230,7 +230,7 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
 
 
     # is there a RPKM executable installed
-    if not path.exists(options.rpkmExec + 'a'):
+    if not path.exists(options.rpkmExec):
        eprintf("ERROR\tRPKM executable %s not found!\n", options.rpkmExec)
        print errorlogger
        if errorlogger:

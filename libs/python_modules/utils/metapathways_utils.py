@@ -820,18 +820,19 @@ class WorkflowLogger(object):
     
     def __init__(self,log_fp=None,params=None,metapaths_config=None,open_mode='w'):
         if log_fp:
-
-        #contract the file if we have to
+            self._filename = log_fp
+            #contract the file if we have to
             if open_mode=='c':
                 try:
                    contract_key_value_file(log_fp)
                 except:
                    pass 
                 open_mode='a'
-            self._f = open(log_fp,open_mode)
+            self._f = open(self._filename, open_mode)
+            self._f.close()
         else:
             self._f = None
-        self._filename = log_fp
+
         #start_time = datetime.now().strftime('%H:%M:%S on %d %b %Y')
         self.writemetapathsConfig(metapaths_config)
         self.writeParams(params)
@@ -841,14 +842,17 @@ class WorkflowLogger(object):
 
 
     def printf(self, fmt, *args):
+        self._f = open(self._filename,'a')
         if self._f:
             self._f.write(fmt % args)
             self._f.flush()
         else:
             pass
+        self._f.close()
 
 
     def write(self, s):
+        self._f = open(self._filename,'a')
         if self._f:
             self._f.write(s)
             # Flush here so users can see what step they're
@@ -858,6 +862,7 @@ class WorkflowLogger(object):
             self._f.flush()
         else:
             pass
+        self._f.close()
     
     def writemetapathsConfig(self,metapaths_config):
         if metapaths_config == None:

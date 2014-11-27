@@ -77,8 +77,9 @@ def isFastaFile(filename):
                else:
                   isFasta = False 
           c+=1
-          if c > 100:
+          if c > 500:
              break
+      fp.close()
     except:
        eprintf("ERROR:\tCannot open filee " + filename)
        print traceback.print_exc(10)
@@ -95,8 +96,6 @@ def isGenbank(filename):
         by reading the first 100 lines and look for the key words that 
         usually appear in the genbank file formsts
     '''
-
-    print 'genbanck'
     locusPATT = re.compile(r'^\s*LOCUS')
     versionPATT = re.compile(r'^\s*VERSION')
     featuresPATT = re.compile(r'^\s*FEATURES')
@@ -118,7 +117,7 @@ def isGenbank(filename):
                if patterns[i].search(line_trimmed.upper()):
                   countPatterns[i] = 1
           c+=1
-          if c > 100:
+          if c > 500:
             break
 
     except:
@@ -160,6 +159,9 @@ def isNucleotide( filename):
                     nucCount+= 1
                   else:
                     nonNucCount+= 1
+          c+=1
+          if c > 500:
+            break
     except:
        eprintf("ERROR:\tCannot open filey " + filename)
        return False
@@ -179,7 +181,6 @@ def check_file_types(filenames):
     for filename in filenames:
       if not path.exists(filename):
          filetypes[filename] = ['UNKNOWN', 'UNKNOWN', False]
-
 
       if isFastaFile(filename):
          if isNucleotide(filename):
