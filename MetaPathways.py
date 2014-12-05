@@ -195,9 +195,8 @@ def create_an_input_output_pair(input_file, output_dir,  globalerrorlogger=None)
 
     shortname = re.sub(r'.*' + PATHDELIM ,'',shortname) 
 
-    check_for_error_in_input_file_name(shortname, globalerrorlogger=globalerrorlogger)
-
-    input_output[input_file] = path.abspath(output_dir) + PATHDELIM + shortname
+    if  check_for_error_in_input_file_name(shortname, globalerrorlogger=globalerrorlogger):
+       input_output[input_file] = path.abspath(output_dir) + PATHDELIM + shortname
 
     return input_output
 
@@ -252,6 +251,36 @@ def openGrades():
 
 def openRank():
     pass
+
+def halt_on_invalid_input(input_output_list, filetypes, sample_subset):
+
+    for samplePath in input_output_list.keys():
+       sampleName =  path.basename(input_output_list[samplePath]) 
+
+       ''' in the selected list'''
+       if not sampleName in sample_subset:
+          continue
+
+       if filetypes[samplePath][0]=='UNKNOWN':
+          eprintf("ERROR\tIncorrect input sample %s. Check for bad characters or format\n!", samplePath)
+          return False
+
+    return True
+          
+
+
+
+def report_missing_filenames(input_output_list, sample_subset, logger=None):
+    foundFiles = {}
+    for samplePath in input_output_list.keys():
+       sampleName =  path.basename(input_output_list[samplePath]) 
+       foundFiles[sampleName] =True
+
+    for sample_in_subset in sample_subset:
+       if not sample_in_subset in foundFiles:
+          eprintf("ERROR\tCannot find input file for sample %s\n!", sample_in_subset)
+          if logger:
+             globalerrorlogger.printf("ERROR\tCannot file input for sample %s!\n", sample_int_subset)
 
 # main function
 
@@ -363,7 +392,6 @@ def main(argv):
     """ these are the subset of sample to process if specified
         in case of an empty subset process all the sample """
 
-
     if sample_subset:
        remove_unspecified_samples(input_output_list, sample_subset, globalerrorlogger = globalerrorlogger)
 
@@ -372,13 +400,22 @@ def main(argv):
 
     filetypes = check_file_types(sorted_input_output_list) 
 
+    #stop on in valid samples
+    if not  halt_on_invalid_input(input_output_list, filetypes, sample_subset):
+       globalerrorlogger.printf("ERROR\tInvalid inputs found. Check for file with bad format or characters!\n")
+       halt_process(opts.delay)
 
+    # make sure the sample files are found
+    report_missing_filenames(input_output_list, sample_subset, logger=globalerrorlogger)
+
+    #check the pipeline configuration
     config_settings = read_pipeline_configuration(config_file, globalerrorlogger)
 
     parameter =  Parameters()
     if not staticDiagnose(config_settings, params, logger = globalerrorlogger):
         eprintf("ERROR\tFailed to pass the test for required scripts and inputs before run\n")
-        exit_process("Failed to pass the test for required scripts and inputs before run", logger=globalerrorlogger)
+        globalerrorlogger.printf("ERROR\tFailed to pass the test for required scripts and inputs before run\n")
+        halt_process(opts.delay)
 
     
     samplesData = {}

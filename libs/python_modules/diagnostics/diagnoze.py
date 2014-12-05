@@ -312,8 +312,8 @@ def isDBformatted(db, refdbspath, dbType, seqType,  algorithm, logger = None):
              fileList.append(aFile)
 
        if len(fileList)==0 :
-          eprintf("ERROR\tsequence for db  %s not formatted\n", dbname )
-          logger.printf("ERROR\tsequence for db  %s not formatted\n", dbname )
+          eprintf("WARNING\tsequence for db  %s not formatted\n", dbname )
+          logger.printf("WARNING\tsequence for db  %s not formatted\n", dbname )
           return False
 
     return True

@@ -20,7 +20,8 @@ annotation:algorithm LAST
 # e.g. blast or last
 
 #annotation:dbs COG_2013-12-27,kegg-pep-2011-06-18,refseq-nr-2014-01-18,metacyc-v4-2011-07-03,seed-2014-01-30 
-annotation:dbs 
+annotation:dbs CAZY_2014_09_04,InnateDB_mus-2010-07-16,refseq-nr-2014-01-18, COG_2013-12-27, MDM_SAG_proteins,kegg-pep-2011-06-18,seed-2014-01-30, InnateDB_human-2010-07-16, SUP05-genome-2014-10-14, metacyc-v4-2011-07-03
+
 # e.g. annotation:dbs    cog,kegg,refseq,metacyc
 annotation:min_bsr 0.4
 annotation:max_evalue 0.000001
@@ -44,16 +45,13 @@ ptools_settings:taxonomic_pruning no
 # e.g. yes, skip, yes
 metapaths_steps:PREPROCESS_INPUT redo
 metapaths_steps:ORF_PREDICTION redo
-#metapaths_steps:ORF_TO_AMINO yes
 metapaths_steps:FILTER_AMINOS redo
-#metapaths_steps:COMPUTE_REFSCORES yes
 metapaths_steps:FUNC_SEARCH redo
 metapaths_steps:PARSE_FUNC_SEARCH redo
 metapaths_steps:SCAN_rRNA redo
 metapaths_steps:SCAN_tRNA redo
 metapaths_steps:ANNOTATE_ORFS redo
 metapaths_steps:PATHOLOGIC_INPUT redo
-#metapaths_steps:GENBANK_FILE yes
 metapaths_steps:CREATE_ANNOT_REPORTS redo
 metapaths_steps:MLTREEMAP_CALCULATION yes
 metapaths_steps:BUILD_PGDB skip

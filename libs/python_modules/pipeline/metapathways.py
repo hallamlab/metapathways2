@@ -187,7 +187,7 @@ def check_an_format_refdb(dbname, seqType,  config_settings, params, globallogge
             eprintf("          Trying to format on the fly .... for %s!\n", algorithm )
             if globallogger!=None:
                globallogger.write("WARNING\t Found raw sequences for  Database %s in folder %s!\n" %(dbname, seqPath) )
-               globallogger.write("Trying to format on the fly .... for %s!\n" %(algorithm ) )
+               globallogger.write("INFO\tTrying to format on the fly .... for %s!\n" %(algorithm ) )
 
             result =format_db(executable, seqType, seqPath, formattedDBPath, algorithm)
             if result ==True:
