@@ -922,7 +922,7 @@ class ContextCreator:
           input_annot_table = s.output_results_annotation_table_dir +\
                                PATHDELIM + 'functional_and_taxonomic_table.txt'
           basencbi = self.configs.REFDBS + PATHDELIM + 'ncbi_tree'
-          ncbi_tree = basencbi + PATHDELIM + 'NCBI_TAXONOMY_TREE.TXT'
+          ncbi_tree = basencbi + PATHDELIM + 'ncbi_taxonomy_tree.txt'
           ncbi_megan_map = basencbi + PATHDELIM + 'ncbi.map'
 
           '''output'''
@@ -980,7 +980,7 @@ class ContextCreator:
           input_annot_table = s.output_results_annotation_table_dir +\
                                PATHDELIM + 'functional_and_taxonomic_table.txt'
           basencbi = self.configs.REFDBS + PATHDELIM + 'ncbi_tree'
-          ncbi_tree = basencbi + PATHDELIM + 'NCBI_TAXONOMY_TREE.TXT'
+          ncbi_tree = basencbi + PATHDELIM + 'ncbi_taxonomy_tree.txt'
           ncbi_megan_map = basencbi + PATHDELIM + 'ncbi.map'
 
           '''output'''
