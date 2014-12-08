@@ -118,9 +118,9 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
     options, args = parser.parse_args(argv)
 
     if options.algorithm == 'BLAST':
-       _execute_BLAST(options)
+       _execute_BLAST(options, logger = errorlogger)
     elif options.algorithm == 'LAST':
-        _execute_LAST(options)
+        _execute_LAST(options, logger = errorlogger)
     else:
         eprintf("ERROR\tUnrecognized algorithm name for FUNC_SEARCH\n")
         if errorlogger:
@@ -128,7 +128,7 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
         exit_process("ERROR\tUnrecognized algorithm name for FUNC_SEARCH\n")
 
 
-def  _execute_LAST(options):
+def  _execute_LAST(options, logger = None):
     args= [ ]
 
     if options.last_executable :
@@ -150,12 +150,17 @@ def  _execute_LAST(options):
        result = getstatusoutput(' '.join(args) )
        rename(options.last_o + ".tmp", options.last_o) 
     except:
+       message = "Could not run lastal correctly"
+       if result and len(result) > 1:
+          message = result[1]
+       if logger:
+          logger.printf("ERROR\t%s\n", message)
        return '1'
 
     return result[0]
     
 
-def  _execute_BLAST(options):
+def  _execute_BLAST(options, logger = None):
     args= [ ]
 
     if options.blast_executable :
