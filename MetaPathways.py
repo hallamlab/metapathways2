@@ -142,7 +142,7 @@ def remove_unspecified_samples(input_output_list, sample_subset,  globalerrorlog
    shortened_names = {}
    input_sample_list = input_output_list.keys()
    for sample_name in input_sample_list:
-      if not derive_sample_name(sample_name) in sample_subset:
+      if not derive_sample_name(sample_name) in sample_subset and  sample_subset:
          del input_output_list[sample_name]
 
 
@@ -392,8 +392,8 @@ def main(argv):
     """ these are the subset of sample to process if specified
         in case of an empty subset process all the sample """
 
-    if sample_subset:
-       remove_unspecified_samples(input_output_list, sample_subset, globalerrorlogger = globalerrorlogger)
+    # remove all samples that are not specifed unless sample_subset is empty
+    remove_unspecified_samples(input_output_list, sample_subset, globalerrorlogger = globalerrorlogger)
 
     # add check the config parameters 
     sorted_input_output_list = sorted(input_output_list.keys())
@@ -401,12 +401,13 @@ def main(argv):
     filetypes = check_file_types(sorted_input_output_list) 
 
     #stop on in valid samples
-    if not  halt_on_invalid_input(input_output_list, filetypes, sample_subset):
+    if not halt_on_invalid_input(input_output_list, filetypes, sample_subset):
        globalerrorlogger.printf("ERROR\tInvalid inputs found. Check for file with bad format or characters!\n")
        halt_process(opts.delay)
 
     # make sure the sample files are found
     report_missing_filenames(input_output_list, sample_subset, logger=globalerrorlogger)
+
 
     #check the pipeline configuration
     config_settings = read_pipeline_configuration(config_file, globalerrorlogger)
@@ -467,7 +468,7 @@ def main(argv):
                    runid = runid
               )
          else: 
-              eprintf("ERROR\tNo valid input files to process in folder %s!\n",sQuote(input_fp) )
+              eprintf("ERROR\tNo valid input files/Or no files specified  to process in folder %s!\n",sQuote(input_fp) )
               globalerrorlogger.printf("ERROR\tNo valid input files to process in folder %s!\n",sQuote(input_fp) )
    
         

@@ -11,7 +11,7 @@ __status__ = "Release"
 
 try:
      import os, re
-     from os import makedirs, sys, remove
+     from os import makedirs, sys, remove, rename
      from sys import path
      from optparse import OptionParser
 
@@ -167,11 +167,11 @@ def main(argv, errorlogger = None, runstatslogger = None):
        sys.exit(0)
 
     min_length = opts.min_length
-    #inputfile = open(opts.input_fasta,'r')
-    outfile = open(opts.output_fasta, 'w') 
+    outfile = open(opts.output_fasta + '.tmp', 'w') 
     logfile = open(opts.log_file, 'w') 
-    lengthsfile = open(opts.lengths_file, 'w') 
+    lengthsfile = open(opts.lengths_file + '.tmp', 'w') 
      
+
     if opts.map_file:
        mapfile = open(opts.map_file, 'w') 
     else:
@@ -284,6 +284,9 @@ def main(argv, errorlogger = None, runstatslogger = None):
 
     lengthsfile.close()
     outfile.close()
+
+    rename(opts.output_fasta + ".tmp", opts.output_fasta)
+    rename(opts.lengths_file + ".tmp", opts.lengths_file)
 
     #inputfile.close()
     if mapfile != None:
