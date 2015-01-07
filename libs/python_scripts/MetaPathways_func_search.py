@@ -118,14 +118,34 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
     options, args = parser.parse_args(argv)
 
     if options.algorithm == 'BLAST':
-       _execute_BLAST(options, logger = errorlogger)
+       (code, message) =  _execute_BLAST(options, logger = errorlogger)
     elif options.algorithm == 'LAST':
-        _execute_LAST(options, logger = errorlogger)
+       (code, message) =  _execute_LAST(options, logger = errorlogger)
     else:
         eprintf("ERROR\tUnrecognized algorithm name for FUNC_SEARCH\n")
         if errorlogger:
             errorlogger.printf("ERROR\tUnrecognized algorithm name for FUNC_SEARCH\n")
-        exit_process("ERROR\tUnrecognized algorithm name for FUNC_SEARCH\n")
+        #exit_process("ERROR\tUnrecognized algorithm name for FUNC_SEARCH\n")
+        return -1
+
+
+    if code != 0:
+        eprintf("ERROR\tCannot successfully execute the %s for FUNC_SEARCH\n", options.algorithm)
+        eprintf("ERROR\t%s\n", message)
+        eprintf("INFO\tDatabase you are searching against may not be formatted correctly (if it was formatted for an earlier) \n")
+        eprintf("INFO\tTry removing the files for that database in \'formatted\' subfolder for MetaPathways to trigger reformatting \n")
+        eprintf("INFO\tYou can remove as \'rm %s.*\','\n", options.last_db)
+        eprintf("INFO\tIf removing the files did not work then format it manually (see manual)\n")
+        if errorlogger:
+           errorlogger.printf("ERROR\tCannot successfully execute the %s for FUNC_SEARCH\n", options.algorithm)
+           errorlogger.printf("ERROR\t%s\n", message)
+           errorlogger.printf("INFO\tDatabase you are searching  against may not be formatted correctly (if it was formatted for an earlier) \n")
+           errorlogger.printf("INFO\tTry removing the files for that database in \'formatted\' subfolder for MetaPathways to trigger reformatting \n")
+           errorlogger.printf("INFO\tYou can remove as \'rm %s.*\','\n", options.last_db)
+           errorlogger.printf("INFO\tIf removing the files did not work then format it manually (see manual)\n")
+        return code
+
+    return 0
 
 
 def  _execute_LAST(options, logger = None):
@@ -150,14 +170,14 @@ def  _execute_LAST(options, logger = None):
        result = getstatusoutput(' '.join(args) )
        rename(options.last_o + ".tmp", options.last_o) 
     except:
-       message = "Could not run lastal correctly"
+       message = "Could not run LASTAL correctly"
        if result and len(result) > 1:
           message = result[1]
        if logger:
           logger.printf("ERROR\t%s\n", message)
-       return '1'
+       return (1, message)
 
-    return result[0]
+    return (result[0], result[1])
     
 
 def  _execute_BLAST(options, logger = None):
@@ -191,9 +211,9 @@ def  _execute_BLAST(options, logger = None):
        result = getstatusoutput(' '.join(args) )
        rename(options.blast_out + ".tmp", options.blast_out) 
     except:
-       return '1'
+       return (1, "Cannot execute BLAST successfully")
 
-    return result[0]
+    return (result[0], result[1])
 
 
 
@@ -201,8 +221,8 @@ def MetaPathways_func_search(argv, extra_command = None, errorlogger = None, run
     if errorlogger != None:
        errorlogger.write("#STEP\tFUNC_SEARCH\n")
     createParser()
-    main(argv, errorlogger = errorlogger, runcommand= extra_command, runstatslogger = runstatslogger)
-    return (0,'')
+    code = main(argv, errorlogger = errorlogger, runcommand= extra_command, runstatslogger = runstatslogger)
+    return (code,'')
 
 if __name__ == '__main__':
     createParser()

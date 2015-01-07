@@ -109,29 +109,38 @@ def getReadFiles(readdir, sample_name):
 
    fastqFiles = []
 
-   _fastqfiles = glob(readdir + PATHDELIM + sample_name + '_[0-9].[fF][aA][Ss][Tt][qQ]')
-
+   _fastqfiles = glob(readdir + PATHDELIM + sample_name + '_[Rr][0-9].[fF][aA][Ss][Tt][qQ]')
    if _fastqfiles:
-      fastqFiles = _fastqfiles
+      fastqFiles += _fastqfiles
+
+   _fastqfiles = glob(readdir + PATHDELIM + sample_name + '_[0-9].[fF][aA][Ss][Tt][qQ]')
+   if _fastqfiles:
+      fastqFiles += _fastqfiles
+
 
    _fastqfiles = glob(readdir + PATHDELIM + sample_name + '_[0-9].[fF][qQ]')
    if _fastqfiles:
-      fastqFiles = _fastqfiles
+      fastqFiles += _fastqfiles
+
+   _fastqfiles = glob(readdir + PATHDELIM + sample_name + '_[Rr][0-9].[fF][qQ]')
+   if _fastqfiles:
+      fastqFiles += _fastqfiles
 
    _fastqfiles = glob(readdir + PATHDELIM + sample_name + '.[fF][aA][Ss][Tt][qQ]')
    if _fastqfiles:
-      fastqFiles = _fastqfiles
+      fastqFiles += _fastqfiles
 
    _fastqfiles = glob(readdir + PATHDELIM + sample_name + '.[fF][qQ]')
    if _fastqfiles:
-      fastqFiles = _fastqfiles
+      fastqFiles += _fastqfiles
 
    return fastqFiles
 
 
 
-def indexForBWA(bwaExec, contigs,indexfile):
+def indexForBWA(bwaExec, contigs,  indexfile):
     cmd = "%s index -p %s %s"  %(bwaExec, indexfile, contigs, )
+
     result = getstatusoutput(cmd)
 
     if result[0]==0:
@@ -140,7 +149,7 @@ def indexForBWA(bwaExec, contigs,indexfile):
     return False
 
 
-def runUsingBWA(bwaExec, sample_name,  indexFile,  readFiles, bwaFolder) :
+def runUsingBWA(bwaExec, sample_name, indexFile,  readFiles, bwaFolder) :
 
     if len(readFiles) > 2:
        return False
@@ -151,7 +160,6 @@ def runUsingBWA(bwaExec, sample_name,  indexFile,  readFiles, bwaFolder) :
 
     bwaOutput = bwaFolder + PATHDELIM + sample_name + '.sam'
 
-     
     if len(readFiles) == 2:
        cmd = "%s mem -t %d -o %s %s %s %s"  %(bwaExec, num_threads,  bwaOutput, indexFile,  readFiles[0], readFiles[1])
 
@@ -212,6 +220,7 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
         # index for BWA
         bwaIndexFile = options.bwaFolder + PATHDELIM + options.sample_name
         indexSuccess = indexForBWA(options.bwaExec, options.contigs, bwaIndexFile) 
+
         if not indexSuccess:
            eprintf("ERROR\tCannot index the preprocessed file %s!\n", options.contigs)
            if errorlogger:
@@ -220,7 +229,10 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
            #exit_process("ERROR\tMissing read files!\n")
     
     
+        #print 'running'
+
         bwaRunSuccess = runUsingBWA(options.bwaExec, options.sample_name,  bwaIndexFile, readFiles, options.bwaFolder) 
+        print 'run success', bwaRunSuccess
         if not bwaRunSuccess:
            eprintf("ERROR\tCannot successfully run BWA for file %s!\n", options.contigs)
            if errorlogger:
@@ -230,9 +242,9 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
 
 
     # is there a RPKM executable installed
+    print 'rpkm running', bwaRunSuccess
     if not path.exists(options.rpkmExec):
        eprintf("ERROR\tRPKM executable %s not found!\n", options.rpkmExec)
-       print errorlogger
        if errorlogger:
           errorlogger.printf("ERROR\tRPKM executable %s not found!\n",  options.rpkmExec)
        return 255
@@ -248,6 +260,8 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
 
     if options.orfgff:
        command += " --ORFS %s" %(options.orfgff)
+
+    samFiles = getSamFiles(options.bwaFolder, options.sample_name)
 
     if not samFiles:
        return 0
