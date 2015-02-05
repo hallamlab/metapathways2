@@ -19,7 +19,8 @@ try:
     from tools import *
     from libs.python_modules.utils.sysutil import pathDelim, getstatusoutput
     from libs.python_modules.utils.utils import *
-    from os import path, _exit, rename
+    from libs.python_modules.utils.metapathways_utils import  fprintf
+    from os import path, _exit, rename , remove
 except:
     print "Cannot load some modules"
     sys.exit(0)
@@ -189,6 +190,7 @@ def checkForRequiredDatabases(tools, params, configs, dbType, logger =None):
               """ if note formatted then format it """
               eprintf("WARNING\tTrying to format database %s for algorithm %s\n", sQuote(db), sQuote(algorithm) )
               logger.printf("WARNING\tTring to format database %s for algorithm %s\n", sQuote(db), sQuote(algorithm) )
+
               if not formatDB(tools, db, refdbspath, seqType, dbType, algorithm, configs, logger = logger):
                  return False
 
@@ -241,26 +243,47 @@ def formatDB(tools, db, refdbspath, seqType, dbType, algorithm, configs, logger 
      formatted_db = refdbspath + PATHDELIM + dbType + PATHDELIM + 'formatted'  + PATHDELIM + db
      raw_sequence_file = refdbspath + PATHDELIM + dbType + PATHDELIM + db
 
-     _temp_formatted_db  =  formatted_db+ "__temp__"
+     _temp_formatted_db  =  formatted_db + "__temp__"
 
      """ format with 4GB file size """
      if algorithm=='BLAST':
          cmd='%s -dbtype %s -max_file_sz 4294967296  -in %s -out %s' %(formatdb_executable, seqType, raw_sequence_file, _temp_formatted_db)
+         #cmd='%s -dbtype %s -max_file_sz 4247296  -in %s -out %s' %(formatdb_executable, seqType, raw_sequence_file, _temp_formatted_db)
 
      if algorithm=='LAST':
          # dirname = os.path.dirname(raw_sequence_file)    
          cmd='%s -s 4000M -p -c %s  %s' %(formatdb_executable, _temp_formatted_db, raw_sequence_file)
      
-     eprintf("INFO\t" + cmd)
      result= getstatusoutput(cmd)
      temp_fileList = glob(_temp_formatted_db + '*') 
 
-     try: 
-        for tempFile in temp_fileList:
-           file = re.sub('__temp__','', tempFile)
-           rename(tempFile, file);
+     _formatted_db_pal = _temp_formatted_db + ".pal"
+     if algorithm=='BLAST' and path.exists(_formatted_db_pal):
+       try: 
+         formatted_db_pal = formatted_db + ".pal"
+         _openpal = open(_formatted_db_pal, 'r')
+         openpal = open(formatted_db_pal, 'w')
+         lines = _openpal.readlines()
+         tempPATT =re.compile(r'__temp__')
+         for line in lines:
+             _result = tempPATT.search(line)
+             modline = line.strip()
+             if _result: 
+                modline = re.sub('__temp__','', modline)
+             fprintf(openpal, "%s\n", modline)
+         openpal.close()
+         _openpal.close()
+         remove(_formatted_db_pal)
+       except:
+           return False
+
+     try:
+         temp_fileList = glob(_temp_formatted_db + '*') 
+         for tempFile in temp_fileList:
+             file = re.sub('__temp__','', tempFile)
+             rename(tempFile, file);
      except:
-        return False
+         return False
 
 
      if result[0]==0:
@@ -299,12 +322,12 @@ def isDBformatted(db, refdbspath, dbType, seqType,  algorithm, logger = None):
     if not suffixes :
        return False
 
-
+    status = False
     for suffix in suffixes:
        allfileList = glob(dbname + '*.' + suffix)
 
        fileList = []
-       tempFilePattern = re.compile(r''+ dbname + '\d*.' + suffix +'$');
+       tempFilePattern = re.compile(r''+ dbname + '[.\d]*.' + suffix +'$');
 
        for aFile in allfileList:
            searchResult =  tempFilePattern.search(aFile)
@@ -316,7 +339,9 @@ def isDBformatted(db, refdbspath, dbType, seqType,  algorithm, logger = None):
           logger.printf("WARNING\tsequence for db  %s not formatted\n", dbname )
           return False
 
-    return True
+       status = True
+
+    return status
 
 def check_if_refDB_path_valid(refdbspath, logger = None):
     """ it checks for the validity of the refdbs path structure 

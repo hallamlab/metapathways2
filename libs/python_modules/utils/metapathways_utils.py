@@ -32,8 +32,7 @@ def halt_process(secs=4):
 def exit_process(message = None, delay = 0, logger = None):
     if message != None: 
       eprintf("ERROR\t%s", message+ "\n")
-
-    logger.printf('ERROR\tExiting the Python code\n')
+      eprintf('ERROR\tExiting the Python code\n')
     if logger:
        logger.printf('ERROR\tExiting the Python code\n')
        logger.printf('ERROR\t' + message + '\n')

@@ -280,7 +280,7 @@ def report_missing_filenames(input_output_list, sample_subset, logger=None):
        if not sample_in_subset in foundFiles:
           eprintf("ERROR\tCannot find input file for sample %s\n!", sample_in_subset)
           if logger:
-             globalerrorlogger.printf("ERROR\tCannot file input for sample %s!\n", sample_int_subset)
+             logger.printf("ERROR\tCannot file input for sample %s!\n", sample_in_subset)
 
 # main function
 

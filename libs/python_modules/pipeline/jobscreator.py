@@ -53,7 +53,8 @@ class JobCreator():
             for stage in stageList: 
                if stage in self.params['metapaths_steps'] or\
                   stage in [ 'ORF_TO_AMINO', 'GBK_TO_FNA_FAA_GFF', 'GBK_TO_FNA_FAA_GFF_ANNOT',\
-                           'COMPUTE_REFSCORES',   'PREPROCESS_AMINOS'] :
+                           'COMPUTE_REFSCORES', 'PREPROCESS_AMINOS', 'PATHOLOGIC_INPUT',  'CREATE_ANNOT_REPORTS']:
+                             # 'MLTREEMAP_CALCULATION',
                   #if self.params['INPUT']['format'] =='gbk-unannotated':
                   #  if stage=='PREPROCESS_INPUT':
                   #    stage = 'GBK_TO_FNA_FAA_GFF'
@@ -785,12 +786,14 @@ class ContextCreator:
 
 
           """PATHOLOGIC_INPUT"""
-          ptinput_status = self.params.get('metapaths_steps','PATHOLOGIC_INPUT')
+          ptinput_status = self.params.get('metapaths_steps','ANNOTATE_ORFS')
           if ptinput_status in ['redo'] or ( ptinput_status in ['yes'] and not s.hasPToolsInput() ):
               cmd += ' --out-ptinput ' + context.outputs['output_fasta_pf_dir']
           context.message = self._Message("PATHOLOGIC INPUT" )
 
-          context.status = self.params.get('metapaths_steps','PATHOLOGIC_INPUT')
+          #context.status = self.params.get('metapaths_steps','PATHOLOGIC_INPUT')
+          context.status = self.params.get('metapaths_steps','ANNOTATE_ORFS')
+
           context.commands = [ cmd ]
           contexts.append(context)
           return contexts
@@ -859,7 +862,9 @@ class ContextCreator:
           cmd = cmd + " -D " + s.blast_results_dir + " -s " + s.sample_name + " -a "  + s.algorithm
 
           context.commands = [ cmd ]
-          context.status = self.params.get('metapaths_steps', 'CREATE_ANNOT_REPORTS') 
+          #context.status = self.params.get('metapaths_steps', 'CREATE_ANNOT_REPORTS') 
+
+          context.status = self.params.get('metapaths_steps','ANNOTATE_ORFS')
           context.message = self._Message("CREATING REPORT FILE FOR ORF ANNOTATION")
 
           contexts.append(context)

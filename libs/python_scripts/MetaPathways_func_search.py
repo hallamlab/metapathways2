@@ -130,19 +130,18 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
 
 
     if code != 0:
-        eprintf("ERROR\tCannot successfully execute the %s for FUNC_SEARCH\n", options.algorithm)
-        eprintf("ERROR\t%s\n", message)
-        eprintf("INFO\tDatabase you are searching against may not be formatted correctly (if it was formatted for an earlier) \n")
-        eprintf("INFO\tTry removing the files for that database in \'formatted\' subfolder for MetaPathways to trigger reformatting \n")
-        eprintf("INFO\tYou can remove as \'rm %s.*\','\n", options.last_db)
-        eprintf("INFO\tIf removing the files did not work then format it manually (see manual)\n")
+        a= '\nERROR\tCannot successfully execute the %s for FUNC_SEARCH\n' %(options.algorithm)
+        b ='ERROR\t%s\n' % (message) 
+        c = "INFO\tDatabase you are searching against may not be formatted correctly (if it was formatted for an earlier version) \n"
+        d = "INFO\tTry removing the files for that database in \'formatted\' subfolder for MetaPathways to trigger reformatting \n"
+        e = "INFO\tYou can remove as \'rm %s.*\','\n" %( options.blast_db)
+        f = "INFO\tIf removing the files did not work then format it manually (see manual)"
+        outputStr =  a + b + c + d + e + f 
+
+        eprintf(outputStr + "\n")
+
         if errorlogger:
-           errorlogger.printf("ERROR\tCannot successfully execute the %s for FUNC_SEARCH\n", options.algorithm)
-           errorlogger.printf("ERROR\t%s\n", message)
-           errorlogger.printf("INFO\tDatabase you are searching  against may not be formatted correctly (if it was formatted for an earlier) \n")
-           errorlogger.printf("INFO\tTry removing the files for that database in \'formatted\' subfolder for MetaPathways to trigger reformatting \n")
-           errorlogger.printf("INFO\tYou can remove as \'rm %s.*\','\n", options.last_db)
-           errorlogger.printf("INFO\tIf removing the files did not work then format it manually (see manual)\n")
+           errorlogger.printf(outputStr +"\n")
         return code
 
     return 0
