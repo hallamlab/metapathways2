@@ -91,25 +91,38 @@ def valid_arguments(opts, args):
 
 
 
+
 def isAminoAcidSequence(sequence):
     if sequence:
         count = 0 
-        list = [ 'a', 't', 'c', 'g', 'A', 'T', 'C', 'G']
+
+        list= {
+           'A':  0,  'R':  0,  'N':  0,  'D':  0,  'C':  0,  'Q':  0,  'E':  0,  'G':  0,  
+           'H':  0,  'I':  0,  'L':  0,  'K':  0,  'M':  0,  'F':  0,  'P':  0, 'S':  0,  
+           'T':  0, 'W':  0, 'Y':  0, 'V':  0,  'B':  0,  'J':  0,  'Z':  0,  }
+
         for x in sequence:
-            if x in list:
-               count+=1
-        if count/len(sequence) < 0.80:
+            if x.upper() in list:
+               list[x.upper()]=1
+
+        count = 0 
+        for x in list:
+           count += list[x]
+
+        if count > 10: 
             return True
         else:
              return False
     return True
-    
+       
 
 def filter_sequence(sequence):
    if isAminoAcidSequence(sequence):
        return sequence
+
    sequence = re.sub(r'[^atcgATCG]','-', sequence.strip())
    subsequences =  sequence.split('-')
+
    max_length = 0;
    longest_sequence = ""; 
    for seq  in subsequences: 

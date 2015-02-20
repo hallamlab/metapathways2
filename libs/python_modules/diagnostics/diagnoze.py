@@ -247,12 +247,12 @@ def formatDB(tools, db, refdbspath, seqType, dbType, algorithm, configs, logger 
 
      """ format with 4GB file size """
      if algorithm=='BLAST':
-         cmd='%s -dbtype %s -max_file_sz 4294967296  -in %s -out %s' %(formatdb_executable, seqType, raw_sequence_file, _temp_formatted_db)
-         #cmd='%s -dbtype %s -max_file_sz 4247296  -in %s -out %s' %(formatdb_executable, seqType, raw_sequence_file, _temp_formatted_db)
+         # actual cmd='%s -dbtype %s -max_file_sz 4294967296  -in %s -out %s' %(formatdb_executable, seqType, raw_sequence_file, _temp_formatted_db)
+         cmd='%s -dbtype %s -max_file_sz 20267296  -in %s -out %s' %(formatdb_executable, seqType, raw_sequence_file, _temp_formatted_db)
 
      if algorithm=='LAST':
          # dirname = os.path.dirname(raw_sequence_file)    
-         cmd='%s -s 4000M -p -c %s  %s' %(formatdb_executable, _temp_formatted_db, raw_sequence_file)
+         cmd='%s -s 40M -p -c %s  %s' %(formatdb_executable, _temp_formatted_db, raw_sequence_file)
      
      result= getstatusoutput(cmd)
      temp_fileList = glob(_temp_formatted_db + '*') 

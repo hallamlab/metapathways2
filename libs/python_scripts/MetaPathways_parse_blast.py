@@ -11,8 +11,9 @@ __status__ = "Release"
 
 try:
      from os import makedirs, sys, remove, rename
+     import sys
      from sys import path
-     import re
+     import re, math, traceback
      from copy import copy
      from optparse import OptionParser, OptionGroup
 
@@ -88,6 +89,13 @@ def createParser():
                       help='removes the EC number from product [useful for kegg/metacyc] ')
     parser.add_option_group(output_options_group)
 
+
+    bitscore_params =  OptionGroup(parser, 'Bit Score Parameters')
+    bitscore_params.add_option("--lambda", dest="Lambda",  default=None, type='float',
+                      help='lambda parameter to compute bit score [useful for BSR] ')
+    bitscore_params.add_option("--k", dest="k",  default=None, type='float', 
+                      help='k parameter to compute bit score [useful for BSR] ')
+    parser.add_option_group(bitscore_params)
 
 
 
@@ -187,7 +195,6 @@ def create_dictionary(databasemapfile, annot_map, query_dictionary, errorlogger=
           exit_process( "no anntations in file :" + databasemapfile)
         
 def create_refscores(refscores_file, refscore_map):
-#       print 'in refscores ' + refscores_file
        refscorefile = open(refscores_file,'r')
        lines=refscorefile.readlines()
        refscorefile.close()
@@ -199,13 +206,30 @@ def create_refscores(refscores_file, refscore_map):
               except:
                 refscore_map[words[0]]= 1
 
+
 class BlastOutputParser(object):
     commentPATTERN = re.compile(r'^#')
     commentLAST_VERSION_PATTERN = re.compile(r'^#.*LAST[\s]+version[\s]+\d+')
 
+    def create_refBitScores(self):
+       refscorefile = open(self.refscore_file,'r')
+       lines=refscorefile.readlines()
+       refscorefile.close()
+       for line in lines:
+           words =[ x.strip()  for x in  line.split('\t') ]
+           if len(words) == 2:
+              try:
+                self.refBitScores[words[0]]= (self.Lambda*float(words[1]) -  self.lnk )/self.ln2
+              except:
+                self.refBitScores[words[0]]= 1
+
+
     def __init__(self, dbname,  blastoutput, database_mapfile, refscore_file, opts, errorlogger =None):
         self.Size = 10000
         self.dbname = dbname
+        self.ln2 = 0.69314718055994530941
+        self.lnk = math.log(opts.k)
+        self.Lambda = opts.Lambda
         self.blastoutput = blastoutput
         self.database_mapfile =database_mapfile
         self.refscore_file = refscore_file
@@ -215,6 +239,7 @@ class BlastOutputParser(object):
         self.hits_counts = {}
         self.data = {}
         self.refscores = {}
+        self.refBitScores = {}
         self.needToPermute = False;
 
         self.MAX_READ_ERRORS_ALLOWED = 100
@@ -239,9 +264,10 @@ class BlastOutputParser(object):
             exit_process( "Cannot open B/LAST output file " + blastoutput )
 
         try:
-            create_refscores(refscore_file, self.refscores)
+            self.create_refBitScores()
         except:
-            exit_process( "Cannot open B/LAST refscore file " + refscore_file )
+            print traceback.print_exc(10)
+            exit_process( "Error while reading from  B/LAST refscore file " + self.refscore_file )
 
         try:
            create_dictionary(database_mapfile, self.annot_map, query_dictionary)
@@ -328,7 +354,7 @@ class BlastOutputParser(object):
               self.i = self.i + 1
               return None 
 
-           if len(words) != 12 or not self.isWithinCutoffs(words, self.data, self.opts, self.annot_map, self.refscores):
+           if len(words) != 12 or not self.isWithinCutoffs(words, self.data, self.opts, self.annot_map, self.refBitScores):
              self.i = self.i + 1
              return None 
 
@@ -343,7 +369,7 @@ class BlastOutputParser(object):
            self.blastoutputfile.close()
            raise StopIteration()
               
-    def isWithinCutoffs(self, words, data, cutoffs, annot_map, refscores):
+    def isWithinCutoffs(self, words, data, cutoffs, annot_map, refbitscores):
         data['query'] = words[0]
     
         try:
@@ -357,12 +383,12 @@ class BlastOutputParser(object):
            data['q_length'] = 0
     
         try:
-           data['bitscore'] = int(words[11])
+           data['bitscore'] = float(words[11])
         except:
            data['bitscore'] = 0
     
         try:
-           data['bsr'] = float(words[11])/refscores[words[0]]
+           data['bsr'] = float(words[11])/refbitscores[words[0]]
         except:
            #print "words 0 " + str(refscores[words[0]])
            #print "words 11 " + str( words[11])
@@ -544,6 +570,15 @@ def main(argv, errorlogger = None, runstatslogger = None):
 
   # input file to blast with itself to commpute refscore
 #    infile = open(input_fasta,'r')
+    if opts.Lambda == None or opts.k == None:
+      if opts.algorithm=='LAST':
+          opts.Lambda = 0.300471
+          opts.k = 0.103946
+
+      if opts.algorithm=='BLAST':
+          opts.Lambda = 0.267
+          opts.k = 0.0410
+
 
     dictionary={}
     priority = 5000;

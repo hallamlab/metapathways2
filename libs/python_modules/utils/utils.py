@@ -155,7 +155,7 @@ def isNucleotide( filename):
           if line_trimmed:
             if not fastaNamePATT.search(line_trimmed):
                for a in line_trimmed.upper():
-                  if  a in ['A', 'T', 'C', 'G' ]:
+                  if  a in ['A', 'T', 'C', 'G', 'N' ]:
                     nucCount+= 1
                   else:
                     nonNucCount+= 1
@@ -163,7 +163,7 @@ def isNucleotide( filename):
           if c > 500:
             break
     except:
-       eprintf("ERROR:\tCannot open filey " + filename)
+       eprintf("ERROR:\tCannot open file " + filename)
        return False
 
     if nucCount ==0:

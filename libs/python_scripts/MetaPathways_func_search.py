@@ -134,7 +134,12 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
         b ='ERROR\t%s\n' % (message) 
         c = "INFO\tDatabase you are searching against may not be formatted correctly (if it was formatted for an earlier version) \n"
         d = "INFO\tTry removing the files for that database in \'formatted\' subfolder for MetaPathways to trigger reformatting \n"
-        e = "INFO\tYou can remove as \'rm %s.*\','\n" %( options.blast_db)
+        if options.algorithm == 'BLAST':
+           e = "INFO\tYou can remove as \'rm %s.*\','\n" %( options.blast_db)
+        if options.algorithm == 'LAST':
+           e = "INFO\tYou can remove as \'rm %s.*\','\n" %( options.last_db)
+
+        (code, message) =  _execute_LAST(options, logger = errorlogger)
         f = "INFO\tIf removing the files did not work then format it manually (see manual)"
         outputStr =  a + b + c + d + e + f 
 

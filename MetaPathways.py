@@ -55,7 +55,8 @@ PATHDELIM =  str(pathDelim())
 #print sys.path
 
 #config = load_config()
-metapaths_config = """template_config.txt""";
+metapaths_config = """config/template_config.txt""";
+metapaths_param = """config/template_param.txt""";
 
 script_info={}
 script_info['brief_description'] = """A workflow script for making PGDBs from metagenomic sequences"""
@@ -122,7 +123,7 @@ def createParser():
 def valid_arguments(opts, args):
     """ checks if the supplied arguments are adequate """
     if (opts.input_fp == None and opts.output_dir ==None )  or\
-     opts.output_dir == None or opts.parameter_fp == None :
+     opts.output_dir == None:
        return True
     else:
        return False
@@ -340,11 +341,12 @@ def main(argv):
 
     # try to load the parameter file    
     try:
-        parameter_f = opts.parameter_fp
+       if opts.parameter_fp:
+          parameter_fp= opts.parameter_fp
+       else:
+          parameter_fp = cmd_folder + PATHDELIM + metapaths_param
     except IOError:
-        raise IOError,\
-         "Can't open parameters file (%s). Does it exist? Do you have read access?"\
-         % opts.parameter_fp
+        raise IOError, ( "Can't open parameters file (%s). Does it exist? Do you have read access?" % opts.parameter_fp )
 
     
     try:
@@ -367,7 +369,7 @@ def main(argv):
     command_line_params={}
     command_line_params['verbose']= opts.verbose
 
-    params=parse_metapaths_parameters(parameter_f)
+    params=parse_metapaths_parameters(parameter_fp)
 
     """ load the sample inputs  it expects either a fasta 
         file or  a directory containing fasta and yaml file pairs

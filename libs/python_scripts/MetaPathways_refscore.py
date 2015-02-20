@@ -11,7 +11,7 @@ __status__ = "Release"
 
 try:
      import os, re, traceback
-     from os import makedirs, sys, remove
+     from os import makedirs, sys, remove, rename
      from sys import path
      from optparse import OptionParser
 
@@ -25,7 +25,7 @@ except:
 
 PATHDELIM = pathDelim()
 
-usage = sys.argv[0] + """ -i input_fasta_file -o output_file [-B blast_executable -F formatdb_executable] """
+usage = __file__ + """ -i input_fasta_file -o output_file [-B blast_executable -F formatdb_executable] """
 parser = None
 def createParser():
     global parser
@@ -39,10 +39,6 @@ The results are written to a file  (usually in a folder called blast_results in 
                       help='the input fasta file [REQUIRED]')
     parser.add_option("-o", "--output_file", dest="output_file",
                       help='the output fasta file [REQUIRED]')
-    parser.add_option("-B", "--BLAST_EXEUTABLE", dest="blast_executable",
-                      help='the BLAST executable  [REQUIRED]')
-    parser.add_option("-F", "--FORMAT_EXECUTABLE", dest="formatdb_executable",
-                      help='the FORMATDB executable file [REQUIRED]')
     parser.add_option("-a", "--algorithm", dest="algorithm", choices = ['BLAST', 'LAST'], default = "BLAST", 
                       help='the algorithm used for computing homology [DEFAULT: BLAST]')
 
@@ -60,30 +56,58 @@ class FastaRecord(object):
 
 #    return FastaRecord(title, sequence)
 
-def read_fasta_records(input_file):
-    records = []
+class FastaReader():
+    """Parses a fasta record from a string or file."""
+    stop = False
+    START_PATTERN = re.compile(r'^>')
+    name = None
+    future_name =None
     sequence=""
-    name=""
-    while 1:
-         line = input_file.readline()
-         if line == "": 
-            if sequence!="" and name!="":
-               records.append(FastaRecord(name, sequence))
-            return  records
 
-         if line=='\n':
-            continue
+    def __init__(self, fasta_filename):
+        try:
+            self.file = open(fasta_filename, 'r')
+        except IOError:
+            print "Cannot open fasta file " + fasta_filename
 
-         line = line.rstrip()
-         if  line.startswith(">") :
-            if sequence!="" and name!="":
-               records.append(FastaRecord(name, sequence))
+    def __iter__(self):
+        return self
 
-            name = line.rstrip()
-            sequence =""
-         else:
-            sequence = sequence + line.rstrip()
-    return records
+    def close(self):
+         self.file.close()
+
+    def next(self):
+        if self.stop:
+          raise StopIteration
+
+        try:
+           if not self.name:
+               self.name = self.file.readline().strip()
+           line = self.file.readline()
+        except:
+           line = None
+
+        if not line:
+           self.stop = True
+           raise StopIteration
+
+        fragments = []
+        while line and not self.START_PATTERN.search(line):
+            fragments.append(line.strip())
+            line = self.file.readline()
+
+       # print line
+        if self.future_name:
+            self.name = re.sub('>','',self.future_name)
+
+        if line:
+          self.future_name = line.strip()
+
+        self.sequence =''.join(fragments)
+        self.seqname =  self.name
+    
+        return FastaRecord( re.sub('>', '', self.name), self.sequence)
+
 
 def format_db_blast(formatdb_executable, seq_subset_file):
     cmd='%s -dbtype prot -in %s' %(formatdb_executable, seq_subset_file.name)
@@ -153,8 +177,83 @@ def add_blast_refscore_to_file(blast_table_out, refscore_file, allNames):
     infile.close()
         
 
+# write the refscores
+def write_refscores(refscore_file, refscores):
+    for key, value in refscores.iteritems():
+       fprintf(refscore_file, "%s\t%s\n",key, value)
+
+
+
+SCORES= {
+'A':  4,
+'R':  5,
+'N':  6,
+'D':  6,
+'C':  9,
+'Q':  5,
+'E':  5,
+'G':  6,
+'H':  8,
+'I':  4,
+'L':  4,
+'K':  5,
+'M':  5,
+'F':  6,
+'P':  7 ,
+'S':  4 ,
+'T':  5 ,
+'W':  11,
+'Y':  7 ,
+'V':  4,
+'B':  4,
+'J':  3,
+'Z':  4,
+'X': -1,
+'*': 1,
+}
+
+def getrefscore(seq):
+    score =0
+    for c in seq:
+      try:
+        score += SCORES[c]
+      except:
+        score = 0
+    return score 
+
+def compute_refscores(sequences_subset, refscore_file):
+    refscores ={} 
+    for key, value in sequences_subset.iteritems():
+       refscores[key] = getrefscore(value)
+    write_refscores(refscore_file, refscores)
+
+
+def add_blast_refscore_to_file(blast_table_out, refscore_file, allNames):
+    infile = open( blast_table_out,'r')
+    refscores = {}
+    lines = infile.readlines()
+    for line in lines:
+       line=line.rstrip()
+       fields = line.split('\t')
+       if len(fields) != 12:
+          print 'Error in the blastout file'
+          sys.exit(1)
+       if fields[0].rstrip()==fields[1].rstrip():
+      #    fprintf(refscore_file, "%s\t%s\n",fields[0], fields[11])
+          refscores[fields[0]]=fields[11]
+
+    for key, value in refscores.iteritems():
+       allNames[key] = True
+       fprintf(refscore_file, "%s\t%s\n",key, value)
+
+    infile.close()
+        
+
+     
+
+
 # compute the refscores
-def compute_refscores(formatdb_executable, blast_executable,seq_subset_file, refscore_file, allNames, algorithm):
+def _old_compute_refscores(formatdb_executable, blast_executable,seq_subset_file, refscore_file, allNames, algorithm):
     if algorithm =='LAST':
         format_db_last(formatdb_executable, seq_subset_file)
         last_table_out = seq_subset_file.name + ".lastout"
@@ -166,8 +265,6 @@ def compute_refscores(formatdb_executable, blast_executable,seq_subset_file, ref
        blast_table_out = seq_subset_file.name + ".blastout"
        blast_against_itself(blast_executable, seq_subset_file, blast_table_out)
        add_blast_refscore_to_file(blast_table_out,refscore_file, allNames)
-
-
     return None
 
 def remove_blast_index_files(filename):
@@ -193,7 +290,7 @@ def remove_last_index_files(filename):
 
 
 # the main function
-SIZE = 1000
+SIZE = 10000
 
 def main(argv, errorlogger = None, runstatslogger = None): 
     global parser
@@ -204,67 +301,37 @@ def main(argv, errorlogger = None, runstatslogger = None):
 
     input_fasta = opts.input_fasta
     output_file = opts.output_file
-    blast_executable = opts.blast_executable
-    formatdb_executable = opts.formatdb_executable
     algorithm = opts.algorithm
  
     # input file to blast with itself to commpute refscore
-    infile = open(input_fasta,'r')
    
     #this file has the refscores of the entire file
-    outfile = open(output_file, 'w') 
+    outfile = open(output_file + ".tmp", 'w') 
 
     count = 0
 
     allNames= dict()
-    for record in read_fasta_records(infile):
-        if count % SIZE == 0:
-            if count > 0:
-              seq_subset_file.close()
-              compute_refscores(formatdb_executable, blast_executable,seq_subset_file, outfile, allNames, algorithm);
+    sequence_subset = dict() 
+    refscores = dict() 
 
-              # now remove the old file
-              try:
-                 if algorithm == 'BLAST' :
-                    remove_blast_index_files(seq_subset_file.name)
+    fastaReader = FastaReader(input_fasta)
 
-                 if algorithm == 'LAST' :
-                    remove_last_index_files(seq_subset_file.name)
-                 remove(seq_subset_file.name)
-              except:
-                 pass
-            count = 0  # reset it to zero
+    for record in fastaReader:
+       count = count + 1
+       sequence_subset[record.name] = record.sequence
+       if count % SIZE == 0:
+          compute_refscores(sequence_subset, outfile)
+          count  = 0
+          sequence_subset = dict() 
 
-            seq_subset_file = open(output_file +'.tmp.'+ str(count) +'.fasta','w')
-
-        allNames[record.name.replace(">","")] = False;    
-        fprintf(seq_subset_file, "%s\n", record.name)
-        fprintf(seq_subset_file, "%s\n", record.sequence)
-
-        count = count + 1
-
-    #print str(count) + "   "  + "going to blast last sequence "
-    if (count) % SIZE != 0:
-       seq_subset_file.close()
-       compute_refscores(formatdb_executable, blast_executable,seq_subset_file, outfile, allNames, algorithm);
-       remove(seq_subset_file.name)
-
-       try:
-          if algorithm == 'BLAST' :
-            remove_blast_index_files(seq_subset_file.name)
-
-          if algorithm == 'LAST' :
-            remove_last_index_files(seq_subset_file.name)
-       except:
-          pass
-
-
+    if count % SIZE != 0:
+        compute_refscores(sequence_subset, outfile)
+        sequence_subset = dict() 
     #print count
-    for key in allNames:
-        if allNames[key] ==False:
-           fprintf(outfile, "%s\t%s\n",key, 1000000)
 
+    fastaReader.close()
     outfile.close()
+    rename(output_file + ".tmp", output_file) 
 
 def MetaPathways_refscore(argv, errorlogger = None, runstatslogger = None):
     createParser( )

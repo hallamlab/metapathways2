@@ -403,18 +403,14 @@ class ContextCreator:
 
           cmd = None
           if s.algorithm == 'BLAST':
-              pyScript      = self.configs.METAPATHWAYS_PATH + PATHDELIM +  self.configs.COMPUTE_REFSCORES
-              formatterExec = self.configs.METAPATHWAYS_PATH + PATHDELIM + self.configs.EXECUTABLES_DIR + PATHDELIM + self.configs.FORMATDB_EXECUTABLE
-              searchExec =   self.configs.METAPATHWAYS_PATH + PATHDELIM + self.configs.EXECUTABLES_DIR + PATHDELIM + self.configs.BLASTP_EXECUTABLE
-              cmd = "%s  -F %s -B %s -o %s -i %s -a  %s"\
-                   %( pyScript, formatterExec, searchExec, output_refscores, input_filtered_faa, s.algorithm)
+              pyScript  = self.configs.METAPATHWAYS_PATH + PATHDELIM +  self.configs.COMPUTE_REFSCORES
+              cmd = "%s   -o %s -i %s -a  %s"\
+                   %( pyScript,  output_refscores, input_filtered_faa, s.algorithm)
 
           elif s.algorithm == 'LAST': 
-              pyScript      = self.configs.METAPATHWAYS_PATH + PATHDELIM +  self.configs.COMPUTE_REFSCORES
-              formatterExec =  self.configs.METAPATHWAYS_PATH + PATHDELIM +  self.configs.EXECUTABLES_DIR + PATHDELIM + self.configs.LASTDB_EXECUTABLE
-              searchExec =   self.configs.METAPATHWAYS_PATH + PATHDELIM + self.configs.EXECUTABLES_DIR + PATHDELIM +  self.configs.LAST_EXECUTABLE
-              cmd = "%s  -F %s -B %s -o %s -i %s -a %s"\
-                       %( pyScript, formatterExec, searchExec, output_refscores, input_filtered_faa, s.algorithm)
+              pyScript  = self.configs.METAPATHWAYS_PATH + PATHDELIM +  self.configs.COMPUTE_REFSCORES
+              cmd = "%s   -o %s -i %s -a %s"\
+                       %( pyScript,  output_refscores, input_filtered_faa, s.algorithm)
    
           context.commands = [ cmd ]
           context.message = self._Message("COMPUTING REFSCORES FOR BITSCORE")
