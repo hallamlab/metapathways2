@@ -462,19 +462,19 @@ class BlastOutputParser(object):
               data['product'] = ''
     
 
-        if data['q_length'] < cutoffs.min_length:
+        if float(data['q_length']) < cutoffs.min_length:
            return False
     
-        if data['bitscore'] < cutoffs.min_score:
+        if float(data['bitscore']) < cutoffs.min_score:
            return False
     
-        if data['expect'] > cutoffs.max_evalue:
+        if float(data['expect']) > cutoffs.max_evalue:
            return False
     
-        if data['identity'] < cutoffs.min_identity:
+        if float(data['identity']) < cutoffs.min_identity:
            return False
     
-        if data['bsr'] < cutoffs.min_bsr:
+        if float(data['bsr']) < cutoffs.min_bsr:
            return False
     
     #min_length'

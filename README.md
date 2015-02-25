@@ -29,3 +29,9 @@ The MetaPathways Python codebase as well as the compiled GUI binaries for Mac OS
 Please see the [MetaPathways v2.5 wiki](https://github.com/hallamlab/metapathways2/wiki) for more installation details.
 
 A template [MetaPathways_DBs.zip (**Updated: October 2014**)](https://www.dropbox.com/s/ye3kpve041e0r39/MetaPathways_DBs.zip?dl=0) contains starter protein and taxonomic databases
+
+## Citation
+
+If using MetaPathways v2.0 for reserach work please cite:
+
+Niels W. Hanson, Kishori M. Konwar, Shang-Ju Wu, Steven J. Hallam. *MetaPathways v2.0: A master-worker model for environmental Pathway/Genome Database construction on grids and clouds.* Proceedings of the 2014 IEEE Conference on Computational Intelligence in Bioinformatics and Computational Biology (CIBCB 2014), Honolulu, HI, USA, May 21-24, 2014. [doi:10.1109/CIBCB.2014.6845516](http://ieeexplore.ieee.org/xpl/articleDetails.jsp?arnumber=6845516)
