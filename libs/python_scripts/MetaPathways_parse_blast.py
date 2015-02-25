@@ -213,15 +213,16 @@ class BlastOutputParser(object):
 
     def create_refBitScores(self):
        refscorefile = open(self.refscore_file,'r')
-       lines=refscorefile.readlines()
-       refscorefile.close()
-       for line in lines:
+
+       for line in refscorefile:
            words =[ x.strip()  for x in  line.split('\t') ]
            if len(words) == 2:
               try:
                 self.refBitScores[words[0]]= (self.Lambda*float(words[1]) -  self.lnk )/self.ln2
               except:
                 self.refBitScores[words[0]]= 1
+
+       refscorefile.close()
 
 
     def __init__(self, dbname,  blastoutput, database_mapfile, refscore_file, opts, errorlogger =None):
