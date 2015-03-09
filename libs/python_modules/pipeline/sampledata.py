@@ -154,7 +154,10 @@ class SampleData():
 
         if self.FILE_TYPE=='GENBANK':
             if self.SEQ_TYPE =='NOT-USED':
-               return 'AMINO' '-' + self.FILE_TYPE + '-' + 'UNANNOT'
+                if self.ANNOTATED:
+                    return 'AMINO' '-' + self.FILE_TYPE + '-' + 'ANNOT'
+                else:
+                    return 'AMINO' '-' + self.FILE_TYPE + '-' + 'UNANNOT'
 
         return 'UNKNOWN'
 

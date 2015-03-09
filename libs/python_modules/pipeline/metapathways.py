@@ -97,7 +97,7 @@ def format_db(formatdb_executable, seqType, raw_sequence_file, formatted_db,  al
 # convert an input gbk file to fna faa and gff file
 def  convert_gbk_to_fna_faa_gff(input_gbk, output_fna, output_faa, output_gff, config_settings):
     cmd = "%s  -g %s --output-fna %s --output-faa %s --output-gff %s" %((config_settings['METAPATHWAYS_PATH'] \
-                 + config_settings['GBK_TO_FNA_FAA_GFF']), input_gbk, output_fna, output_faa, output_gff) 
+                 + config_settings['GBK_TO_FNA_FAA_GFF']), input_gbk, output_fna, output_faa, output_gff)
     return cmd
 
 # convert an input gff file to fna faa and gff file
@@ -477,7 +477,7 @@ def  copy_fna_faa_gff_orf_prediction( source_files, target_files, config_setting
 def run_metapathways(samplesData, output_dir, all_samples_output_dir, globallogger,\
                      command_line_params, params, metapaths_config, status_update_callback,\
                      config_file, run_type, config_settings = None, block_mode = False, runid = ""):
-
+    
     jobcreator = JobCreator(params, config_settings)
 
     sorted_samplesData_keys = sorted(samplesData.keys())

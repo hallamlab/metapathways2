@@ -44,13 +44,11 @@ class JobCreator():
 
       def addJobs(self, s, block_mode=False):
           contextCreator = ContextCreator(self.params, self.configs)
-
           contextBlock = []
           for stageList in contextCreator.getStageLists(s.getType()):
             if block_mode ==True:
                contextBlock = []
-
-            for stage in stageList: 
+            for stage in stageList:
                if stage in self.params['metapaths_steps'] or\
                   stage in [ 'ORF_TO_AMINO', 'GBK_TO_FNA_FAA_GFF', 'GBK_TO_FNA_FAA_GFF_ANNOT',\
                            'COMPUTE_REFSCORES', 'PREPROCESS_AMINOS', 'PATHOLOGIC_INPUT',  'CREATE_ANNOT_REPORTS']:
@@ -58,7 +56,6 @@ class JobCreator():
                   #if self.params['INPUT']['format'] =='gbk-unannotated':
                   #  if stage=='PREPROCESS_INPUT':
                   #    stage = 'GBK_TO_FNA_FAA_GFF'
-
                 #  self.stageList['gbk-unannotated'] = [ 'GBK_TO_FNA_FAA_GFF',
                   contexts = contextCreator.getContexts(s, stage)
                   contextBlock.append(contexts)
@@ -214,6 +211,7 @@ class ContextCreator:
 
       def  convert_gbk_to_fna_faa_gff_unannotated(self, s):
           contexts = self._convert_gbk_to_fna_faa_gff(s, annotated = False)
+          print contexts
           return contexts
 
       def  _convert_gbk_to_fna_faa_gff(self, s, annotated = False, create_functional_table = False):
@@ -1225,10 +1223,10 @@ class ContextCreator:
                              ]
            
            self.stageList['AMINO-GENBANK-ANNOT'] = [
-                              'GBK_TO_FNA_FAA_GFF_ANNOT',
-                              'FILTER_AMINOS',
+                              ['GBK_TO_FNA_FAA_GFF_ANNOT',
+                              'FILTER_AMINOS'],[],[
                               'SCAN_rRNA',
                               'SCAN_tRNA',
                               'PATHOLOGIC_INPUT',
-                              'BUILD_PGDB'
+                              'BUILD_PGDB']
                             ]

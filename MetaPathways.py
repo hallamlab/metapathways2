@@ -370,7 +370,6 @@ def main(argv):
     command_line_params['verbose']= opts.verbose
 
     params=parse_metapaths_parameters(parameter_fp)
-
     """ load the sample inputs  it expects either a fasta 
         file or  a directory containing fasta and yaml file pairs
     """
@@ -441,6 +440,8 @@ def main(argv):
                 s.setParameter('ncbi_params_file', ncbi_sequin_params)
                 s.setParameter('ncbi_sequin_sbt', ncbi_sequin_sbt)
                 s.setParameter('FILE_TYPE', filetypes[input_file][0])
+                if params["INPUT"]['format'] in ["gbk-annotated", "gff-annotated"]:
+                    s.setParameter('ANNOTATED', True)
                 s.setParameter('SEQ_TYPE', filetypes[input_file][1])
                 s.clearJobs()
    
