@@ -32,6 +32,8 @@ A template [MetaPathways_DBs.zip (**Updated: October 2014**)](https://www.dropbo
 
 ## Citation
 
-If using MetaPathways v2.0 for reserach work please cite:
+If using MetaPathways for reserach work please cite the following:
 
-Niels W. Hanson, Kishori M. Konwar, Shang-Ju Wu, Steven J. Hallam. *MetaPathways v2.0: A master-worker model for environmental Pathway/Genome Database construction on grids and clouds.* Proceedings of the 2014 IEEE Conference on Computational Intelligence in Bioinformatics and Computational Biology (CIBCB 2014), Honolulu, HI, USA, May 21-24, 2014. [doi:10.1109/CIBCB.2014.6845516](http://ieeexplore.ieee.org/xpl/articleDetails.jsp?arnumber=6845516)
+* Kishori M. Konwar, Niels W. Hanson, Maya P. Bhatia, Dongjae Kim, Shang-Ju Wu, Aria S. Hahn, Connor Morgan-Lang, Hiu Kan Cheung, and Steven J. Hallam. *MetaPathways v2.5: Quantitative functional, taxonomic, and usability improvements.* Bioinformatics, 1–3 (2015). [doi:10.1093/bioinformatics/btv361](http://dx.doi.org/10.1093/bioinformatics/btv361)
+
+* Niels W. Hanson, Kishori M. Konwar, Shang-Ju Wu, Steven J. Hallam. *MetaPathways v2.0: A master-worker model for environmental Pathway/Genome Database construction on grids and clouds.* Proceedings of the 2014 IEEE Conference on Computational Intelligence in Bioinformatics and Computational Biology (CIBCB 2014), Honolulu, HI, USA, May 21-24, 2014. [doi:10.1109/CIBCB.2014.6845516](http://ieeexplore.ieee.org/xpl/articleDetails.jsp?arnumber=6845516)
