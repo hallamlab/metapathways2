@@ -1,17 +1,24 @@
-#template_config.txt
-template_param.txt
-.gitignore
+# Conpilation Files
 *.pyc
 .*.swp
+
+# blastDBs (large)
 blastDB
-#executables/*
-output
-regtests/output
+
+# OSX files
 .DS_Store
 .*
+
+# Executables
 executables/Unix/*
 executables/Unix
 executables/openSUSE/*
+#executables/*
 
+# Configuration files
+template_config.txt
+template_param.txt
 config/template_param_niels.txt
 config/template_config_niels.txt
+regtests/output
+output
