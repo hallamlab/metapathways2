@@ -211,7 +211,7 @@ class ContextCreator:
 
       def  convert_gbk_to_fna_faa_gff_unannotated(self, s):
           contexts = self._convert_gbk_to_fna_faa_gff(s, annotated = False)
-          print contexts
+
           return contexts
 
       def  _convert_gbk_to_fna_faa_gff(self, s, annotated = False, create_functional_table = False):

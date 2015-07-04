@@ -153,9 +153,9 @@ def check_for_error_in_input_file_name(shortname, globalerrorlogger=None):
     """  creates a list of  input output pairs if input is  an input dir """
     clean = True
     if not re.search(r'^[a-zA-Z]',shortname):
-         eprintf("ERROR\tSample name %s must begin with an alphabet!\n",shortname)
+         eprintf("ERROR\tSample name %s must begin with an alphabetical character!\n",shortname)
          if globalerrorlogger:
-            globalerrorlogger.printf("ERROR\tSample name %s must begin with an alphabet!\tConsider prefixing an alphabet to the front\n",shortname)
+            globalerrorlogger.printf("ERROR\tSample name %s must begin with an alphabetical character!\tConsider prefixing an alphabet to the front\n",shortname)
          clean = False
 
     if re.search(r'[.]',shortname):
@@ -433,7 +433,6 @@ def main(argv):
               for input_file in sorted_input_output_list:
                 sample_output_dir = input_output_list[input_file]
                 algorithm = get_parameter(params, 'annotation', 'algorithm', default='LAST').upper()
-   
                 s = SampleData() 
                 s.setInputOutput(inputFile = input_file, sample_output_dir = sample_output_dir)
                 s.setParameter('algorithm', algorithm)
@@ -442,6 +441,8 @@ def main(argv):
                 s.setParameter('FILE_TYPE', filetypes[input_file][0])
                 if params["INPUT"]['format'] in ["gbk-annotated", "gff-annotated"]:
                     s.setParameter('ANNOTATED', True)
+                else:
+                    s.setParameter('ANNOTATED', False)
                 s.setParameter('SEQ_TYPE', filetypes[input_file][1])
                 s.clearJobs()
    

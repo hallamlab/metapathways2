@@ -4,6 +4,7 @@
 
 # blastDBs (large)
 blastDB
+databases
 
 # OSX files
 .DS_Store
