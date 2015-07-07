@@ -428,7 +428,7 @@ def main(argv):
 
     try:
          # load the sample information 
-         print "RUNNING MetaPathways version 2.5.1"
+         print "RUNNING MetaPathways version 2.5.2"
          if len(input_output_list): 
               for input_file in sorted_input_output_list:
                 sample_output_dir = input_output_list[input_file]
@@ -497,7 +497,6 @@ def main(argv):
        exit_process(str(traceback.format_exc(10)), logger= globalerrorlogger )
 
 
-    
     eprintf("            ***********                \n")
     eprintf("INFO : FINISHED PROCESSING THE SAMPLES \n")
     eprintf("             THE END                   \n")
@@ -507,6 +506,6 @@ def main(argv):
 # the main function of metapaths
 if __name__ == "__main__":
     createParser()
-    main(sys.argv[1:])    
+    main(sys.argv[1:])
     
 
