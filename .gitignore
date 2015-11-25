@@ -15,6 +15,7 @@ executables/Unix/*
 executables/Unix
 executables/openSUSE/*
 #executables/*
+executables/source/rpkm_c
 
 # Configuration files
 template_config.txt
