@@ -2,7 +2,11 @@
 
 Niels W. Hanson, Kishori M. Konwar, Shang-Ju Wu, and Steven J. Hallam
 
+![MetaPathways Logo](https://camo.githubusercontent.com/307e608b1e7a2c56c91127d349091153ee6adebd/687474703a2f2f692e696d6775722e636f6d2f6b6e6e386242622e706e67)
+
 ## Updates
+
+**July 7, 2015**: [MetaPathways v2.5.2 release](https://github.com/hallamlab/metapathways2/releases/tag/v2.5.2) has minor bug fixes releated to gbk input processing, sam file RPKM calculations, and rRNA homology search.
 
 **November 27, 2014**: [MetaPathways v2.5 released](https://github.com/hallamlab/metapathways2/releases/tag/v2.5) with upgrades to the pipeline:
     
