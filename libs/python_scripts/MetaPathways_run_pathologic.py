@@ -174,7 +174,7 @@ def main(argv, errorlogger = None, runcommand = None, runstatslogger = None):
     fix_pgdb_input_files(options.pgdbdir, pgdbs = [])
 
     if not path.exists(options.pgdbdir):
-      status  = runPathologicCommand(runcommand = command) 
+      status  = runPathologicCommand(runcommand = command)
       fix_pgdb_input_files(options.pgdbdir, pgdbs = [])
     if status!=0:
        eprintf("ERROR\tFailed to run Pathologic on input %s : \n" %(options.inputfolder))

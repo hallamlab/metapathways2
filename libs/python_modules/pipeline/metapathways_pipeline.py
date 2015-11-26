@@ -3,30 +3,9 @@
 
 
 from __future__ import division
-try:
-      import traceback
-      import sys
-      from subprocess import Popen, PIPE, STDOUT
-      from os import makedirs, listdir, _exit
-      from glob import glob
-      from optparse import OptionParser
-      from os.path import split, splitext, join, dirname, abspath
-      from datetime import datetime
 
-      from libs.python_modules.utils.metapathways_utils import printf, eprintf
-      from libs.python_modules.utils.sysutil import getstatusoutput
-      from libs.python_modules.utils.pathwaytoolsutils import *
-
-      from libs.python_modules.grid.BlastGrid import *
-      import libs.python_scripts  as python_scripts
-
-except:
-      print """ Could not load some user defined  module functions"""
-      print """ Make sure your typed \"source MetaPathwaysrc\""""
-      print """ """
-      print traceback.print_exc(10)
-      sys.exit(3)
-
+from libs.python_modules.grid.BlastGrid import *
+import libs.python_scripts  as python_scripts
 
 __author__ = "Kishori M Konwar"
 __copyright__ = "Copyright 2013, MetaPathways"
@@ -40,17 +19,6 @@ __status__ = "Release"
 This file contains the metapaths workflow functions which string together 
 independent scripts. 
 """
-
-def print_commands(commands,
-                   status_update_callback,
-                   logger):
-    """Print list of commands to run """
-    #logger.write("Printing commands only.\n\n")
-    #for c in commands:
-    #    for e in c:
-    #        status_update_callback('#%s' % e[0])
-    #        print '%s' % e
-    #        logger.write('# %s command\n%s\n\n' % e)
             
 def execute_pipeline_stage(pipeline_command, extra_command = None,  errorlogger = None, runstatslogger = None):
 
@@ -59,7 +27,6 @@ def execute_pipeline_stage(pipeline_command, extra_command = None,  errorlogger 
      funcname = re.sub(r'.py$','', argv[0])
      funcname = re.sub(r'^.*/','', funcname)
      args = argv[1:] 
-     
 
      if hasattr(python_scripts, funcname):
         methodtocall = getattr( getattr(python_scripts, funcname), funcname)
@@ -73,7 +40,7 @@ def execute_pipeline_stage(pipeline_command, extra_command = None,  errorlogger 
      return result
 
 
-def  printMissingList(missingList):
+def printMissingList(missingList):
     eprintf("MISSING INPUT LIST:\n")
     for missingItem in missingList:
        eprintf("     %s\n", missingItem)
@@ -83,7 +50,6 @@ def execute_tasks(s, verbose = False, block = 0):
     """Run list of commands, one after another """
     #logger.write("Executing commands.\n\n")
     contextBlocks = s.getContextBlocks()
-       
     contextBlock = contextBlocks[block]
 
     for c in contextBlock:
@@ -101,7 +67,6 @@ def execute_tasks(s, verbose = False, block = 0):
             c.removeOutput(s)
             if c.isInputAvailable( errorlogger = s.errorlogger):
                s.stepslogger.write('%s\t%s\n' %(c.name, "RUNNING"))
-
                result = [ 0, 'Error while executing step ' +  c.name ]
                try:
                   result = execute(s,c)
@@ -114,7 +79,6 @@ def execute_tasks(s, verbose = False, block = 0):
                   s.stepslogger.write('%s\t%s\n' %( c.name, "SUCCESS"))
                else:
                   eprintf('..... Failed!\n')
-                 # eprintf('%s result \n',  result )
                   s.stepslogger.write('%s\t%s\n' %( c.name, "FAILED"))
             else:
                eprintf('..... Skipping [NO INPUT]!\n')
@@ -126,9 +90,9 @@ def execute_tasks(s, verbose = False, block = 0):
 
         elif c.status in ['yes']:
            if not c.isOutputAvailable():
+               # refactor this
                if c.isInputAvailable(errorlogger = s.errorlogger):
                   s.stepslogger.write('%s\t%s\n' %(c.name, "RUNNING"))
-
                   result = [ 0, 'Error while executing  step ' +  c.name ]
                   try:
                      result = execute(s,c)
@@ -154,6 +118,8 @@ def execute_tasks(s, verbose = False, block = 0):
            s.stepslogger.write('%s\t%s\n' %(  c.name, "SKIPPED"))
         elif c.status=='grid':
            blastgrid(c.commands[0])
+
+
 
 def execute(s, c):
     result = [ 0, 'Error while executing ' +  c.name ]

@@ -5,13 +5,13 @@
 
 # Paths for the Python, Perl and Pathway Tools
 PYTHON_EXECUTABLE '/usr/bin/python'
-PGDB_FOLDER '/Users/kishori/ptools-local/pgdbs/user'
-METAPATHWAYS_PATH '/Users/kishori/MetaPathways2.4/MetaPathways_Python.2.5.1'
+PGDB_FOLDER '/Users/nielshanson/ptools-local/pgdbs/user'
+METAPATHWAYS_PATH '/Users/nielshanson/Documents/pycharm/metapathways2'
 
 # Replace with your current
-PATHOLOGIC_EXECUTABLE '/Users/kishori/pathway-tools/pathway-tools'
+PATHOLOGIC_EXECUTABLE '/Users/nielshanson/pathway-tools/pathway-tools'
 
-REFDBS '/Users/sgeadmin/MetaPathways/databases'
+REFDBS '/Users/nielshanson/Documents/pycharm/metapathways2/databases'
 
 # Executables: replace  'yourOS' to your platform linux-flavor or macosx
 # Bit type - bit32 or bit64 
@@ -27,8 +27,7 @@ SCAN_tRNA_EXECUTABLE 'trnascan-1.4'
 RPKM_EXECUTABLE 'rpkm'
 BWA_EXECUTABLE 'bwa'
 
-# This is the folder where the scripts folder of the MetaPathways  pipeline 
-# # is installed
+# Pipeline scripts
 
 GBK_TO_FNA_FAA_GFF 'libs/python_scripts/MetaPathways_parse_genbank.py'
 GFF_TO_FNA_FAA_GFF 'libs/python_scripts/MetaPathways_input_gff.py'
@@ -40,7 +39,7 @@ COMPUTE_REFSCORES 'libs/python_scripts/MetaPathways_refscore.py'
 FUNC_SEARCH 'libs/python_scripts/MetaPathways_func_search.py'
 PARSE_FUNC_SEARCH 'libs/python_scripts/MetaPathways_parse_blast.py'
 ANNOTATE_ORFS 'libs/python_scripts/MetaPathways_annotate_fast.py'
-GENBANK_FILE 'libs/python_scripts/MetaPathways_create_genbank_ptinput_sequin.py'
+GENBANK_FILE 'libs/python_scripts/MetaPathways_create_genbank.py'
 CREATE_ANNOT_REPORTS 'libs/python_scripts/MetaPathways_create_reports_fast.py'
 RUN_PATHOLOGIC 'libs/python_scripts/MetaPathways_run_pathologic.py'
 SCAN_rRNA 'libs/python_scripts/MetaPathways_rRNA_stats_calculator.py'

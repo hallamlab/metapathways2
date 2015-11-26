@@ -8,35 +8,13 @@ __maintainer__ = "Kishori M Konwar"
 __status__ = "Release"
 
 
-try:
-   from optparse import make_option
-   from os import makedirs,  path, listdir, remove, rename, _exit
-   import os, sys, errno, shutil, re
-   from glob import glob
-   from datetime import date
-   #from metapaths_utils  import pars[s._command_line_parameters
-
-   from libs.python_modules.utils.sysutil import getstatusoutput, pathDelim
-   #from libs.python_modules.utils.utils import *, hasInput, createFolderIfNotFound
-   from libs.python_modules.utils.utils import *
-   from libs.python_modules.parsers.parse  import parse_metapaths_parameters
-   from libs.python_modules.pipeline.metapathways_pipeline import print_commands,  execute_tasks
-   from libs.python_modules.pipeline.MetaPathways_gather_run_stats import MetaPathways_gather_run_stats
-   from libs.python_modules.utils.metapathways_utils import fprintf, printf, eprintf, remove_existing_pgdb, exit_process, WorkflowLogger, generate_log_fp
-
-   from libs.python_modules.pipeline.sampledata import *
-   from libs.python_modules.pipeline.jobscreator import *
-   from libs.python_modules.pipeline.commands import *
-   import libs.python_scripts
-
-
-except:
-     print """ Could not load some user defined  module functions"""
-     print """ Make sure your typed \"source MetaPathwaysrc\""""
-     print """ """
-     sys.exit(3)
-
-
+from os import rename
+import errno
+from datetime import date
+from libs.python_modules.utils.sysutil import getstatusoutput
+from libs.python_modules.pipeline.metapathways_pipeline import execute_tasks
+from libs.python_modules.pipeline.jobscreator import *
+from libs.python_modules.pipeline.commands import *
 
 PATHDELIM = pathDelim()
 
@@ -496,7 +474,7 @@ def run_metapathways(samplesData, output_dir, all_samples_output_dir, globallogg
          eprintf( '\n' + sample_name_banner +  ' [STEPS BLOCK 0] ' + '\n')
          try:
             pass
-            execute_tasks(s, verbose = command_line_params['verbose'], block = 0)    
+            execute_tasks(s, verbose = command_line_params['verbose'], block = 0)
          except:
             pass
 

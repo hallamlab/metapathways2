@@ -16,24 +16,24 @@ orf_prediction:min_length 60
 orf_prediction:translation_table 11
 
 # ORF annotation parameters
-annotation:algorithm LAST
+annotation:algorithm BLAST
 # e.g. BLAST or LAST
 
 #annotation:dbs metacyc-v4-2011-07-03,refseq-nr-2014-01-18,CAZY_2014_09_04,COG_2013-12-27,kegg-pep-2011-06-18,seed-2014-01-30
 #annotation:dbs kegg-pep-2011-06-18,seed-2014-01-30
 #annotation:dbs 
 #annotation:dbs metacyc-v4-2011-07-03,refseq-nr-2014-01-18,CAZY_2014_09_04,COG_2013-12-27,kegg-pep-2011-06-18,seed-2014-01-30
-annotation:dbs metacyc-v4-2011-07-03,CAZY_2014_09_04,COG_2013-12-27
+annotation:dbs 
 
 # e.g. annotation:dbs    cog,kegg,refseq,metacyc
 annotation:min_bsr 0.4
 annotation:max_evalue 0.000001
 annotation:min_score 20
 annotation:min_length 60
-annotation:max_hits 5
+annotation:max_hits 10
 
 # rRNA annotation parameters LSURef_115_tax_silva
-rRNA:refdbs 
+rRNA:refdbs LSURef_115_tax_silva_2013-12-12
 
 rRNA:max_evalue 0.000001
 rRNA:min_identity 20
@@ -50,12 +50,13 @@ metapaths_steps:PREPROCESS_INPUT yes
 metapaths_steps:ORF_PREDICTION yes
 metapaths_steps:FILTER_AMINOS yes
 metapaths_steps:FUNC_SEARCH yes
-metapaths_steps:PARSE_FUNC_SEARCH redo
-metapaths_steps:SCAN_rRNA skip
-metapaths_steps:SCAN_tRNA skip
-metapaths_steps:ANNOTATE_ORFS redo
-metapaths_steps:BUILD_PGDB skip
-metapaths_steps:COMPUTE_RPKM skip
+metapaths_steps:PARSE_FUNC_SEARCH yes
+metapaths_steps:SCAN_rRNA yes
+metapaths_steps:SCAN_tRNA yes
+metapaths_steps:ANNOTATE_ORFS yes
+metapaths_steps:GENBANK_FILE yes
+metapaths_steps:BUILD_PGDB yes
+metapaths_steps:COMPUTE_RPKM yes
 
 # grid settings
 # template for adding grid

@@ -272,7 +272,6 @@ class ContextCreator:
           return contexts
 
 
-
       def create_orf_prediction_cmd(self, s) :
           """ ORF_PREDICTION """
           contexts = []
@@ -310,6 +309,7 @@ class ContextCreator:
           context.message = self._Message("ORF PREDICTION")
           contexts.append(context)
           return contexts
+
 
       def create_aa_orf_sequences_cmd(self, s):
          """ ORF_TO_AMINO """
@@ -381,7 +381,6 @@ class ContextCreator:
           return contexts
 
 
-
       def create_refscores_compute_cmd(self, s):
           """COMPUTE_REFSCORES"""
           contexts = []
@@ -414,8 +413,8 @@ class ContextCreator:
           context.message = self._Message("COMPUTING REFSCORES FOR BITSCORE")
           contexts.append(context)
           return contexts
-             
-        
+
+
       def create_blastp_against_refdb_cmd(self, s):
           """FUNC_SEARCH"""
           contexts = []
@@ -587,7 +586,6 @@ class ContextCreator:
           return contexts
 
 
-
       def create_tRNA_scan_statistics(self, s):
            """SCAN_tRNA"""
 
@@ -703,7 +701,8 @@ class ContextCreator:
           contexts.append(context)
           return contexts
 
-      def create_genbank_file_cmd(self, s): 
+
+      def create_genbank_file_cmd(self, s):
           """GENBANK_FILE"""
 
           contexts = []
@@ -718,29 +717,31 @@ class ContextCreator:
 
           context = Context()
           context.name = 'GENBANK_FILE'
-        
-          context.inputs = { 
-                             'input_annot_gff':input_annot_gff,
-                             'input_nucleotide_fasta':input_nucleotide_fasta,
-                             'input_amino_acid_fasta':input_amino_acid_fasta
-                           }
+
+          context.inputs = {
+              'input_annot_gff':input_annot_gff,
+              'input_nucleotide_fasta':input_nucleotide_fasta,
+              'input_amino_acid_fasta':input_amino_acid_fasta
+          }
           context.outputs = {
-                               'output_annot_gbk': output_annot_gbk
-                            }
+              'output_annot_gbk': output_annot_gbk
+          }
 
           pyScript = self.configs.METAPATHWAYS_PATH + self.configs.GENBANK_FILE
-          cmd="%s -g %s -n %s -p %s " %(pyScript, context.inputs['input_annot_gff'],\
-               context.inputs['input_nucleotide_fasta'], context.inputs['input_amino_acid_fasta'])  
+          cmd="%s -g %s -n %s -p %s" % (pyScript,\
+                                        context.inputs['input_annot_gff'],\
+                                        context.inputs['input_nucleotide_fasta'],\
+                                        context.inputs['input_amino_acid_fasta'])
 
 
           """GENBANK_FILE"""
           genbank_file_status = self.params.get('metapaths_steps','GENBANK_FILE')
-          if genbank_file_status in ['redo'] or\
-             (genbank_file_status in ['yes'] and not s.hasGenbankFile() ):
-             cmd += ' --out-gbk ' + context.outputs['output_annot_gbk']
+          if genbank_file_status in ['redo'] or \
+                  (genbank_file_status in ['yes'] and not s.hasGenbankFile() ):
+              cmd += ' -o ' + context.outputs['output_annot_gbk']
           context.message =  self._Message("GENBANK FILE" )
 
-          context.status =  genbank_file_status = self.params.get('metapaths_steps','GENBANK_FILE')
+          context.status = self.params.get('metapaths_steps','GENBANK_FILE')
           context.commands = [ cmd ]
           contexts.append(context)
           return contexts
@@ -1180,6 +1181,7 @@ class ContextCreator:
                              [ 'COMPUTE_REFSCORES',
                               'PARSE_FUNC_SEARCH',
                               'ANNOTATE_ORFS',
+                              'GENBANK_FILE',
                               'PATHOLOGIC_INPUT',
                              # 'GENBANK_FILE',  
                               'CREATE_ANNOT_REPORTS',
@@ -1198,6 +1200,7 @@ class ContextCreator:
                               'SCAN_rRNA',
                               'SCAN_tRNA',
                               'ANNOTATE_ORFS',
+                              'GENBANK_FILE',
                               'PATHOLOGIC_INPUT',
                              # 'GENBANK_FILE',  
                               'CREATE_ANNOT_REPORTS',
@@ -1216,6 +1219,7 @@ class ContextCreator:
                               'SCAN_tRNA',
                               'ANNOTATE_ORFS',
                               'PATHOLOGIC_INPUT',
+                              'GENBANK_FILE',
                              # 'GENBANK_FILE',  
                               'CREATE_ANNOT_REPORTS',
                              # 'MLTREEMAP_CALCULATION',

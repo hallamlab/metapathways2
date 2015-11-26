@@ -75,7 +75,7 @@ class SampleData():
         return contexts
 
     def getContextBlocks(self):
-        contextBlocks  =[]
+        contextBlocks = []
 
         for block in self.stages:
           contexts = []
@@ -212,7 +212,7 @@ class SampleData():
               stages.append(context.name)
               self.stages_context[context.name] = context
 
-        self.stages.append( stages)
+        self.stages.append( stages )
 
 
     def hasPToolsInput(self):

@@ -7,52 +7,19 @@ __version__ = "1.0"
 __maintainer__ = "Kishori M Konwar Niels W Hanson"
 __status__ = "Release"
 
-#from  libs.starcluster.test import  teststarcluster as sctest
-#import sys
-
-try:
-     import sys, traceback, re, inspect, signal, shutil 
-     from os import makedirs, sys, listdir, environ, path, _exit
-     #from commands import getstatusoutput
-     from optparse import OptionParser
-     
-     from libs.python_modules.utils import metapathways_utils
-     from libs.python_modules.utils.utils import *
-     from libs.python_modules.utils.metapathways_utils  import parse_command_line_parameters, eprintf, halt_process, exit_process, WorkflowLogger, generate_log_fp
-     from libs.python_modules.parsers.parse  import parse_metapaths_parameters, parse_parameter_file
-     from libs.python_modules.pipeline.metapathways_pipeline import print_commands, print_to_stdout, no_status_updates
-     from libs.python_modules.utils.sysutil import pathDelim
-     from libs.python_modules.pipeline.metapathways import run_metapathways, get_parameter, read_pipeline_configuration
-     from libs.python_modules.annotate import *
-     from libs.python_modules.grid.blast_using_grid import blast_in_grid
-
-     from libs.python_modules.diagnostics.parameters import *
-     from libs.python_modules.diagnostics.diagnoze import *
-     from libs.python_modules.pipeline.sampledata import *
-except:
-   print """ Could not load some user defined  module functions"""
-   print """ Make sure your typed \"source MetaPathwaysrc\""""
-   print """ """
-   #print traceback.print_exc(10)
-   sys.exit(3)
+import inspect, signal
+from os import listdir
+from libs.python_modules.parsers.parse  import parse_metapaths_parameters
+from libs.python_modules.pipeline.metapathways_pipeline import print_to_stdout, no_status_updates
+from libs.python_modules.pipeline.metapathways import run_metapathways, read_pipeline_configuration
+from libs.python_modules.grid.blast_using_grid import blast_in_grid
+from libs.python_modules.diagnostics.diagnoze import *
+from libs.python_modules.pipeline.sampledata import *
 
 
+# GLOBAL STRUCTURES
 cmd_folder = path.abspath(path.split(inspect.getfile( inspect.currentframe() ))[0])
-
 PATHDELIM =  str(pathDelim())
-
-#print cmd_folder
-#if not sys.platform.startswith('win'):
-#    res =getstatusoutput('source  '+ cmd_folder +'/'+'.metapathsrc')
-#    if( int(res[0])==0 ): 
-#       print 'Ran ' + cmd_folder +'/'+'.metapathsrc ' + ' file successfully!'
-#    else:
-#       print 'Error : ' + res[1] 
-#       print 'while running  ' + cmd_folder +'/'+'.metapathsrc ' + ' file!'
-
-#sys.path.insert(0,cmd_folder + "/libs/python_modules/")
-#sys.path.insert(1, cmd_folder + "/libs/")
-#print sys.path
 
 #config = load_config()
 metapaths_config = """config/template_config.txt""";
@@ -455,7 +422,7 @@ def main(argv):
                 s.prepareToRun()
                 samplesData[input_file] = s
    
-              # load the sample information 
+              # load the sample information
               run_metapathways(
                    samplesData,
                    sample_output_dir,

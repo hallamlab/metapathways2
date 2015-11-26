@@ -468,7 +468,7 @@ def  write_sequin_file(tbl_file_name, contig_dict, sample_name, nucleotide_seq_d
 
 
 #this function creates the genbank file from the gff, protein and nucleotide sequences  
-def  write_gbk_file(output_file_name, contig_dict, sample_name, nucleotide_seq_dict, protein_seq_dict):
+def write_gbk_file(output_file_name, contig_dict, sample_name, nucleotide_seq_dict, protein_seq_dict):
 
      date = genbankDate()
      output_file_name_tmp = output_file_name + ".tmp"
@@ -620,8 +620,6 @@ def wrap(prefix, start, end, string):
        output+=c 
     return output
 
-    
-    
 
 def process_sequence_file(sequence_file_name,  seq_dictionary):
      try:
@@ -714,10 +712,6 @@ def createParser():
 
 
 def main(argv, errorlogger = None, runstatslogger = None):
-    # Parse options (many!)
-    # TODO: Create option groups
-    # filtering options
-
 
     global parser
     options, args = parser.parse_args(argv)
@@ -741,7 +735,7 @@ def main(argv, errorlogger = None, runstatslogger = None):
        #print 'No genbank or sequin or ptools input is specified'
        return (0,'')
 
-    if options.sequin_file and  not options.sequin_params_file:
+    if options.sequin_file and not options.sequin_params_file:
         parser.error('Cannot create NCBI Sequin input without a parameter file')
      
     #print options
@@ -772,16 +766,14 @@ def main(argv, errorlogger = None, runstatslogger = None):
        input_files['sequin_tbl2asn'] = options.sequin_tbl2asn
        input_files['sequin_sbt_file'] = options.ncbi_sbt_file
 
-
     if  options.ptinput_file:
        output_files['ptinput'] = options.ptinput_file
-    
 
     nucleotide_seq_dict = {}
-    process_sequence_file( options.nucleotide_sequences, nucleotide_seq_dict) 
+    process_sequence_file( options.nucleotide_sequences, nucleotide_seq_dict)
     protein_seq_dict = {}
-    process_sequence_file(options.protein_sequences, protein_seq_dict) 
-    process_gff_file(options.gff_file, output_files, nucleotide_seq_dict, protein_seq_dict, input_files) 
+    process_sequence_file(options.protein_sequences, protein_seq_dict)
+    process_gff_file(options.gff_file, output_files, nucleotide_seq_dict, protein_seq_dict, input_files)
     #print params['bitscore']
 
 def MetaPathways_create_genbank_ptinput_sequin(argv, errorlogger = None, runstatslogger = None):
